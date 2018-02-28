@@ -495,12 +495,12 @@ func (p *producer) produce(obj <-chan object) (err error) {
 
 func valid(sum string) (ok bool) {
 	ep := envar["BASE_URL"] + "/check_releases/" + sum
-	//stdlog.Println("wrapper: release check url:", ep)
+	//stdlog.Println("client: release check url:", ep)
 	resp, err := http.Get(ep)
 	if err != nil {
 		panic(err)
 	}
-	//stdlog.Println("wrapper: valid: response status:", resp.Status)
+	//stdlog.Println("client: valid: response status:", resp.Status)
 
 	switch resp.StatusCode {
 	case 200:
@@ -641,7 +641,7 @@ func main() {
 	logger := os.Stdout
 	stdlog.SetOutput(logger)
 	stdlog.SetFlags(stdlog.Lmicroseconds)
-	stdlog.Printf("Auklet Wrapper version %s (%s)\n", Version, BuildDate)
+	stdlog.Printf("Auklet Client version %s (%s)\n", Version, BuildDate)
 
 	env()
 	args := os.Args[1:]
