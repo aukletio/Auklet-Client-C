@@ -52,7 +52,7 @@ To build and install the client to `$GOPATH/bin`, run
 
 	go install ./client
 
-To test the client, run
+To run unit tests on the client, run
 
 	go test ./client
 
@@ -98,7 +98,7 @@ A comma-delimited list of Kafka broker addresses. For example:
 
 ## `AUKLET_EVENT_TOPIC`, `AUKLET_PROF_TOPIC` `AUKLET_LOG_TOPIC`
 
-Kafka topics to which `auklet` should send event, profile, and log data, respectively.
+Kafka topics to which `client` should send event, profile, and log data, respectively.
 
 ## `AUKLET_BASE_URL`
 
