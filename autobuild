@@ -1,5 +1,5 @@
 #!/bin/sh
 # http://www.entrproject.org/
 while true; do
-	ls client/*.go | entr -dcs 'go install ./client';
+	ls cmd/client/*.go | entr -dcs 'go install ./cmd/client';
 done

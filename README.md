@@ -37,7 +37,7 @@ to download `dep-darwin-amd64`.
 # Development Tools
 
 `autobuild` is an optional script that can be run in a separate terminal window.
-When source files change, it runs `go install ./client`, allowing the developer to find
+When source files change, it runs `go install ./cmd/client`, allowing the developer to find
 compile-time errors immediately without needing an IDE.
 
 `autobuild` requires [entr](http://www.entrproject.org/).
@@ -50,11 +50,11 @@ To ensure you have all the correct dependencies, run
 
 To build and install the client to `$GOPATH/bin`, run
 
-	go install ./client
+	go install ./cmd/client
 
 To run unit tests on the client, run
 
-	go test ./client
+	go test ./config
 
 # Configure
 

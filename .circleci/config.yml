@@ -65,7 +65,7 @@ jobs:
             - run:
                 name: Run tests
                 command: |
-                  go test ./client
+                  go test ./config
 
             ##
             # SAVE CACHES

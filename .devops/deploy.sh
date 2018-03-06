@@ -24,7 +24,7 @@ do
     # We don't support ARM 5 or 6.
     export GOARM=7
   fi
-  GOARCH=$a go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-$a-$VERSION ./client
+  GOARCH=$a go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-$a-$VERSION ./cmd/client
 done
 
 echo 'Installing AWS CLI...'
