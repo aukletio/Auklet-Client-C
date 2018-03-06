@@ -7,8 +7,8 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/apc/app"
-	"github.com/ESG-USA/apc/device"
+	"github.com/ESG-USA/Auklet-Client/app"
+	"github.com/ESG-USA/Auklet-Client/device"
 )
 
 // Exit represents the exit of an app in which libauklet did not handle a

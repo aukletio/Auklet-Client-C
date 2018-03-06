@@ -10,7 +10,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/ESG-USA/apc/producer"
+	"github.com/ESG-USA/Auklet-Client/producer"
 )
 
 // sockMessage represents the JSON schema of messages that can be received by a

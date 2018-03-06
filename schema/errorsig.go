@@ -9,8 +9,8 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/apc/app"
-	"github.com/ESG-USA/apc/device"
+	"github.com/ESG-USA/Auklet-Client/app"
+	"github.com/ESG-USA/Auklet-Client/device"
 )
 
 // ErrorSig represents the exit of an app in which libauklet handled an "error

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"encoding/json"
 
-	"github.com/ESG-USA/apc/schema"
+	"github.com/ESG-USA/Auklet-Client/schema"
 )
 
 func errorsig() {

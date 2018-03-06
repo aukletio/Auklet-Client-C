@@ -6,8 +6,8 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/apc/app"
-	"github.com/ESG-USA/apc/device"
+	"github.com/ESG-USA/Auklet-Client/app"
+	"github.com/ESG-USA/Auklet-Client/device"
 )
 
 // Profile represents profile data as expected by Kafka consumers.

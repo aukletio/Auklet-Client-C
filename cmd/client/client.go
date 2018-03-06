@@ -10,13 +10,13 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/ESG-USA/apc/app"
-	"github.com/ESG-USA/apc/certs"
-	"github.com/ESG-USA/apc/config"
-	"github.com/ESG-USA/apc/device"
-	"github.com/ESG-USA/apc/producer"
-	"github.com/ESG-USA/apc/proxy"
-	"github.com/ESG-USA/apc/schema"
+	"github.com/ESG-USA/Auklet-Client/app"
+	"github.com/ESG-USA/Auklet-Client/certs"
+	"github.com/ESG-USA/Auklet-Client/config"
+	"github.com/ESG-USA/Auklet-Client/device"
+	"github.com/ESG-USA/Auklet-Client/producer"
+	"github.com/ESG-USA/Auklet-Client/proxy"
+	"github.com/ESG-USA/Auklet-Client/schema"
 )
 
 func usage() {

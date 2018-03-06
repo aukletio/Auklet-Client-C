@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ESG-USA/apc/config"
+	"github.com/ESG-USA/Auklet-Client/config"
 
 	"github.com/rdegges/go-ipify"
 	"github.com/shirou/gopsutil/cpu"
