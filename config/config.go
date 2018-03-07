@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Type Config represents the parameters of an Auklet client invocation. A
+// A Config represents the parameters of an Auklet client invocation. A
 // Config can be defined programmatically or from the environment.
 type Config struct {
 	// A BaseURL is a URL of the API we would be working against; typically
