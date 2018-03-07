@@ -40,7 +40,7 @@ func New(args []string, appid string) (app *App) {
 
 // IsReleased returns true if app is released according to the API at baseurl.
 func (app *App) IsReleased(baseurl, apikey string) (ok bool) {
-	url := baseurl + "/releases/check/?checksum=" + app.CheckSum
+	url := baseurl + "/releases/?checksum=" + app.CheckSum
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Print(err)
