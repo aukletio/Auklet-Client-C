@@ -38,10 +38,16 @@ func New(args []string, appid string) (app *App) {
 	return
 }
 
-// IsReleased returns true if app is released according to the API at url.
-func (app *App) IsReleased(baseurl string) (ok bool) {
+// IsReleased returns true if app is released according to the API at baseurl.
+func (app *App) IsReleased(baseurl, apikey string) (ok bool) {
 	url := baseurl + "/releases/check/?checksum=" + app.CheckSum
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Print(err)
+	}
+	req.Header.Add("Authentication", "JWT "+ apikey)
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Print(err)
 		return

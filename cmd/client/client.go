@@ -34,7 +34,7 @@ func main() {
 
 	cfg := config.FromEnv()
 	app := app.New(args, cfg.AppId)
-	if !app.IsReleased(cfg.BaseUrl) {
+	if !app.IsReleased(cfg.BaseUrl, cfg.APIKey) {
 		if err := app.Start(); err == nil {
 			app.Wait()
 		}
