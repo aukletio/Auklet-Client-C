@@ -10,15 +10,15 @@ import (
 // Type Config represents the parameters of an Auklet client invocation. A
 // Config can be defined programmatically or from the environment.
 type Config struct {
-	// A BaseUrl is a URL of the API we would be working against; typically
+	// A BaseURL is a URL of the API we would be working against; typically
 	// either staging, QA, or production.
-	BaseUrl string
+	BaseURL string
 
 	// An App ID is a long string provided to the customer upon onboarding.
 	// It identifies their application as a whole, but not a particular
 	// release of it. It is used in API calls relating to devices and in
 	// profile data sent to Kafka.
-	AppId string
+	AppID string
 
 	// An API key is a long string provided to the customer upon onboarding
 	// that grants them API access. It is used in most API calls, such as
@@ -43,8 +43,8 @@ const Prefix = "AUKLET_"
 // FromEnv creates a Config entirely from environment variables.
 func FromEnv() (c Config) {
 	c = Config{
-		BaseUrl:      os.Getenv(Prefix + "BASE_URL"),
-		AppId:        os.Getenv(Prefix + "APP_ID"),
+		BaseURL:      os.Getenv(Prefix + "BASE_URL"),
+		AppID:        os.Getenv(Prefix + "APP_ID"),
 		APIKey:       os.Getenv(Prefix + "API_KEY"),
 		Brokers:      strings.Split(os.Getenv(Prefix+"BROKERS"), ","),
 		LogTopic:     os.Getenv(Prefix + "LOG_TOPIC"),
@@ -59,8 +59,8 @@ func FromEnv() (c Config) {
 // Production creates a Config as would be required in a production environment.
 func Production() (c Config) {
 	c = Config{
-		BaseUrl:      "https://api.auklet.io/private",
-		AppId:        os.Getenv(Prefix + "APP_ID"),
+		BaseURL:      "https://api.auklet.io/private",
+		AppID:        os.Getenv(Prefix + "APP_ID"),
 		APIKey:       os.Getenv(Prefix + "API_KEY"),
 		Brokers:      strings.Split(os.Getenv(Prefix+"BROKERS"), ","),
 		LogTopic:     os.Getenv(Prefix + "LOG_TOPIC"),
@@ -74,11 +74,11 @@ func Production() (c Config) {
 
 // logEmptyFields logs a warning for each empty field in c.
 func logEmptyFields(c Config) (bad bool) {
-	if c.BaseUrl == "" {
+	if c.BaseURL == "" {
 		log.Print("warning: empty BASE_URL")
 		bad = true
 	}
-	if c.AppId == "" {
+	if c.AppID == "" {
 		log.Print("warning: empty APP_ID")
 		bad = true
 	}

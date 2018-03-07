@@ -33,15 +33,15 @@ func main() {
 	}
 
 	cfg := config.FromEnv()
-	app := app.New(args, cfg.AppId)
-	if !app.IsReleased(cfg.BaseUrl, cfg.APIKey) {
+	app := app.New(args, cfg.AppID)
+	if !app.IsReleased(cfg.BaseURL, cfg.APIKey) {
 		if err := app.Start(); err == nil {
 			app.Wait()
 		}
 		os.Exit(0)
 	}
 
-	certs := certs.FromUrl(cfg.BaseUrl, cfg.APIKey)
+	certs := certs.FromURL(cfg.BaseURL, cfg.APIKey)
 	prod := producer.New(cfg.Brokers, certs)
 	prod.LogTopic = cfg.LogTopic
 	if cfg.Dump {

@@ -18,6 +18,7 @@ type Message interface {
 	Bytes() ([]byte, error)
 }
 
+// Producer provides a simple Kafka producer.
 type Producer struct {
 	sarama.SyncProducer
 

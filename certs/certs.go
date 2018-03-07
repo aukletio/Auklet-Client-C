@@ -15,9 +15,9 @@ import (
 	"strings"
 )
 
-// FromUrl fetches zipped SSL certs against baseurl using apikey and returns
+// FromURL fetches zipped SSL certs against baseurl using apikey and returns
 // them as a *tls.Config.
-func FromUrl(baseurl, apikey string) (c *tls.Config) {
+func FromURL(baseurl, apikey string) (c *tls.Config) {
 	url := baseurl + "/certificates/"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

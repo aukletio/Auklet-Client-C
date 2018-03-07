@@ -1,6 +1,6 @@
-package schema
-
 // +build linux
+
+package schema
 
 import (
 	"encoding/json"
@@ -32,11 +32,11 @@ type ErrorSig struct {
 
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
-	Status     int             `json:"exit_status"`
+	Status int `json:"exit_status"`
 
 	// Signal is an integer value provided by libauklet. In JSON output, it
 	// is represented as a string.
-	Signal     sig             `json:"signal"`
+	Signal sig `json:"signal"`
 
 	// Trace is a stacktrace provided by libauklet.
 	Trace      json.RawMessage `json:"stack_trace"`
@@ -63,6 +63,7 @@ func NewErrorSig(data []byte, app *app.App, topic string) (e ErrorSig, err error
 	return
 }
 
+// Topic returns the Kafka topic to which p should be sent.
 func (e ErrorSig) Topic() string {
 	return e.kafkaTopic
 }
@@ -74,10 +75,12 @@ func (e ErrorSig) Bytes() ([]byte, error) {
 
 type sig syscall.Signal
 
+// String returns s represented as a human-readable string.
 func (s sig) String() string {
 	return syscall.Signal(s).String()
 }
 
+// MarshalText encodes sig as a human-readable string.
 func (s sig) MarshalText() ([]byte, error) {
 	return []byte(s.String()), nil
 }

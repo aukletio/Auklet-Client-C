@@ -11,7 +11,7 @@ import (
 	"os/exec"
 )
 
-// Type App represents applications using Auklet.
+// An App represents an application using Auklet.
 type App struct {
 	// Cmd is the command to be executed.
 	*exec.Cmd
@@ -20,8 +20,8 @@ type App struct {
 	// with which we identify a build.
 	CheckSum string
 
-	// AppId is to be provided by config.Config.
-	AppId string
+	// AppID is to be provided by config.Config.
+	AppID string
 }
 
 // New returns an App that would execute args.
@@ -33,7 +33,7 @@ func New(args []string, appid string) (app *App) {
 	app = &App{
 		Cmd:      c,
 		CheckSum: sum(c.Path),
-		AppId:    appid,
+		AppID:    appid,
 	}
 	return
 }
@@ -45,7 +45,7 @@ func (app *App) IsReleased(baseurl, apikey string) (ok bool) {
 	if err != nil {
 		log.Print(err)
 	}
-	req.Header.Add("Authentication", "JWT "+ apikey)
+	req.Header.Add("Authentication", "JWT "+apikey)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -68,6 +68,7 @@ func (app *App) IsReleased(baseurl, apikey string) (ok bool) {
 	return
 }
 
+// Start wraps the underlying call to Cmd.Start and logs any errors.
 func (app *App) Start() (err error) {
 	err = app.Cmd.Start()
 	if err == nil {
@@ -78,6 +79,7 @@ func (app *App) Start() (err error) {
 	return
 }
 
+// Wait wraps the underlying call to Cmd.Wait and logs the exit of app.
 func (app *App) Wait() {
 	app.Cmd.Wait()
 	log.Printf("app %v exited", app.Path)

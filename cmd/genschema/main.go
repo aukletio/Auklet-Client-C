@@ -2,8 +2,8 @@
 package main
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 
 	"github.com/ESG-USA/Auklet-Client/schema"
 )

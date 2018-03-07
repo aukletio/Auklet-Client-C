@@ -31,10 +31,10 @@ type Exit struct {
 
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
-	Status     int             `json:"exit_status"`
-	Signal     sig             `json:"signal,omitempty"`
-	MacHash    string          `json:"mac_address_hash"`
-	Metrics    device.Metrics  `json:"system_metrics"`
+	Status     int            `json:"exit_status"`
+	Signal     sig            `json:"signal,omitempty"`
+	MacHash    string         `json:"mac_address_hash"`
+	Metrics    device.Metrics `json:"system_metrics"`
 	kafkaTopic string
 }
 
@@ -55,10 +55,12 @@ func NewExit(app *app.App, topic string) (e Exit) {
 	return
 }
 
+// Topic returns the Kafka topic to which e should be sent.
 func (e Exit) Topic() string {
 	return e.kafkaTopic
 }
 
+// Bytes returns the Exit as a byte slice.
 func (e Exit) Bytes() ([]byte, error) {
 	return json.MarshalIndent(e, "", "\t")
 }

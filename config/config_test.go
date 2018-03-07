@@ -9,8 +9,8 @@ func TestEmptyFields(t *testing.T) {
 	if !logEmptyFields(c) {
 		t.Fail()
 	}
-	c.BaseUrl = "not empty"
-	c.AppId = "not empty"
+	c.BaseURL = "not empty"
+	c.AppID = "not empty"
 	c.APIKey = "not empty"
 	c.Brokers = []string{"not empty"}
 	c.LogTopic = "not empty"

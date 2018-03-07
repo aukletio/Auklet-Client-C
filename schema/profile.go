@@ -12,8 +12,8 @@ import (
 
 // Profile represents profile data as expected by Kafka consumers.
 type Profile struct {
-	// AppId is a long string uniquely associated with a particular app.
-	AppId string `json:"app_id"`
+	// AppID is a long string uniquely associated with a particular app.
+	AppID string `json:"app_id"`
 
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// tree data with a particular release.
@@ -47,7 +47,7 @@ func NewProfile(data []byte, app *app.App, topic string) (p Profile, err error) 
 	p.UUID = uuid.NewV4().String()
 	p.Time = time.Now().UnixNano() / 1000000 // milliseconds
 	p.CheckSum = app.CheckSum
-	p.AppId = app.AppId
+	p.AppID = app.AppID
 	p.kafkaTopic = topic
 	return
 }

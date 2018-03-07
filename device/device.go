@@ -110,16 +110,17 @@ func GetMetrics() (m Metrics) { // inboundRate outboundRate
 
 type deviceJSON struct {
 	Mac   string `json:"mac_address_hash"`
-	AppId string `json:"application"`
+	AppID string `json:"application"`
 }
 
+// CreateOrGet ensures that this device is registered with the backend.
 func CreateOrGet(cfg config.Config) {
 	b, _ := json.Marshal(deviceJSON{
 		Mac:   MacHash,
-		AppId: cfg.AppId,
+		AppID: cfg.AppID,
 	})
 
-	url := cfg.BaseUrl + "/devices/"
+	url := cfg.BaseURL + "/devices/"
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
 		log.Print(err)
