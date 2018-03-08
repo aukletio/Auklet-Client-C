@@ -76,6 +76,7 @@ func (p *Producer) Write(q []byte) (n int, err error) {
 	_, _, err = p.SendMessage(&sarama.ProducerMessage{
 		Topic: p.LogTopic,
 		Value: sarama.ByteEncoder(q),
+		Key:   sarama.ByteEncoder("c"),
 	})
 	if err == nil {
 		n = len(q)
