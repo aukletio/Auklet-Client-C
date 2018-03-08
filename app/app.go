@@ -45,7 +45,7 @@ func (app *App) IsReleased(baseurl, apikey string) (ok bool) {
 	if err != nil {
 		log.Print(err)
 	}
-	req.Header.Add("Authentication", "JWT "+apikey)
+	req.Header.Add("Authorization", "JWT "+apikey)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {

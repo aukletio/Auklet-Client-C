@@ -24,7 +24,7 @@ func FromURL(baseurl, apikey string) (c *tls.Config) {
 		log.Print(err)
 		return
 	}
-	req.Header.Add("JWT", apikey)
+	req.Header.Add("Authorization", "JWT"+apikey)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {

@@ -127,7 +127,7 @@ func CreateOrGet(cfg config.Config) {
 		return
 	}
 	req.Header.Add("content-type", "application/json")
-	req.Header.Add("JWT", cfg.APIKey)
+	req.Header.Add("Authorization", "JWT"+cfg.APIKey)
 
 	c := &http.Client{}
 	resp, err := c.Do(req)
