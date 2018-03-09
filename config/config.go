@@ -59,7 +59,7 @@ func FromEnv() (c Config) {
 // Production creates a Config as would be required in a production environment.
 func Production() (c Config) {
 	c = Config{
-		BaseURL:      "https://api.auklet.io/private",
+		BaseURL:      "https://api.auklet.io",
 		AppID:        os.Getenv(Prefix + "APP_ID"),
 		APIKey:       os.Getenv(Prefix + "API_KEY"),
 		Brokers:      strings.Split(os.Getenv(Prefix+"BROKERS"), ","),

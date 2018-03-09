@@ -10,8 +10,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/ESG-USA/Auklet-Client/api"
 	"github.com/ESG-USA/Auklet-Client/app"
-	"github.com/ESG-USA/Auklet-Client/certs"
 	"github.com/ESG-USA/Auklet-Client/config"
 	"github.com/ESG-USA/Auklet-Client/device"
 	"github.com/ESG-USA/Auklet-Client/producer"
@@ -33,23 +33,25 @@ func main() {
 	}
 
 	cfg := config.FromEnv()
+	api := api.New(cfg.BaseURL, cfg.APIKey)
 	app := app.New(args, cfg.AppID)
-	if !app.IsReleased(cfg.BaseURL, cfg.APIKey) {
+	if !api.Release(app.CheckSum) {
 		if err := app.Start(); err == nil {
 			app.Wait()
 		}
 		os.Exit(0)
 	}
 
-	certs := certs.FromURL(cfg.BaseURL, cfg.APIKey)
-	prod := producer.New(cfg.Brokers, certs)
-	prod.LogTopic = cfg.LogTopic
+	prod := producer.New(cfg.Brokers, api.Certificates())
+	if prod != nil {
+		prod.LogTopic = cfg.LogTopic
+	}
 	if cfg.Dump {
 		log.SetOutput(io.MultiWriter(os.Stdout, prod))
 	} else {
 		log.SetOutput(prod)
 	}
-	go device.CreateOrGet(cfg)
+	go api.CreateOrGetDevice(device.MacHash, cfg.AppID)
 	sock, err := net.Listen("unixpacket", "/tmp/auklet-"+strconv.Itoa(os.Getpid()))
 	if err != nil {
 		log.Print(err)

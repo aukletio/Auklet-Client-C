@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 )
@@ -34,36 +33,6 @@ func New(args []string, appid string) (app *App) {
 		Cmd:      c,
 		CheckSum: sum(c.Path),
 		AppID:    appid,
-	}
-	return
-}
-
-// IsReleased returns true if app is released according to the API at baseurl.
-func (app *App) IsReleased(baseurl, apikey string) (ok bool) {
-	url := baseurl + "/releases/?checksum=" + app.CheckSum
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Print(err)
-	}
-	req.Header.Add("Authorization", "JWT "+apikey)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	switch resp.StatusCode {
-	case 200:
-		ok = true
-	case 404:
-		log.Printf(`app %v with checksum "%v" not released against %v`,
-			app.Path, app.CheckSum, url)
-		ok = false
-	case 500:
-		// Something is wrong with the API.
-		fallthrough
-	default:
-		log.Printf("App.IsReleased: got unexpected status %v", resp.Status)
 	}
 	return
 }

@@ -1,4 +1,4 @@
-// Package certs provides access to SSL certificates from the API.
+// Package certs converts zipped SSL certificates into a usable format.
 package certs
 
 import (
@@ -11,38 +11,8 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"strings"
 )
-
-// FromURL fetches zipped SSL certs against baseurl using apikey and returns
-// them as a *tls.Config.
-func FromURL(baseurl, apikey string) (c *tls.Config) {
-	url := baseurl + "/certificates/"
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	req.Header.Add("Authorization", "JWT "+apikey)
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	if resp.StatusCode != 200 {
-		log.Printf("request to %v with API key %v... gave unexpected status %v",
-			url, apikey[:10], resp.Status)
-		return
-	}
-	cts, err := unpack(resp.Body)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	return cts.tlsconfig()
-}
 
 // certs represents SSL certificates.
 type certs struct {
@@ -51,8 +21,8 @@ type certs struct {
 	privatekey []byte
 }
 
-// tlsconfig converts c into a *tls.Config.
-func (c *certs) tlsconfig() (tc *tls.Config) {
+// TLSConfig converts c into a *tls.Config.
+func (c *certs) TLSConfig() (tc *tls.Config) {
 	certpool := x509.NewCertPool()
 	certpool.AppendCertsFromPEM(c.ca)
 	cert, err := tls.X509KeyPair(c.cert, c.privatekey)
@@ -70,7 +40,7 @@ func (c *certs) tlsconfig() (tc *tls.Config) {
 	return
 }
 
-// unpack reads certs from a zip-formatted stream and puts them into
+// Unpack reads certs from a zip-formatted stream and puts them into
 // a map. The process is not simple:
 //
 // ioutil.ReadAll  : io.Reader   -> []byte
@@ -78,7 +48,7 @@ func (c *certs) tlsconfig() (tc *tls.Config) {
 // zip.NewReader   : io.ReaderAt -> zip.Reader (array of zip.File)
 // zip.Open        : zip.File    -> io.ReadCloser (implements io.Reader)
 // ioutil.ReadAll  : io.Reader   -> []byte
-func unpack(r io.Reader) (c *certs, err error) {
+func Unpack(r io.Reader) (c *certs, err error) {
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return
@@ -111,7 +81,7 @@ func unpack(r io.Reader) (c *certs, err error) {
 	return
 }
 
-// verify checks that the map produced by unpack has the right
+// verify checks that the map produced by Unpack has the right
 // number of files and the correct file names.
 func verify(m map[string][]byte) (err error) {
 	filenames := []string{"ck_ca", "ck_cert", "ck_private_key"}

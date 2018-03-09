@@ -5,14 +5,10 @@ package device
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	snet "net"
-	"net/http"
 	"time"
-
-	"github.com/ESG-USA/Auklet-Client/config"
 
 	"github.com/rdegges/go-ipify"
 	"github.com/shirou/gopsutil/cpu"
@@ -106,34 +102,4 @@ func GetMetrics() (m Metrics) { // inboundRate outboundRate
 	m.Inbound = inboundRate
 	m.Outbound = outboundRate
 	return
-}
-
-type deviceJSON struct {
-	Mac   string `json:"mac_address_hash"`
-	AppID string `json:"application"`
-}
-
-// CreateOrGet ensures that this device is registered with the backend.
-func CreateOrGet(cfg config.Config) {
-	b, _ := json.Marshal(deviceJSON{
-		Mac:   MacHash,
-		AppID: cfg.AppID,
-	})
-
-	url := cfg.BaseURL + "/devices/"
-	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	req.Header.Add("content-type", "application/json")
-	req.Header.Add("Authorization", "JWT "+cfg.APIKey)
-
-	c := &http.Client{}
-	resp, err := c.Do(req)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	log.Printf("device.post: got response status %v", resp.Status)
 }
