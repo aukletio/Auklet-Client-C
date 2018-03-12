@@ -30,6 +30,7 @@ var (
 	api       auklet.API
 	cfg       config.Config
 	prod      *producer.Producer
+	kp        auklet.KafkaParams
 	errsigged = false
 )
 
@@ -67,9 +68,10 @@ func setLogOutput() {
 }
 
 func setupProducer() {
-	prod = producer.New(cfg.Brokers, api.Certificates())
+	kp = api.KafkaParams()
+	prod = producer.New(kp.Brokers, api.Certificates())
 	if prod != nil {
-		prod.LogTopic = cfg.LogTopic
+		prod.LogTopic = kp.LogTopic
 	}
 }
 
@@ -89,16 +91,24 @@ func serveApp() {
 	server.Serve()
 	if !errsigged {
 		app.Wait()
-		err = prod.Send(schema.NewExit(app, cfg.EventTopic))
+		err = prod.Send(schema.NewExit(app, kp.EventTopic))
 		if err != nil {
 			log.Print(err)
 		}
 	}
 }
 
+func getConfig() {
+	if Version == "local-build" {
+		cfg = config.FromEnv()
+	} else {
+		cfg = config.Production()
+	}
+}
+
 func main() {
 	args := checkArgs()
-	cfg = config.FromEnv()
+	getConfig()
 	api = auklet.New(cfg.BaseURL, cfg.APIKey)
 	app = application.New(args, cfg.AppID)
 

@@ -18,7 +18,11 @@ const (
 	releases     = "/private/releases/?checksum="
 	certificates = "/private/devices/certificates/"
 	devices      = "/private/devices/"
+	config       = "/private/devices/config/"
 )
+
+// Production defines the base URL for the production environment.
+const Production = "https://api.auklet.io"
 
 // An API represents parameters common to all API requests.
 type API struct {
@@ -124,4 +128,33 @@ func (api API) CreateOrGetDevice(machash, appid string) {
 		return
 	}
 	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
+}
+
+// KafkaParams represents parameters affecting Kafka communication.
+type KafkaParams struct {
+	// Brokers is a list of broker addresses.
+	Brokers []string `json:"brokers"`
+
+	// LogTopic, ProfileTopic, and EventTopic are topics to which we produce
+	// Kafka messages.
+	LogTopic     string `json:"log_topic"`
+	ProfileTopic string `json:"prof_topic"`
+	EventTopic   string `json:"event_topic"`
+}
+
+// KafkaParams returns Kafka parameters from the config endpoint.
+func (api API) KafkaParams() (k KafkaParams) {
+	resp := api.get(config)
+	if resp == nil {
+		return
+	}
+	if resp.StatusCode != 200 {
+		log.Printf("api.Config: unexpected status %v", resp.Status)
+		return
+	}
+	d := json.NewDecoder(resp.Body)
+	if err := d.Decode(&k); err != nil {
+		log.Print(err)
+	}
+	return
 }
