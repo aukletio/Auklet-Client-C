@@ -56,10 +56,12 @@ func FromEnv() (c Config) {
 	return
 }
 
-// Production creates a Config as would be required in a production environment.
-func Production() (c Config) {
+// FromEnvWithStaticBaseURL creates a Config as would be required in a
+// production environment. The base URL is hardcoded in this configuration and
+// cannot be overridden by the end user.
+func FromEnvWithStaticBaseURL() (c Config) {
 	c = Config{
-		BaseURL:      "https://api.auklet.io",
+		BaseURL:      StaticBaseURL,
 		AppID:        os.Getenv(Prefix + "APP_ID"),
 		APIKey:       os.Getenv(Prefix + "API_KEY"),
 		Brokers:      strings.Split(os.Getenv(Prefix+"BROKERS"), ","),
