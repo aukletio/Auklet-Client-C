@@ -37,7 +37,7 @@ to download `dep-darwin-amd64`.
 # Development Tools
 
 `autobuild` is an optional script that can be run in a separate terminal window.
-When source files change, it runs `go install ./client`, allowing the developer to find
+When source files change, it runs `go install ./cmd/client`, allowing the developer to find
 compile-time errors immediately without needing an IDE.
 
 `autobuild` requires [entr](http://www.entrproject.org/).
@@ -50,11 +50,11 @@ To ensure you have all the correct dependencies, run
 
 To build and install the client to `$GOPATH/bin`, run
 
-	go install ./client
+	go install ./cmd/client
 
 To run unit tests on the client, run
 
-	go test ./client
+	go test ./config
 
 # Configure
 
@@ -84,7 +84,7 @@ file, `.auklet`, and sourced from within `.env.staging`. For example:
 
 	$ cat .env.staging
 	. .auklet
-	export AUKLET_BASE_URL=https://api-staging.auklet.io/v1
+	export AUKLET_BASE_URL=https://api-staging.auklet.io
 	export AUKLET_BROKERS=broker1,broker2,broker3
 	export AUKLET_PROF_TOPIC=z8u1-profiler
 	export AUKLET_EVENT_TOPIC=z8u1-events
@@ -102,10 +102,11 @@ Kafka topics to which `client` should send event, profile, and log data, respect
 
 ## `AUKLET_BASE_URL`
 
-A URL, without a trailing slash, to be used when checking releases.
+A URL, without a trailing slash, to be used for API calls. **It must not contain
+a trailing path.**
 For example:
 
-	https://api-staging.auklet.io/v1
+	https://api-staging.auklet.io
 
 If not defined, this defaults to the production endpoint.
 
