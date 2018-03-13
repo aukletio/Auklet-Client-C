@@ -99,9 +99,9 @@ func serveApp() {
 func main() {
 	args := checkArgs()
 	if Version == "local-build" {
-		cfg = config.FromEnv()
+		cfg = config.LocalBuild()
 	} else {
-		cfg = config.FromEnvWithStaticBaseURL()
+		cfg = config.ReleaseBuild()
 	}
 	api = auklet.New(cfg.BaseURL, cfg.APIKey)
 	app = application.New(args, cfg.AppID)
