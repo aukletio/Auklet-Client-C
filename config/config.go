@@ -34,8 +34,8 @@ type Config struct {
 // Prefix is the prefix used by all Auklet environment variables.
 const Prefix = "AUKLET_"
 
-// FromEnv creates a Config entirely from environment variables.
-func FromEnv() (c Config) {
+// LocalBuild creates a Config entirely from environment variables.
+func LocalBuild() (c Config) {
 	c = Config{
 		BaseURL: os.Getenv(Prefix + "BASE_URL"),
 		AppID:   os.Getenv(Prefix + "APP_ID"),
@@ -49,10 +49,12 @@ func FromEnv() (c Config) {
 	return
 }
 
-// Production creates a Config as would be required in a production environment.
-func Production() (c Config) {
+// ReleaseBuild creates a Config as would be required in a production
+// environment. The base URL is hardcoded in this configuration and cannot be
+// overridden by the end user.
+func ReleaseBuild() (c Config) {
 	c = Config{
-		BaseURL: api.Production,
+		BaseURL: api.StaticBaseURL,
 		AppID:   os.Getenv(Prefix + "APP_ID"),
 		APIKey:  os.Getenv(Prefix + "API_KEY"),
 		Dump:    false,

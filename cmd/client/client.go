@@ -100,9 +100,9 @@ func serveApp() {
 
 func getConfig() {
 	if Version == "local-build" {
-		cfg = config.FromEnv()
+		cfg = config.LocalBuild()
 	} else {
-		cfg = config.Production()
+		cfg = config.ReleaseBuild()
 	}
 }
 
