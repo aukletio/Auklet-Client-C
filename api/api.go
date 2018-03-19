@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -18,7 +18,11 @@ const (
 	releases     = "/private/releases/?checksum="
 	certificates = "/private/devices/certificates/"
 	devices      = "/private/devices/"
+	config       = "/private/devices/config/"
 )
+
+// Production defines the base URL for the production environment.
+const Production = "https://api.auklet.io"
 
 // An API represents parameters common to all API requests.
 type API struct {
@@ -41,7 +45,7 @@ func New(baseurl, key string) API {
 	}
 }
 
-func (api API) get(args string) (resp *http.Response) {
+func (api API) get(args, contenttype string) (resp *http.Response) {
 	url := api.BaseURL + args
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -49,19 +53,22 @@ func (api API) get(args string) (resp *http.Response) {
 		return
 	}
 	req.Header.Add("Authorization", "JWT "+api.Key)
+	if contenttype != "" {
+		req.Header.Add("content-type", contenttype)
+	}
 	resp, err = api.Do(req)
 	if err != nil {
 		log.Print(err)
 	}
 	if resp.StatusCode != 200 {
-		log.Printf("api.get: %v from %v", resp.Status, url)
+		log.Printf("api.get: got unexpected status %v from %v", resp.Status, url)
 	}
 	return
 }
 
 // Release returns true if checksum represents an app that has been released.
 func (api API) Release(checksum string) (ok bool) {
-	resp := api.get(releases + checksum)
+	resp := api.get(releases + checksum, "")
 	if resp == nil {
 		return
 	}
@@ -72,16 +79,14 @@ func (api API) Release(checksum string) (ok bool) {
 		log.Printf("not released: %v", checksum)
 		ok = false
 	default:
-		b, _ := ioutil.ReadAll(resp.Body)
 		log.Printf("api.Release: got unexpected status %v", resp.Status)
-		log.Print(string(b))
 	}
 	return
 }
 
 // Certificates retrieves SSL certificates.
 func (api API) Certificates() (c *tls.Config) {
-	resp := api.get(certificates)
+	resp := api.get(certificates, "")
 	if resp == nil {
 		return
 	}
@@ -124,4 +129,34 @@ func (api API) CreateOrGetDevice(machash, appid string) {
 		return
 	}
 	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
+}
+
+// KafkaParams represents parameters affecting Kafka communication.
+type KafkaParams struct {
+	// Brokers is a list of broker addresses.
+	Brokers []string `json:"brokers"`
+
+	// LogTopic, ProfileTopic, and EventTopic are topics to which we produce
+	// Kafka messages.
+	LogTopic     string `json:"log_topic"`
+	ProfileTopic string `json:"prof_topic"`
+	EventTopic   string `json:"event_topic"`
+}
+
+// KafkaParams returns Kafka parameters from the config endpoint.
+func (api API) KafkaParams() (k KafkaParams) {
+	resp := api.get(config, "application/json")
+	if resp == nil {
+		return
+	}
+	if resp.StatusCode != 200 {
+		log.Printf("api.Config: unexpected status %v", resp.Status)
+		return
+	}
+	d := json.NewDecoder(resp.Body)
+	err := d.Decode(&k)
+	if err != nil && err != io.EOF {
+		log.Print(err)
+	}
+	return
 }

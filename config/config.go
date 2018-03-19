@@ -4,7 +4,8 @@ package config
 import (
 	"log"
 	"os"
-	"strings"
+
+	"github.com/ESG-USA/Auklet-Client/api"
 )
 
 // A Config represents the parameters of an Auklet client invocation. A
@@ -25,13 +26,6 @@ type Config struct {
 	// requesting SSL certs and getting and posting a device.
 	APIKey string
 
-	// Brokers is a list of broker addresses used by Kafka.
-	Brokers []string
-
-	// LogTopic, ProfileTopic, and EventTopic are topics to which we produce
-	// Kafka messages.
-	LogTopic, ProfileTopic, EventTopic string
-
 	// Dump enables console logs. In production it is false; in development
 	// it is usually true.
 	Dump bool
@@ -43,14 +37,13 @@ const Prefix = "AUKLET_"
 // LocalBuild creates a Config entirely from environment variables.
 func LocalBuild() (c Config) {
 	c = Config{
-		BaseURL:      os.Getenv(Prefix + "BASE_URL"),
-		AppID:        os.Getenv(Prefix + "APP_ID"),
-		APIKey:       os.Getenv(Prefix + "API_KEY"),
-		Brokers:      strings.Split(os.Getenv(Prefix+"BROKERS"), ","),
-		LogTopic:     os.Getenv(Prefix + "LOG_TOPIC"),
-		ProfileTopic: os.Getenv(Prefix + "PROF_TOPIC"),
-		EventTopic:   os.Getenv(Prefix + "EVENT_TOPIC"),
-		Dump:         os.Getenv(Prefix+"DUMP") == "true",
+		BaseURL: os.Getenv(Prefix + "BASE_URL"),
+		AppID:   os.Getenv(Prefix + "APP_ID"),
+		APIKey:  os.Getenv(Prefix + "API_KEY"),
+		Dump:    os.Getenv(Prefix+"DUMP") == "true",
+	}
+	if c.BaseURL == "" {
+		c.BaseURL = api.Production
 	}
 	logEmptyFields(c)
 	return
@@ -61,14 +54,10 @@ func LocalBuild() (c Config) {
 // overridden by the end user.
 func ReleaseBuild() (c Config) {
 	c = Config{
-		BaseURL:      StaticBaseURL,
-		AppID:        os.Getenv(Prefix + "APP_ID"),
-		APIKey:       os.Getenv(Prefix + "API_KEY"),
-		Brokers:      strings.Split(os.Getenv(Prefix+"BROKERS"), ","),
-		LogTopic:     os.Getenv(Prefix + "LOG_TOPIC"),
-		ProfileTopic: os.Getenv(Prefix + "PROF_TOPIC"),
-		EventTopic:   os.Getenv(Prefix + "EVENT_TOPIC"),
-		Dump:         false,
+		BaseURL: api.StaticBaseURL,
+		AppID:   os.Getenv(Prefix + "APP_ID"),
+		APIKey:  os.Getenv(Prefix + "API_KEY"),
+		Dump:    false,
 	}
 	logEmptyFields(c)
 	return
@@ -86,22 +75,6 @@ func logEmptyFields(c Config) (bad bool) {
 	}
 	if c.APIKey == "" {
 		log.Print("warning: empty API_KEY")
-		bad = true
-	}
-	if c.LogTopic == "" {
-		log.Print("warning: empty LOG_TOPIC")
-		bad = true
-	}
-	if c.ProfileTopic == "" {
-		log.Print("warning: empty PROF_TOPIC")
-		bad = true
-	}
-	if c.EventTopic == "" {
-		log.Print("warning: empty EVENT_TOPIC")
-		bad = true
-	}
-	if strings.Join(c.Brokers, "") == "" {
-		log.Print("warning: empty BROKERS")
 		bad = true
 	}
 	return

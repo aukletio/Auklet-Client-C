@@ -56,6 +56,9 @@ func New(brokers []string, tc *tls.Config) (p *Producer) {
 
 // Send causes p to send m.
 func (p *Producer) Send(m Message) (err error) {
+	if p == nil {
+		return
+	}
 	b, err := m.Bytes()
 	if err != nil {
 		log.Print(err)
@@ -73,6 +76,9 @@ func (p *Producer) Send(m Message) (err error) {
 
 // Write allows p to be used as a logging service.
 func (p *Producer) Write(q []byte) (n int, err error) {
+	if p == nil {
+		return
+	}
 	_, _, err = p.SendMessage(&sarama.ProducerMessage{
 		Topic: p.LogTopic,
 		Value: sarama.ByteEncoder(q),
