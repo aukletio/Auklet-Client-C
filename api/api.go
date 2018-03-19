@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -45,7 +45,7 @@ func New(baseurl, key string) API {
 	}
 }
 
-func (api API) get(args string) (resp *http.Response) {
+func (api API) get(args, contenttype string) (resp *http.Response) {
 	url := api.BaseURL + args
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -53,19 +53,22 @@ func (api API) get(args string) (resp *http.Response) {
 		return
 	}
 	req.Header.Add("Authorization", "JWT "+api.Key)
+	if contenttype != "" {
+		req.Header.Add("content-type", contenttype)
+	}
 	resp, err = api.Do(req)
 	if err != nil {
 		log.Print(err)
 	}
 	if resp.StatusCode != 200 {
-		log.Printf("api.get: %v from %v", resp.Status, url)
+		log.Printf("api.get: got unexpected status %v from %v", resp.Status, url)
 	}
 	return
 }
 
 // Release returns true if checksum represents an app that has been released.
 func (api API) Release(checksum string) (ok bool) {
-	resp := api.get(releases + checksum)
+	resp := api.get(releases + checksum, "")
 	if resp == nil {
 		return
 	}
@@ -76,16 +79,14 @@ func (api API) Release(checksum string) (ok bool) {
 		log.Printf("not released: %v", checksum)
 		ok = false
 	default:
-		b, _ := ioutil.ReadAll(resp.Body)
 		log.Printf("api.Release: got unexpected status %v", resp.Status)
-		log.Print(string(b))
 	}
 	return
 }
 
 // Certificates retrieves SSL certificates.
 func (api API) Certificates() (c *tls.Config) {
-	resp := api.get(certificates)
+	resp := api.get(certificates, "")
 	if resp == nil {
 		return
 	}
@@ -144,7 +145,7 @@ type KafkaParams struct {
 
 // KafkaParams returns Kafka parameters from the config endpoint.
 func (api API) KafkaParams() (k KafkaParams) {
-	resp := api.get(config)
+	resp := api.get(config, "application/json")
 	if resp == nil {
 		return
 	}
@@ -153,7 +154,8 @@ func (api API) KafkaParams() (k KafkaParams) {
 		return
 	}
 	d := json.NewDecoder(resp.Body)
-	if err := d.Decode(&k); err != nil {
+	err := d.Decode(&k)
+	if err != nil && err != io.EOF {
 		log.Print(err)
 	}
 	return
