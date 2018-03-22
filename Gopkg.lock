@@ -4,14 +4,14 @@
 [[projects]]
   name = "github.com/Shopify/sarama"
   packages = ["."]
-  revision = "3b1b38866a79f06deddf0487d5c27ba0697ccd65"
-  version = "v1.15.0"
+  revision = "f7be6aa2bc7b2e38edf816b08b582782194a1c02"
+  version = "v1.16.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/StackExchange/wmi"
   packages = ["."]
-  revision = "ea383cf3ba6ec950874b8486cd72356d007c768f"
+  revision = "5d049714c4a64225c3c79a7cf7d02f7fb5b96338"
+  version = "1.0.0"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -39,12 +39,9 @@
 
 [[projects]]
   name = "github.com/go-ole/go-ole"
-  packages = [
-    ".",
-    "oleutil"
-  ]
-  revision = "0e87ea779d9deb219633b828a023b32e1244dd57"
-  version = "v1.2.0"
+  packages = [".","oleutil"]
+  revision = "a41e3c4b706f6ae8dfbff342b06e40fa4d2d0506"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
@@ -53,10 +50,10 @@
   revision = "553a641470496b2327abcac10b36396bd98e45c9"
 
 [[projects]]
-  branch = "master"
   name = "github.com/jpillora/backoff"
   packages = ["."]
   revision = "8eab2debe79d12b7bd3d10653910df25fa9552ba"
+  version = "1.0.0"
 
 [[projects]]
   name = "github.com/pierrec/lz4"
@@ -74,9 +71,10 @@
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
-  revision = "e181e095bae94582363434144c61a9653aff6e50"
+  revision = "8732c616f52954686704c8645fe1a9d59e9df7c1"
 
 [[projects]]
+  branch = "master"
   name = "github.com/rdegges/go-ipify"
   packages = ["."]
   revision = "2d94a6a86c4055118cc30fae2aaed47ec01f2210"
@@ -84,32 +82,24 @@
 [[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
-  revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
-  version = "v1.1.0"
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
 
 [[projects]]
   name = "github.com/shirou/gopsutil"
-  packages = [
-    "cpu",
-    "internal/common",
-    "mem",
-    "net"
-  ]
-  revision = "7ec06ec280df1dd1f08befc535049d49d63ae18a"
-  version = "v2.17.12"
+  packages = ["cpu","internal/common","mem","net"]
+  revision = "c432be29ccce470088d07eea25b3ea7e68a8afbb"
+  version = "v2.18.01"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
-  revision = "a3f2cbd54cf5dfe3fbaccf76375fdb12f67654c8"
+  packages = ["unix","windows"]
+  revision = "f6cff0780e542efa0c8e864dc8fa522808f6a598"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4e78ae979a4df6faa26aca5107470c422a811bb1041a8ec3af4220def5f953d1"
+  inputs-digest = "df12a062644b68e90551148ccb9828a2ee5bfd1613b741bd6a3a951a1caa8ecc"
   solver-name = "gps-cdcl"
   solver-version = 1
