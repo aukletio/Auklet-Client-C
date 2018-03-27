@@ -21,7 +21,7 @@ type Exit struct {
 
 	// IP is the public IP address of the device on which we are running,
 	// used to associate event data with an estimated geographic location.
-	IP string `json:"public_ip"`
+	IP string `json:"publicIP"`
 
 	// UUID is a unique identifier for a particular event.
 	UUID string `json:"uuid"`
