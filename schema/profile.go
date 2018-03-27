@@ -21,7 +21,7 @@ type Profile struct {
 
 	// IP is the public IP address of the device on which we are running,
 	// used to associate tree data with an estimated geographic location.
-	IP string `json:"publicIp"`
+	IP string `json:"publicIP"`
 
 	// UUID is a unique identifier for a particular tree.
 	UUID string `json:"uuid"`
