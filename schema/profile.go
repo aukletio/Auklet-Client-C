@@ -13,7 +13,7 @@ import (
 // Profile represents profile data as expected by Kafka consumers.
 type Profile struct {
 	// AppID is a long string uniquely associated with a particular app.
-	AppID string `json:"application"`
+	AppID string `json:"app_id"`
 
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// tree data with a particular release.
@@ -21,7 +21,7 @@ type Profile struct {
 
 	// IP is the public IP address of the device on which we are running,
 	// used to associate tree data with an estimated geographic location.
-	IP string `json:"publicIP"`
+	IP string `json:"public_ip"`
 
 	// UUID is a unique identifier for a particular tree.
 	UUID string `json:"uuid"`
