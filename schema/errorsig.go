@@ -32,16 +32,16 @@ type ErrorSig struct {
 
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
-	Status int `json:"exit_status"`
+	Status int `json:"exitStatus"`
 
 	// Signal is an integer value provided by libauklet. In JSON output, it
 	// is represented as a string.
 	Signal sig `json:"signal"`
 
 	// Trace is a stacktrace provided by libauklet.
-	Trace      json.RawMessage `json:"stack_trace"`
-	MacHash    string          `json:"mac_address_hash"`
-	Metrics    device.Metrics  `json:"system_metrics"`
+	Trace      json.RawMessage `json:"stackTrace"`
+	MacHash    string          `json:"macAddressHash"`
+	Metrics    device.Metrics  `json:"systemMetrics"`
 	kafkaTopic string
 }
 

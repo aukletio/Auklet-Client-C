@@ -31,10 +31,10 @@ type Exit struct {
 
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
-	Status     int            `json:"exit_status"`
+	Status     int            `json:"exitStatus"`
 	Signal     sig            `json:"signal,omitempty"`
-	MacHash    string         `json:"mac_address_hash"`
-	Metrics    device.Metrics `json:"system_metrics"`
+	MacHash    string         `json:"macAddressHash"`
+	Metrics    device.Metrics `json:"systemMetrics"`
 	kafkaTopic string
 }
 
