@@ -21,7 +21,7 @@ type Exit struct {
 
 	// IP is the public IP address of the device on which we are running,
 	// used to associate event data with an estimated geographic location.
-	IP string `json:"public_ip"`
+	IP string `json:"publicIP"`
 
 	// UUID is a unique identifier for a particular event.
 	UUID string `json:"uuid"`
@@ -31,10 +31,10 @@ type Exit struct {
 
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
-	Status     int            `json:"exit_status"`
+	Status     int            `json:"exitStatus"`
 	Signal     sig            `json:"signal,omitempty"`
-	MacHash    string         `json:"mac_address_hash"`
-	Metrics    device.Metrics `json:"system_metrics"`
+	MacHash    string         `json:"macAddressHash"`
+	Metrics    device.Metrics `json:"systemMetrics"`
 	kafkaTopic string
 }
 
