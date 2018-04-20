@@ -81,7 +81,7 @@ func networkStat() { // inboundRate outBoundRate
 // Metrics represents overall system metrics.
 type Metrics struct {
 	CPUPercent float64 `json:"cpuUsage"`
-	MemPercent float64 `json:"memUsage"`
+	MemPercent float64 `json:"memoryUsage"`
 	Inbound    uint64  `json:"inboundNetwork"`
 	Outbound   uint64  `json:"outboundNetwork"`
 }
