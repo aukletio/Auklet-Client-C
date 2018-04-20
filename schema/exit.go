@@ -25,7 +25,7 @@ type Exit struct {
 	IP string `json:"publicIP"`
 
 	// UUID is a unique identifier for a particular event.
-	UUID string `json:"uuid"`
+	UUID string `json:"id"`
 
 	// Time is the time at which the event was received.
 	Time time.Time `json:"timestamp"`
