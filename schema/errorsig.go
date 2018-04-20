@@ -16,6 +16,7 @@ import (
 // ErrorSig represents the exit of an app in which libauklet handled an "error
 // signal" and produced a stacktrace.
 type ErrorSig struct {
+	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
 	CheckSum string `json:"checksum"`
@@ -52,6 +53,7 @@ func NewErrorSig(data []byte, app *app.App, topic string) (e ErrorSig, err error
 	if err != nil {
 		return
 	}
+	e.AppID = app.AppID
 	e.CheckSum = app.CheckSum
 	e.IP = device.CurrentIP()
 	e.UUID = uuid.NewV4().String()

@@ -15,6 +15,7 @@ import (
 // signal. The app may or may not have been delivered a termination signal of
 // some kind, but not one handled by libauklet. See man 7 signal for details.
 type Exit struct {
+	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
 	CheckSum string `json:"checksum"`
@@ -40,6 +41,7 @@ type Exit struct {
 
 // NewExit creates an Exit for app. It assumes that app.Wait() has returned.
 func NewExit(app *app.App, topic string) (e Exit) {
+	e.AppID = app.AppID
 	e.CheckSum = app.CheckSum
 	e.IP = device.CurrentIP()
 	e.UUID = uuid.NewV4().String()
