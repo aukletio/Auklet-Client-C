@@ -11,12 +11,12 @@ import (
 func errorsig() {
 	libaukletjson := `[
 		{
-			"fn": 0,
-			"cs": 0
+			"functionAddress": 0,
+			"callSiteAddress": 0
 		},
 		{
-			"fn": 0,
-			"cs": 0
+			"functionAddress": 0,
+			"callSiteAddress": 0
 		}
 	]`
 	b, err := json.MarshalIndent(schema.ErrorSig{
@@ -31,7 +31,7 @@ func errorsig() {
 
 func exit() {
 	fmt.Println("Exit:")
-	b, err = json.MarshalIndent(schema.Exit{}, "", "\t")
+	b, err := json.MarshalIndent(schema.Exit{}, "", "\t")
 	if err != nil {
 		panic(err)
 	}
@@ -40,29 +40,29 @@ func exit() {
 
 func profile() {
 	treedata := `{
-		"fn":0,
-		"cs":0,
-		"ncalls":1,
-		"nsamples":1,
+		"functionAddress": 0,
+		"callSiteAddress": 0,
+		"nCalls":1,
+		"nSamples":1,
 		"callees":[
 			{
-				"fn":0,
-				"cs":0,
-				"ncalls":1,
-				"nsamples":1,
+				"functionAddress": 0,
+				"callSiteAddress": 0,
+				"nCalls":1,
+				"nSamples":1,
 				"callees":[]
 			},
 			{
-				"fn":0,
-				"cs":0,
-				"ncalls":1,
-				"nsamples":1,
+				"functionAddress": 0,
+				"callSiteAddress": 0,
+				"nCalls":1,
+				"nSamples":1,
 				"callees":[]
 			}
 		]
 	}`
 	fmt.Println("Profile:")
-	b, err = json.MarshalIndent(schema.Profile{
+	b, err := json.MarshalIndent(schema.Profile{
 		Tree: json.RawMessage(treedata),
 	}, "", "\t")
 	if err != nil {
