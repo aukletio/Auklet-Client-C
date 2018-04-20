@@ -24,7 +24,7 @@ type Profile struct {
 	IP string `json:"publicIP"`
 
 	// UUID is a unique identifier for a particular tree.
-	UUID string `json:"uuid"`
+	UUID string `json:"id"`
 
 	// Time is the Unix epoch time (in milliseconds) at which a tree was
 	// received.
