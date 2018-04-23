@@ -1,5 +1,16 @@
 # Changelog
 
+## Merged But Unreleased
+
+**Implemented enhancements:**
+
+- device: change device metrics JSON fields [#17](https://github.com/ESG-USA/Auklet-Client-C/pull/17) ([kdsch](https://github.com/kdsch))
+- APM-1215 Change C event's JSON [#16](https://github.com/ESG-USA/Auklet-Client-C/pull/16) ([kdsch](https://github.com/kdsch))
+- APM-1215 Change C event's JSON [#15](https://github.com/ESG-USA/Auklet-Client-C/pull/15) ([kdsch](https://github.com/kdsch))
+- APM-1172 APM-1215 Change Tree and Event Fields [#11](https://github.com/ESG-USA/Auklet-Client-C/pull/11) ([kdsch](https://github.com/kdsch))
+
+## [0.5.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.5.0)
+
 ### [0.5.0-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.5.0-rc.1)
 
 **Implemented enhancements:**
