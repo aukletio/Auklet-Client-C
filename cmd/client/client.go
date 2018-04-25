@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
 	"strconv"
 
@@ -14,9 +13,9 @@ import (
 	application "github.com/ESG-USA/Auklet-Client/app"
 	"github.com/ESG-USA/Auklet-Client/config"
 	"github.com/ESG-USA/Auklet-Client/device"
+	"github.com/ESG-USA/Auklet-Client/message"
 	"github.com/ESG-USA/Auklet-Client/producer"
 	"github.com/ESG-USA/Auklet-Client/proxy"
-	"github.com/ESG-USA/Auklet-Client/schema"
 )
 
 func usage() {
@@ -24,14 +23,11 @@ func usage() {
 }
 
 var (
-	server    proxy.Proxy
-	sock      net.Listener
-	app       *application.App
-	api       auklet.API
-	cfg       config.Config
-	prod      *producer.Producer
-	kp        auklet.KafkaParams
-	errsigged = false
+	app  *application.App
+	api  auklet.API
+	cfg  config.Config
+	prod *producer.Producer
+	kp   auklet.KafkaParams
 )
 
 func init() {
@@ -48,7 +44,14 @@ func checkArgs() (args []string) {
 	return
 }
 
-func checkRelease() {
+func getConfig() config.Config {
+	if Version == "local-build" {
+		return config.LocalBuild()
+	}
+	return config.ReleaseBuild()
+}
+
+func exitIfNotReleased() {
 	if !api.Release(app.CheckSum) {
 		if err := app.Start(); err == nil {
 			app.Wait()
@@ -69,17 +72,19 @@ func setLogOutput() {
 
 func setupProducer() {
 	kp = api.KafkaParams()
-	prod = producer.New(kp.Brokers, api.Certificates())
+
+	server := proxy.New("/tmp/auklet-"+strconv.Itoa(os.Getpid()), customHandlers)
+	go server.Serve()
+
+	watcher := message.NewExitWatcher(server, app, kp.EventTopic)
+	go watcher.Serve()
+
+	queue := message.NewQueue(watcher, "persist")
+	go queue.Serve()
+
+	prod = producer.New(queue, kp.Brokers, api.Certificates())
 	if prod != nil {
 		prod.LogTopic = kp.LogTopic
-	}
-}
-
-func openSocket() {
-	var err error
-	sock, err = net.Listen("unixpacket", "/tmp/auklet-"+strconv.Itoa(os.Getpid()))
-	if err != nil {
-		log.Print(err)
 	}
 }
 
@@ -88,43 +93,19 @@ func serveApp() {
 	if err != nil {
 		os.Exit(1)
 	}
-	server.Serve()
-	if !errsigged {
-		app.Wait()
-		err = prod.Send(schema.NewExit(app, kp.EventTopic))
-		if err != nil {
-			log.Print(err)
-		}
-	}
-}
-
-func getConfig() {
-	if Version == "local-build" {
-		cfg = config.LocalBuild()
-	} else {
-		cfg = config.ReleaseBuild()
-	}
+	prod.Serve()
 }
 
 func main() {
 	args := checkArgs()
-	getConfig()
+	cfg = getConfig()
 	api = auklet.New(cfg.BaseURL, cfg.APIKey)
 	app = application.New(args, cfg.AppID)
 
-	checkRelease()
+	exitIfNotReleased()
 	setupProducer()
-	setLogOutput()
+	//setLogOutput()
 	go api.CreateOrGetDevice(device.MacHash, cfg.AppID)
-
-	openSocket()
-	defer sock.Close()
-
-	server = proxy.Proxy{
-		Listener: sock,
-		Producer: prod,
-		Handlers: customHandlers,
-	}
 
 	serveApp()
 }

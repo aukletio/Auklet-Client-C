@@ -6,20 +6,13 @@ import (
 	"log"
 
 	"github.com/Shopify/sarama"
+
+	"github.com/ESG-USA/Auklet-Client/message"
 )
-
-// Message is implemented by types that can be sent as Kafka messages.
-type Message interface {
-	// Topic returns the topic on which to send the Message.
-	Topic() string
-
-	// Bytes returns the Message as a byte slice. If err != nil, Send
-	// logs the error and aborts.
-	Bytes() ([]byte, error)
-}
 
 // Producer provides a simple Kafka producer.
 type Producer struct {
+	source message.SourceError
 	sarama.SyncProducer
 
 	// LogTopic determines the Kafka topic on which Write is to send
@@ -29,7 +22,7 @@ type Producer struct {
 
 // New creates a Kafka producer with TLS config tc, broker list brokers,
 // and certain default settings.
-func New(brokers []string, tc *tls.Config) (p *Producer) {
+func New(input message.SourceError, brokers []string, tc *tls.Config) (p *Producer) {
 	c := sarama.NewConfig()
 	c.ClientID = "ProfileTest"
 	c.Producer.Return.Successes = true
@@ -49,13 +42,28 @@ func New(brokers []string, tc *tls.Config) (p *Producer) {
 		log.Printf("broker address: %v", b.Addr())
 	}
 	p = &Producer{
+		source:       input,
 		SyncProducer: sp,
 	}
 	return
 }
 
-// Send causes p to send m.
-func (p *Producer) Send(m Message) (err error) {
+func (p *Producer) Serve() {
+	defer close(p.source.Err())
+	defer p.Close()
+	for m := range p.source.Output() {
+		if err := p.send(m); err != nil {
+			// We can't log the error to the remote logger because
+			// we ARE the remote logger.
+			log.Print(err)
+			continue
+		}
+		p.source.Err() <- nil
+	}
+}
+
+// send causes p to send m.
+func (p *Producer) send(m message.Message) (err error) {
 	if p == nil {
 		return
 	}
@@ -64,10 +72,12 @@ func (p *Producer) Send(m Message) (err error) {
 		log.Print(err)
 		return
 	}
+	log.Print("producer: sending message...")
 	_, _, err = p.SendMessage(&sarama.ProducerMessage{
 		Topic: m.Topic(),
 		Value: sarama.ByteEncoder(b),
 	})
+	log.Print("producer: message sent")
 	if err == nil {
 		log.Print(string(b))
 	}

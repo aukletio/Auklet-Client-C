@@ -1,6 +1,6 @@
 // Package proxy implements a server that reads typed data from a Unix domain
-// socket, transforms it according to client-defined functions, and sends it via
-// a Kafka producer.
+// socket, transforms it according to client-defined functions, and relays it to
+// a message sink.
 package proxy
 
 import (
@@ -10,7 +10,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/ESG-USA/Auklet-Client/producer"
+	"github.com/ESG-USA/Auklet-Client/message"
 )
 
 // sockMessage represents the JSON schema of messages that can be received by a
@@ -21,47 +21,52 @@ type sockMessage struct {
 }
 
 // Handler transforms a byte slice into a producer message.
-type Handler func(data []byte) (producer.Message, error)
+type Handler func(data []byte) (message.Message, error)
 
-// Proxy serves a single-client, simplex connection from a Unix domain
-// socket to a Kafka producer.
 type Proxy struct {
-	// Listener is the Unix domain socket on which the Proxy waits for
+	// in is the Unix domain socket on which the Proxy waits for
 	// an incoming connection.
-	net.Listener
+	in net.Listener
 
-	// Producer is the Kafka producer to which the Proxy sends messages
-	// returned by Handlers.
-	*producer.Producer
-
-	// Handlers is a collection of Handler functions keyed by socket message
+	// handlers is a collection of Handler functions keyed by socket message
 	// type. When a message is received, the corresponding Handler is looked
 	// up and called. The argument to the handler is the socket message's
-	// data. The producer.Message returned by a handler is sent via Producer.
+	// data. The message returned by a handler is sent via out.
 	// Errors returned by a handler are logged, and do not shut down the
 	// Proxy.
-	Handlers map[string]Handler
+	handlers map[string]Handler
+	out      chan message.Message
+}
+
+func New(addr string, handlers map[string]Handler) Proxy {
+	l, err := net.Listen("unixpacket", addr)
+	if err != nil {
+		log.Print(err)
+	}
+	p := Proxy{
+		in:       l,
+		out:      make(chan message.Message),
+		handlers: handlers,
+	}
+	return p
 }
 
 // Serve waits for proxy to accept an incoming connection, then serves the
 // connection.
 func (proxy Proxy) Serve() {
-	if proxy.Producer == nil {
-		log.Print("Proxy.Serve: called with nil Producer")
-		return
-	}
-	defer proxy.Close()
-	conn, err := proxy.Accept()
+	defer close(proxy.out)
+	defer proxy.in.Close()
+	conn, err := proxy.in.Accept()
 	if err != nil {
 		log.Print(err)
 		return
 	}
-	log.Printf("accepted connection on %v", proxy.Addr())
+	log.Printf("accepted connection on %v", proxy.in.Addr())
 	d := json.NewDecoder(conn)
 	for {
 		sm := &sockMessage{}
 		if err := d.Decode(sm); err == io.EOF {
-			log.Printf("connection on %v closed", proxy.Addr())
+			log.Printf("connection on %v closed", proxy.in.Addr())
 			break
 		} else if err != nil {
 			// There was a problem decoding the JSON into
@@ -71,17 +76,19 @@ func (proxy Proxy) Serve() {
 			continue
 		}
 
-		if handler, in := proxy.Handlers[sm.Type]; in {
+		if handler, in := proxy.handlers[sm.Type]; in {
 			pm, err := handler(sm.Data)
 			if err != nil {
 				log.Print(err)
 				continue
 			}
-			if err := proxy.Send(pm); err != nil {
-				log.Print(err)
-			}
+			proxy.out <- pm
 		} else {
 			log.Printf(`socket message of type "%v" not handled`, sm.Type)
 		}
 	}
+}
+
+func (proxy Proxy) Output() <-chan message.Message {
+	return proxy.out
 }
