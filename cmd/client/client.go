@@ -15,7 +15,7 @@ import (
 	"github.com/ESG-USA/Auklet-Client/device"
 	"github.com/ESG-USA/Auklet-Client/message"
 	"github.com/ESG-USA/Auklet-Client/producer"
-	"github.com/ESG-USA/Auklet-Client/proxy"
+	"github.com/ESG-USA/Auklet-Client/agent"
 )
 
 func usage() {
@@ -73,7 +73,7 @@ func setLogOutput() {
 func setupProducer() {
 	kp = api.KafkaParams()
 
-	server := proxy.New("/tmp/auklet-"+strconv.Itoa(os.Getpid()), customHandlers)
+	server := agent.NewServer("/tmp/auklet-"+strconv.Itoa(os.Getpid()), customHandlers)
 	go server.Serve()
 
 	watcher := message.NewExitWatcher(server, app, kp.EventTopic)

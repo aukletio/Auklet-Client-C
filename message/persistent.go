@@ -6,18 +6,22 @@ import (
 	"os"
 )
 
+// Persistent represents a Message in a form that can be written to and read
+// from disk.
 type Persistent struct {
-	Topic_ string          `json:"topic"`
-	Bytes_ json.RawMessage `json:"bytes"`
+	TTopic string          `json:"topic"`
+	BBytes json.RawMessage `json:"bytes"`
 	path   string          // location of this message in the filesystem
 }
 
+// Topic returns the Kafka topic of p.
 func (p Persistent) Topic() string {
-	return p.Topic_
+	return p.TTopic
 }
 
+// Bytes returns p's value as a byte slice.
 func (p Persistent) Bytes() ([]byte, error) {
-	return p.Bytes_, nil
+	return p.BBytes, nil
 }
 
 var count = 0
@@ -28,8 +32,8 @@ func toPersistent(m Message, dir string) (p Persistent, err error) {
 		return
 	}
 	p = Persistent{
-		Bytes_: json.RawMessage(b),
-		Topic_: m.Topic(),
+		BBytes: json.RawMessage(b),
+		TTopic: m.Topic(),
 		path:   fmt.Sprintf("%v/%v-%v", dir, os.Getpid(), count),
 	}
 	count++

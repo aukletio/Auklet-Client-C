@@ -48,6 +48,7 @@ func New(input message.SourceError, brokers []string, tc *tls.Config) (p *Produc
 	return
 }
 
+// Serve activates p, causing it to send and receive messages.
 func (p *Producer) Serve() {
 	defer close(p.source.Err())
 	defer p.Close()
