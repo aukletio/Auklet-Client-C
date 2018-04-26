@@ -9,13 +9,13 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/ESG-USA/Auklet-Client/agent"
 	auklet "github.com/ESG-USA/Auklet-Client/api"
 	application "github.com/ESG-USA/Auklet-Client/app"
 	"github.com/ESG-USA/Auklet-Client/config"
 	"github.com/ESG-USA/Auklet-Client/device"
 	"github.com/ESG-USA/Auklet-Client/message"
 	"github.com/ESG-USA/Auklet-Client/producer"
-	"github.com/ESG-USA/Auklet-Client/agent"
 )
 
 func usage() {
