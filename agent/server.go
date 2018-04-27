@@ -8,7 +8,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/ESG-USA/Auklet-Client/message"
+	msg "github.com/ESG-USA/Auklet-Client/message"
 )
 
 // message represents messages that can be received by a Server, and thus,
@@ -19,7 +19,7 @@ type message struct {
 }
 
 // Handler transforms a byte slice into a message.Message.
-type Handler func(data []byte) (message.Message, error)
+type Handler func(data []byte) (msg.Message, error)
 
 // Server provides a Unix domain socket listener for an Auklet agent.
 type Server struct {
@@ -34,7 +34,7 @@ type Server struct {
 	// Errors returned by a handler are logged, and do not shut down the
 	// Server.
 	handlers map[string]Handler
-	out      chan message.Message
+	out      chan msg.Message
 }
 
 // NewServer returns a new Server for the Unix domain socket at addr. Incoming
@@ -46,7 +46,7 @@ func NewServer(addr string, handlers map[string]Handler) Server {
 	}
 	p := Server{
 		in:       l,
-		out:      make(chan message.Message),
+		out:      make(chan msg.Message),
 		handlers: handlers,
 	}
 	return p
@@ -91,6 +91,6 @@ func (s Server) Serve() {
 }
 
 // Output returns s's output stream.
-func (s Server) Output() <-chan message.Message {
+func (s Server) Output() <-chan msg.Message {
 	return s.out
 }

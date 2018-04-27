@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/ESG-USA/Auklet-Client/message"
-	"github.com/ESG-USA/Auklet-Client/proxy"
+	"github.com/ESG-USA/Auklet-Client/agent"
 	"github.com/ESG-USA/Auklet-Client/schema"
 )
 
@@ -23,7 +23,7 @@ func logHandler(data []byte) (m message.Message, err error) {
 	return
 }
 
-var customHandlers = map[string]proxy.Handler{
+var customHandlers = map[string]agent.Handler{
 	"profile": profileHandler,
 	"event":   errorsigHandler,
 	"log":     logHandler,
