@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/ESG-USA/Auklet-Client/message"
 	"github.com/ESG-USA/Auklet-Client/agent"
+	"github.com/ESG-USA/Auklet-Client/message"
 	"github.com/ESG-USA/Auklet-Client/schema"
 )
 
