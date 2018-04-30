@@ -76,23 +76,19 @@ func (q *Queue) Serve() {
 	}
 }
 
-// A queueState, when executed, returns the next queue state. A nil queueState
-// signifies a Queue's termination.
-type queueState func() queueState
-
-func (q *Queue) initial() queueState {
+func (q *Queue) initial() serverState {
 	if len(q.q) == 0 {
-		return q.serveEmpty
+		return q.empty
 	}
-	return q.serveNonEmpty
+	return q.nonEmpty
 }
 
-// serveEmpty serves q for when q is empty. In that case, the only operation
+// empty serves q for when q is empty. In that case, the only operation
 // that should be served is push; it's not possible to pop or peek an empty
 // queue.
 //
 // We do not serve q.err, because there is nothing to dequeue.
-func (q *Queue) serveEmpty() queueState {
+func (q *Queue) empty() serverState {
 	m, open := <-q.source.Output()
 	if !open {
 		// The queue's input has closed. We enter the final state,
@@ -104,14 +100,14 @@ func (q *Queue) serveEmpty() queueState {
 		log.Print(err)
 		// The message could not be made persistent, so the queue is
 		// still empty.
-		return q.serveEmpty
+		return q.empty
 	}
 	q.push(p)
-	return q.serveNonEmpty
+	return q.nonEmpty
 }
 
-// serveNonEmpty serves q for when q has at least one element.
-func (q *Queue) serveNonEmpty() queueState {
+// nonEmpty serves q for when q has at least one element.
+func (q *Queue) nonEmpty() serverState {
 	select {
 	case m, open := <-q.source.Output():
 		if !open {
@@ -130,10 +126,10 @@ func (q *Queue) serveNonEmpty() queueState {
 		// closed q.out.
 		q.pop()
 		if len(q.q) == 0 {
-			return q.serveEmpty
+			return q.empty
 		}
 	}
-	return q.serveNonEmpty
+	return q.nonEmpty
 }
 
 // The queue's input has closed. This implies that the pipeline is shutting
@@ -144,7 +140,7 @@ func (q *Queue) serveNonEmpty() queueState {
 // We need to wait for our client to close q.err, which indicates that it will
 // not send any more dequeue requests. In the meantime, we handle incoming
 // dequeue requests.
-func (q *Queue) final() queueState {
+func (q *Queue) final() serverState {
 	// We inform our client that we won't be sending any more values. We
 	// expect them to shut us down soon.
 	close(q.out)

@@ -24,3 +24,7 @@ type SourceError interface {
 	// close the channel to indicate that they have nothing more to send.
 	Err() chan<- error
 }
+
+// A serverState, when executed, returns the next server state. A nil
+// serverState signifies a server's termination.
+type serverState func() serverState
