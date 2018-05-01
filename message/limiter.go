@@ -13,13 +13,18 @@ type DataLimiter struct {
 	source Source
 	out    chan Message
 	path   string
+
 	// Budget is how many bytes can be transmitted per period.
 	Budget int `json:"budget"`
-	// Count is how many bytes have been transmitted during the curernt period.
+
+	// Count is how many bytes have been transmitted during the current
+	// period.
 	Count int `json:"count"`
+
 	// PeriodDay defines the day of the month upon which the old period
 	// ends and a new period starts. Values in the range [1, 28] are valid.
 	PeriodDay int `json:"periodStart"`
+
 	// PeriodEnd marks the end of the current period.
 	PeriodEnd time.Time `json:"periodEnd"`
 }
@@ -138,7 +143,7 @@ func (l *DataLimiter) underBudget() serverState {
 }
 
 // The current period has exceeded 90% of its data budget. We drop messages.
-// Note that it is still possible for the limiter to get out of the overBudget
+// Note that it is still possible for the limiter to return to the underBudget
 // state, when Serve notices that a new period has begun.
 func (l *DataLimiter) overBudget() serverState {
 	if _, open := <-l.source.Output(); !open {
