@@ -19,6 +19,7 @@ const (
 	certificates = "/private/devices/certificates/"
 	devices      = "/private/devices/"
 	config       = "/private/devices/config/"
+	dataLimit    = "/private/devices/datalimit/"
 )
 
 // Production defines the base URL for the production environment.
@@ -68,7 +69,7 @@ func (api API) get(args, contenttype string) (resp *http.Response) {
 
 // Release returns true if checksum represents an app that has been released.
 func (api API) Release(checksum string) (ok bool) {
-	resp := api.get(releases + checksum, "")
+	resp := api.get(releases+checksum, "")
 	if resp == nil {
 		return
 	}
