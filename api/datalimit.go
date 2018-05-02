@@ -8,12 +8,21 @@ import (
 
 // DataLimit represents parameters that control the client's use of data.
 type DataLimit struct {
-	// Cellular is the number of megabytes/period that the client may send
-	// over a cellular connection.
-	Cellular       int `json:"cellular_data_limit"` // MB/period
-	Storage        int `json:"storage_limit"`       // GB
-	EmissionPeriod int `json:"emission_rate"`       // seconds
-	PlanDate       int `json:"plan_date"`           // day of the month ∈ [1, 28]
+	// Cellular is the maximum number of application layer megabytes/period
+	// that the client may send over a cellular connection.
+	// PlanDate is the day of the month that delimits a cellular data plan
+	// period. Valid values are within [1, 28]. If either field is nil,
+	// there is no limit.
+	Cellular *int `json:"cellular_data_limit"`
+	PlanDate *int `json:"plan_date"`
+
+	// Storage is the maximum number of gigabytes the client may use to
+	// store unsent messages. If nil, there is no storage limit.
+	Storage *int `json:"storage_limit"`
+
+	// EmissionPeriod is the time in seconds the client is to wait between
+	// emission requests to the agent. If nil, the client self-destructs.
+	EmissionPeriod *int `json:"emission_period"`
 }
 
 // DataLimit returns a DataLimit from the dataLimit endpoint.
