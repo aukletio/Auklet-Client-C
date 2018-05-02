@@ -21,10 +21,6 @@ type DataLimiter struct {
 	// period.
 	Count int `json:"count"`
 
-	// PeriodDay defines the day of the month upon which the old period
-	// ends and a new period starts. Values in the range [1, 28] are valid.
-	PeriodDay int `json:"periodStart"`
-
 	// PeriodEnd marks the end of the current period.
 	PeriodEnd time.Time `json:"periodEnd"`
 }
@@ -70,10 +66,11 @@ func (l *DataLimiter) newPeriod() bool {
 func (l *DataLimiter) updatePeriodEnd() {
 	now := time.Now()
 	newEnd := l.PeriodEnd
-	for now.Before(newEnd) {
+	for newEnd.Before(now) {
 		// advance newEnd by one month
 		newEnd = newEnd.AddDate(0, 1, 0)
 	}
+	l.PeriodEnd = newEnd
 }
 
 func (l *DataLimiter) startThisPeriod() {
