@@ -8,26 +8,30 @@ import (
 
 // DataLimit represents parameters that control the client's use of data.
 type DataLimit struct {
-	// Cellular is the maximum number of application layer megabytes/period
-	// that the client may send over a cellular connection.
-	// PlanDate is the day of the month that delimits a cellular data plan
-	// period. Valid values are within [1, 28]. If either field is nil,
-	// there is no limit.
-	Cellular *int `json:"cellular_data_limit"`
-	PlanDate *int `json:"plan_date"`
+	// CellularPlan is non-nil if the application has a cellular data limit.
+	CellularPlan *struct {
+		// Limit is the maximum number of application layer
+		// megabytes/period that the client may send over a cellular
+		// connection.
+		Limit int `json:"cellular_data_limit"`
 
-	// Storage is the maximum number of gigabytes the client may use to
+		// Date is the day of the month that delimits a cellular data
+		// plan period. Valid values are within [1, 28].
+		Date int `json:"plan_date"`
+	} `json:"cellular_plan"`
+
+	// Storage is the maximum number of megabytes the client may use to
 	// store unsent messages. If nil, there is no storage limit.
 	Storage *int `json:"storage_limit"`
 
 	// EmissionPeriod is the time in seconds the client is to wait between
-	// emission requests to the agent. If nil, the client self-destructs.
-	EmissionPeriod *int `json:"emission_period"`
+	// emission requests to the agent.
+	EmissionPeriod int `json:"emission_period"`
 }
 
 // DataLimit returns a DataLimit from the dataLimit endpoint.
-func (api API) DataLimit() (l DataLimit) {
-	resp := api.get(dataLimit, "application/json")
+func (api API) DataLimit(appID string) (l DataLimit) {
+	resp := api.get(dataLimit+appID, "application/json")
 	if resp == nil {
 		return
 	}

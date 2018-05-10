@@ -63,7 +63,7 @@ func (l *DataLimiter) newPeriod() bool {
 	return time.Now().After(l.PeriodEnd)
 }
 
-func (l *DataLimiter) updatePeriodEnd() {
+func (l *DataLimiter) advancePeriodEnd() {
 	now := time.Now()
 	newEnd := l.PeriodEnd
 	for newEnd.Before(now) {
@@ -73,8 +73,24 @@ func (l *DataLimiter) updatePeriodEnd() {
 	l.PeriodEnd = newEnd
 }
 
+func (l *DataLimiter) setPeriodDay(day int) {
+	if l.PeriodEnd.Day() == day {
+		return
+	}
+	l.PeriodEnd = toFutureDate(day)
+}
+
+func toFutureDate(day int) time.Date {
+	now := time.Now()
+	t := time.Date(now.Year(), now.Month(), day, 0, 0, 0, 0, now.Location())
+	if t.Before(now) {
+		return t.AddDate(0, 1, 0)
+	}
+	return t
+}
+
 func (l *DataLimiter) startThisPeriod() {
-	l.updatePeriodEnd()
+	l.advancePeriodEnd()
 	l.Count = 0
 	if err := l.save(); err != nil {
 		log.Println(err)

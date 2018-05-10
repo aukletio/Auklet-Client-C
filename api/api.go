@@ -19,7 +19,7 @@ const (
 	certificates = "/private/devices/certificates/"
 	devices      = "/private/devices/"
 	config       = "/private/devices/config/"
-	dataLimit    = "/private/devices/datalimit/"
+	dataLimit    = "/app/applications/"
 )
 
 // Production defines the base URL for the production environment.

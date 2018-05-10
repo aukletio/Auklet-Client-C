@@ -14,10 +14,6 @@ import (
 type Producer struct {
 	source message.SourceError
 	sarama.SyncProducer
-
-	// LogTopic determines the Kafka topic on which Write is to send
-	// messages.
-	LogTopic string
 }
 
 // New creates a Kafka producer with TLS config tc, broker list brokers,
@@ -54,8 +50,6 @@ func (p *Producer) Serve() {
 	defer p.Close()
 	for m := range p.source.Output() {
 		if err := p.send(m); err != nil {
-			// We can't log the error to the remote logger because
-			// we ARE the remote logger.
 			log.Print(err)
 			continue
 		}
@@ -70,7 +64,6 @@ func (p *Producer) send(m message.Message) (err error) {
 	}
 	b, err := m.Bytes()
 	if err != nil {
-		log.Print(err)
 		return
 	}
 	log.Print("producer: sending message...")
@@ -81,22 +74,6 @@ func (p *Producer) send(m message.Message) (err error) {
 	log.Print("producer: message sent")
 	if err == nil {
 		log.Print(string(b))
-	}
-	return
-}
-
-// Write allows p to be used as a logging service.
-func (p *Producer) Write(q []byte) (n int, err error) {
-	if p == nil {
-		return
-	}
-	_, _, err = p.SendMessage(&sarama.ProducerMessage{
-		Topic: p.LogTopic,
-		Value: sarama.ByteEncoder(q),
-		Key:   sarama.ByteEncoder("c"),
-	})
-	if err == nil {
-		n = len(q)
 	}
 	return
 }

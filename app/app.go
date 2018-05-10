@@ -18,13 +18,10 @@ type App struct {
 	// Checksum is the SHA512/224 hash of the executable file (Cmd.Path)
 	// with which we identify a build.
 	CheckSum string
-
-	// AppID is to be provided by config.Config.
-	AppID string
 }
 
 // New returns an App that would execute args.
-func New(args []string, appid string) (app *App) {
+func New(args []string) (app *App) {
 	c := exec.Command(args[0], args[1:]...)
 	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout
@@ -32,7 +29,6 @@ func New(args []string, appid string) (app *App) {
 	app = &App{
 		Cmd:      c,
 		CheckSum: sum(c.Path),
-		AppID:    appid,
 	}
 	return
 }
