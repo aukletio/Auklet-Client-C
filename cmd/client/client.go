@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"time"
 
 	auklet "github.com/ESG-USA/Auklet-Client/api"
 	application "github.com/ESG-USA/Auklet-Client/app"
@@ -124,6 +125,7 @@ func main() {
 		Listener: sock,
 		Producer: prod,
 		Handlers: customHandlers,
+		Interval: time.Second,
 	}
 
 	serveApp()
