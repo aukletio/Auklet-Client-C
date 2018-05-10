@@ -4,18 +4,18 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"strconv"
 	"time"
 
-	auklet "github.com/ESG-USA/Auklet-Client/api"
+	"github.com/ESG-USA/Auklet-Client/api"
 	application "github.com/ESG-USA/Auklet-Client/app"
 	"github.com/ESG-USA/Auklet-Client/config"
 	"github.com/ESG-USA/Auklet-Client/device"
-	"github.com/ESG-USA/Auklet-Client/producer"
+	"github.com/ESG-USA/Auklet-Client/kafka"
 	"github.com/ESG-USA/Auklet-Client/proxy"
 	"github.com/ESG-USA/Auklet-Client/schema"
 )
@@ -28,10 +28,9 @@ var (
 	server    proxy.Proxy
 	sock      net.Listener
 	app       *application.App
-	api       auklet.API
 	cfg       config.Config
-	prod      *producer.Producer
-	kp        auklet.KafkaParams
+	prod      *kafka.Producer
+	kp        api.KafkaParams
 	errsigged = false
 )
 
@@ -49,31 +48,14 @@ func checkArgs() (args []string) {
 	return
 }
 
-func checkRelease() {
-	if !api.Release(app.CheckSum) {
-		if err := app.Start(); err == nil {
-			app.Wait()
-		}
-		os.Exit(0)
-	}
-}
-
 func setLogOutput() {
-	var w io.Writer
-	if cfg.Dump {
-		w = io.MultiWriter(os.Stdout, prod)
-	} else {
-		w = prod
+	if !cfg.Dump {
+		log.SetOutput(ioutil.Discard)
 	}
-	log.SetOutput(w)
 }
 
 func setupProducer() {
-	kp = api.KafkaParams()
-	prod = producer.New(kp.Brokers, api.Certificates())
-	if prod != nil {
-		prod.LogTopic = kp.LogTopic
-	}
+	prod = kafka.NewProducer()
 }
 
 func openSocket() {
@@ -92,7 +74,7 @@ func serveApp() {
 	server.Serve()
 	if !errsigged {
 		app.Wait()
-		err = prod.Send(schema.NewExit(app, kp.EventTopic))
+		err = prod.Send(schema.NewExit(app))
 		if err != nil {
 			log.Print(err)
 		}
@@ -105,18 +87,23 @@ func getConfig() {
 	} else {
 		cfg = config.ReleaseBuild()
 	}
+	api.BaseURL = cfg.BaseURL
 }
 
 func main() {
 	args := checkArgs()
 	getConfig()
-	api = auklet.New(cfg.BaseURL, cfg.APIKey)
-	app = application.New(args, cfg.AppID)
+	app = application.New(args)
+	if !app.IsReleased {
+		if err := app.Start(); err == nil {
+			app.Wait()
+		}
+		os.Exit(0)
+	}
 
-	checkRelease()
 	setupProducer()
 	setLogOutput()
-	go api.CreateOrGetDevice(device.MacHash, cfg.AppID)
+	go api.CreateOrGetDevice(device.MacHash, app.ID)
 
 	openSocket()
 	defer sock.Close()

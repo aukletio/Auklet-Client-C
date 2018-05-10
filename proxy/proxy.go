@@ -11,7 +11,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client/producer"
+	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
 // sockMessage represents the JSON schema of messages that can be received by a
@@ -22,7 +22,7 @@ type sockMessage struct {
 }
 
 // Handler transforms a byte slice into a producer message.
-type Handler func(data []byte) (producer.Message, error)
+type Handler func(data []byte) (kafka.Message, error)
 
 // Proxy periodically requests and receives messages from an Auklet agent and
 // relays them to a Kafka producer.
@@ -33,12 +33,12 @@ type Proxy struct {
 
 	// Producer is the Kafka producer to which the Proxy sends messages
 	// returned by Handlers.
-	*producer.Producer
+	*kafka.Producer
 
 	// Handlers is a collection of Handler functions keyed by socket message
 	// type. When a message is received, the corresponding Handler is looked
 	// up and called. The argument to the handler is the socket message's
-	// data. The producer.Message returned by a handler is sent via Producer.
+	// data. The kafka.Message returned by a handler is sent via Producer.
 	// Errors returned by a handler are logged, and do not shut down the
 	// Proxy.
 	Handlers map[string]Handler

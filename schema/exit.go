@@ -9,6 +9,7 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client/app"
 	"github.com/ESG-USA/Auklet-Client/device"
+	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
 // Exit represents the exit of an app in which libauklet did not handle a
@@ -36,12 +37,11 @@ type Exit struct {
 	Signal     sig            `json:"signal,omitempty"`
 	MacHash    string         `json:"macAddressHash"`
 	Metrics    device.Metrics `json:"systemMetrics"`
-	kafkaTopic string
 }
 
 // NewExit creates an Exit for app. It assumes that app.Wait() has returned.
-func NewExit(app *app.App, topic string) (e Exit) {
-	e.AppID = app.AppID
+func NewExit(app *app.App) (e Exit) {
+	e.AppID = app.ID
 	e.CheckSum = app.CheckSum
 	e.IP = device.CurrentIP()
 	e.UUID = uuid.NewV4().String()
@@ -53,13 +53,12 @@ func NewExit(app *app.App, topic string) (e Exit) {
 	}
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
-	e.kafkaTopic = topic
 	return
 }
 
 // Topic returns the Kafka topic to which e should be sent.
-func (e Exit) Topic() string {
-	return e.kafkaTopic
+func (e Exit) Topic() kafka.Topic {
+	return kafka.EventTopic
 }
 
 // Bytes returns the Exit as a byte slice.
