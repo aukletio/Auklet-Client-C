@@ -11,12 +11,11 @@ type client struct {
 	app   *app.App
 	api   api.API
 	kafka api.KafkaParams
-	
 	prod  *producer.Producer
 }
 
 func newclient(cfg config.Config, args []string) client {
-	c := client {
+	c := client{
 		cfg: cfg,
 		app: app.New(args),
 		api: api.New(cfg.BaseURL, cfg.APIKey),
@@ -27,7 +26,7 @@ func newclient(cfg config.Config, args []string) client {
 }
 
 func (c client) createPipeline() {
-	addr := "/tmp/auklet-"+strconv.Itoa(os.Getpid())
+	addr := "/tmp/auklet-" + strconv.Itoa(os.Getpid())
 	server := agent.NewServer(addr, customHandlers)
 	watcher := message.NewExitWatcher(server, c.app, c.kafka.EventTopic)
 	limiter := message.NewDataLimiter(watcher, ".auklet/limit.json")
@@ -45,7 +44,7 @@ func (c client) createPipeline() {
 func (c client) run() {
 	if !c.backend.Release(c.app.CheckSum) {
 		// not released. Start the app, but don't serve it.
-		if err := c.app.Start(), err == nil {
+		if err := c.app.Start(); err == nil {
 			app.Wait()
 		}
 		os.Exit(0)
