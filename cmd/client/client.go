@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/ESG-USA/Auklet-Client/agent"
 	auklet "github.com/ESG-USA/Auklet-Client/api"
@@ -73,7 +74,7 @@ func setLogOutput() {
 func setupProducer() {
 	kp = api.KafkaParams()
 
-	server := agent.NewServer("/tmp/auklet-"+strconv.Itoa(os.Getpid()), customHandlers)
+	server := agent.NewServer("/tmp/auklet-"+strconv.Itoa(os.Getpid()), time.Minute, customHandlers)
 	go server.Serve()
 
 	watcher := message.NewExitWatcher(server, app, kp.EventTopic)

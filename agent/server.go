@@ -35,11 +35,14 @@ type Server struct {
 	// Server.
 	handlers map[string]Handler
 	out      chan msg.Message
+
+	// period sets the period of profile emission requests.
+	period time.Duration
 }
 
 // NewServer returns a new Server for the Unix domain socket at addr. Incoming
 // messages are processed by the given handlers.
-func NewServer(addr string, handlers map[string]Handler) Server {
+func NewServer(addr string, period time.Duration, handlers map[string]Handler) Server {
 	l, err := net.Listen("unixpacket", addr)
 	if err != nil {
 		log.Print(err)
@@ -48,6 +51,7 @@ func NewServer(addr string, handlers map[string]Handler) Server {
 		in:       l,
 		out:      make(chan msg.Message),
 		handlers: handlers,
+		period:   period,
 	}
 	return p
 }
@@ -63,6 +67,7 @@ func (s Server) Serve() {
 		return
 	}
 	log.Printf("accepted connection on %v", s.in.Addr())
+	go proxy.requestProfiles(conn)
 	d := json.NewDecoder(conn)
 	for {
 		sm := &message{}
@@ -86,6 +91,14 @@ func (s Server) Serve() {
 			s.out <- pm
 		} else {
 			log.Printf(`message of type "%v" not handled`, sm.Type)
+		}
+	}
+}
+
+func (s Server) requestProfiles(out io.Writer) {
+	for _ = range time.Tick(s.period) {
+		if _, err := out.Write([]byte{0}); err != nil {
+			log.Print(err)
 		}
 	}
 }
