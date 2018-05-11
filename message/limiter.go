@@ -5,13 +5,15 @@ import (
 	"log"
 	"os"
 	"time"
+
+	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
 // DataLimiter is a passthrough that limits the number of application-layer
 // bytes transmitted per period.
 type DataLimiter struct {
-	source Source
-	out    chan Message
+	source kafka.MessageSource
+	out    chan kafka.Message
 	path   string
 
 	// Budget is how many bytes can be transmitted per period.
@@ -27,10 +29,10 @@ type DataLimiter struct {
 
 // NewDataLimiter returns a DataLimiter for input whose state is
 // associated with the given configuration path.
-func NewDataLimiter(input Source, configpath string) *DataLimiter {
+func NewDataLimiter(input kafka.MessageSource, configpath string) *DataLimiter {
 	l := &DataLimiter{
 		source: input,
-		out:    make(chan Message),
+		out:    make(chan kafka.Message),
 		path:   configpath,
 	}
 	if err := l.load(); err != nil {
@@ -80,7 +82,7 @@ func (l *DataLimiter) setPeriodDay(day int) {
 	l.PeriodEnd = toFutureDate(day)
 }
 
-func toFutureDate(day int) time.Date {
+func toFutureDate(day int) time.Time {
 	now := time.Now()
 	t := time.Date(now.Year(), now.Month(), day, 0, 0, 0, 0, now.Location())
 	if t.Before(now) {
@@ -174,6 +176,6 @@ func (l *DataLimiter) final() serverState {
 
 // Output returns a channel on which messages can be received. The channel
 // closes when l's input closes.
-func (l *DataLimiter) Output() <-chan Message {
+func (l *DataLimiter) Output() <-chan kafka.Message {
 	return l.out
 }

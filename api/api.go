@@ -10,54 +10,39 @@ import (
 	"net/http"
 
 	"github.com/ESG-USA/Auklet-Client/certs"
+	"github.com/ESG-USA/Auklet-Client/config"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
 // here.
 const (
-	releases     = "/private/releases/?checksum="
-	certificates = "/private/devices/certificates/"
-	devices      = "/private/devices/"
-	config       = "/private/devices/config/"
-	dataLimit    = "/app/applications/"
+	releasesEP     = "/private/releases/?checksum="
+	certificatesEP = "/private/devices/certificates/"
+	devicesEP      = "/private/devices/"
+	configEP       = "/private/devices/config/"
+	dataLimitEP    = "/private/devices/%v/app_config/" // AppID
 )
 
-// Production defines the base URL for the production environment.
-const Production = "https://api.auklet.io"
+// BaseURL is the subdomain against which requests will be performed. It
+// should not assume any particular namespace.
+var BaseURL string
 
-// An API represents parameters common to all API requests.
-type API struct {
-	*http.Client
+// key is the API key provided by package config.
+var key = config.APIKey()
 
-	// BaseURL is the subdomain against which requests will be performed. It
-	// should not assume any particular namespace.
-	BaseURL string
-
-	// Key is the API key provided by package config.
-	Key string
-}
-
-// New creates an API with the given parameters.
-func New(baseurl, key string) API {
-	return API{
-		Client:  &http.Client{},
-		BaseURL: baseurl,
-		Key:     key,
-	}
-}
-
-func (api API) get(args, contenttype string) (resp *http.Response) {
-	url := api.BaseURL + args
+func get(args, contenttype string) (resp *http.Response) {
+	url := BaseURL + args
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Print(err)
 		return
 	}
-	req.Header.Add("Authorization", "JWT "+api.Key)
+	req.Header.Add("Authorization", "JWT "+key)
 	if contenttype != "" {
 		req.Header.Add("content-type", contenttype)
 	}
-	resp, err = api.Do(req)
+	c := &http.Client{}
+	resp, err = c.Do(req)
 	if err != nil {
 		log.Print(err)
 	}
@@ -68,8 +53,8 @@ func (api API) get(args, contenttype string) (resp *http.Response) {
 }
 
 // Release returns true if checksum represents an app that has been released.
-func (api API) Release(checksum string) (ok bool) {
-	resp := api.get(releases+checksum, "")
+func Release(checksum string) (ok bool) {
+	resp := get(releasesEP + checksum, "")
 	if resp == nil {
 		return
 	}
@@ -86,8 +71,8 @@ func (api API) Release(checksum string) (ok bool) {
 }
 
 // Certificates retrieves SSL certificates.
-func (api API) Certificates() (c *tls.Config) {
-	resp := api.get(certificates, "")
+func Certificates() (c *tls.Config) {
+	resp := get(certificatesEP, "")
 	if resp == nil {
 		return
 	}
@@ -109,19 +94,19 @@ type deviceJSON struct {
 }
 
 // CreateOrGetDevice associates machash and appid in the backend.
-func (api API) CreateOrGetDevice(machash, appid string) {
+func CreateOrGetDevice(machash, appid string) {
 	b, _ := json.Marshal(deviceJSON{
 		Mac:   machash,
 		AppID: appid,
 	})
-	url := api.BaseURL + devices
+	url := BaseURL + devicesEP
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
 		log.Print(err)
 		return
 	}
 	req.Header.Add("content-type", "application/json")
-	req.Header.Add("Authorization", "JWT "+api.Key)
+	req.Header.Add("Authorization", "JWT "+key)
 
 	c := &http.Client{}
 	resp, err := c.Do(req)
@@ -144,9 +129,9 @@ type KafkaParams struct {
 	EventTopic   string `json:"event_topic"`
 }
 
-// KafkaParams returns Kafka parameters from the config endpoint.
-func (api API) KafkaParams() (k KafkaParams) {
-	resp := api.get(config, "application/json")
+// GetKafkaParams returns Kafka parameters from the config endpoint.
+func GetKafkaParams() (k KafkaParams) {
+	resp := get(configEP, "application/json")
 	if resp == nil {
 		return
 	}

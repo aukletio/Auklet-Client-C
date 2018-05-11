@@ -3,26 +3,28 @@ package message
 import (
 	"log"
 	"os"
+
+	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
 // Queue provides an "infinite" buffer for outgoing Messages.
 // Enqueued Messages persist via the filesystem.
 type Queue struct {
-	source Source
+	source kafka.MessageSource
 	dir    string
 	q      []Persistent
-	out    chan Message
+	out    chan kafka.Message
 	err    chan error
 }
 
 // NewQueue creates a new Queue that receives Messages from in and persists them
 // to the path dir. If dir contains persisted Messages, they are enqueued.
-func NewQueue(in Source, dir string) (q *Queue) {
+func NewQueue(in kafka.MessageSource, dir string) (q *Queue) {
 	q = &Queue{
 		source: in,
 		dir:    dir,
 		q:      make([]Persistent, 0),
-		out:    make(chan Message),
+		out:    make(chan kafka.Message),
 		err:    make(chan error),
 	}
 	if err := q.load(); err != nil {
@@ -56,7 +58,7 @@ func (q *Queue) load() (err error) {
 // Output returns a channel from which enqueued Messages can be received.
 // Messages sent on this channel are not automatically dequeued. The channel
 // closes when q's input closes.
-func (q *Queue) Output() <-chan Message {
+func (q *Queue) Output() <-chan kafka.Message {
 	return q.out
 }
 

@@ -2,6 +2,7 @@ package message
 
 import (
 	"github.com/ESG-USA/Auklet-Client/app"
+	"github.com/ESG-USA/Auklet-Client/kafka"
 	"github.com/ESG-USA/Auklet-Client/schema"
 )
 
@@ -13,19 +14,18 @@ import (
 // not generate a stacktrace.
 type ExitWatcher struct {
 	app        *app.App
-	source     Source
-	out        chan Message
+	source     kafka.MessageSource
+	out        chan kafka.Message
 	errd       bool
 	eventTopic string
 }
 
-// NewExitWatcher returns a new ExitWatcher for the given input, app, and
-// eventTopic.
-func NewExitWatcher(in Source, app *app.App, eventTopic string) *ExitWatcher {
+// NewExitWatcher returns a new ExitWatcher for the given input and app.
+func NewExitWatcher(in kafka.MessageSource, app *app.App) *ExitWatcher {
 	return &ExitWatcher{
 		app:    app,
 		source: in,
-		out:    make(chan Message),
+		out:    make(chan kafka.Message),
 		errd:   false,
 	}
 }
@@ -41,11 +41,11 @@ func (e *ExitWatcher) Serve() {
 	}
 	if !e.errd {
 		e.app.Wait()
-		e.out <- schema.NewExit(e.app, e.eventTopic)
+		e.out <- schema.NewExit(e.app)
 	}
 }
 
 // Output returns e's output stream.
-func (e *ExitWatcher) Output() <-chan Message {
+func (e *ExitWatcher) Output() <-chan kafka.Message {
 	return e.out
 }

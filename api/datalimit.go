@@ -29,9 +29,9 @@ type DataLimit struct {
 	EmissionPeriod int `json:"emission_period"`
 }
 
-// DataLimit returns a DataLimit from the dataLimit endpoint.
-func (api API) DataLimit(appID string) (l DataLimit) {
-	resp := api.get(dataLimit+appID, "application/json")
+// GetDataLimit returns a DataLimit from the dataLimit endpoint.
+func GetDataLimit(appID string) (l DataLimit) {
+	resp := get(dataLimitEP+appID, "application/json")
 	if resp == nil {
 		return
 	}

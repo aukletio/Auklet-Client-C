@@ -7,8 +7,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"time"
 
-	msg "github.com/ESG-USA/Auklet-Client/message"
+	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
 // message represents messages that can be received by a Server, and thus,
@@ -18,8 +19,8 @@ type message struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// Handler transforms a byte slice into a message.Message.
-type Handler func(data []byte) (msg.Message, error)
+// Handler transforms a byte slice into a kafka.Message.
+type Handler func(data []byte) (kafka.Message, error)
 
 // Server provides a Unix domain socket listener for an Auklet agent.
 type Server struct {
@@ -34,7 +35,7 @@ type Server struct {
 	// Errors returned by a handler are logged, and do not shut down the
 	// Server.
 	handlers map[string]Handler
-	out      chan msg.Message
+	out      chan kafka.Message
 
 	// period sets the period of profile emission requests.
 	period time.Duration
@@ -49,7 +50,7 @@ func NewServer(addr string, period time.Duration, handlers map[string]Handler) S
 	}
 	p := Server{
 		in:       l,
-		out:      make(chan msg.Message),
+		out:      make(chan kafka.Message),
 		handlers: handlers,
 		period:   period,
 	}
@@ -67,7 +68,7 @@ func (s Server) Serve() {
 		return
 	}
 	log.Printf("accepted connection on %v", s.in.Addr())
-	go proxy.requestProfiles(conn)
+	go s.requestProfiles(conn)
 	d := json.NewDecoder(conn)
 	for {
 		sm := &message{}
@@ -104,6 +105,6 @@ func (s Server) requestProfiles(out io.Writer) {
 }
 
 // Output returns s's output stream.
-func (s Server) Output() <-chan msg.Message {
+func (s Server) Output() <-chan kafka.Message {
 	return s.out
 }

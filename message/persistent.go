@@ -4,18 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
 // Persistent represents a Message in a form that can be written to and read
 // from disk.
 type Persistent struct {
-	TTopic string          `json:"topic"`
+	TTopic kafka.Topic     `json:"topic"`
 	BBytes json.RawMessage `json:"bytes"`
 	path   string          // location of this message in the filesystem
 }
 
 // Topic returns the Kafka topic of p.
-func (p Persistent) Topic() string {
+func (p Persistent) Topic() kafka.Topic {
 	return p.TTopic
 }
 
@@ -26,7 +28,7 @@ func (p Persistent) Bytes() ([]byte, error) {
 
 var count = 0
 
-func toPersistent(m Message, dir string) (p Persistent, err error) {
+func toPersistent(m kafka.Message, dir string) (p Persistent, err error) {
 	b, err := m.Bytes()
 	if err != nil {
 		return

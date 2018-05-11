@@ -3,11 +3,13 @@ package message
 import (
 	"testing"
 	"time"
+
+	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
 type source struct {
 	size, num int
-	out       chan Message
+	out       chan kafka.Message
 }
 
 // newsource creates a source that generates num messages of the given size in
@@ -16,7 +18,7 @@ func newsource(num, size int) source {
 	return source{
 		size: size,
 		num:  num,
-		out:  make(chan Message),
+		out:  make(chan kafka.Message),
 	}
 }
 
@@ -31,15 +33,15 @@ func (s source) Serve() {
 }
 
 // Output returns s's output. The channel closes when s shuts down.
-func (s source) Output() <-chan Message {
+func (s source) Output() <-chan kafka.Message {
 	return s.out
 }
 
 type msg []byte
 
 // Topic provides the topic of m.
-func (m msg) Topic() string {
-	return ""
+func (m msg) Topic() (t kafka.Topic) {
+	return
 }
 
 // Bytes generates the byte content of m.

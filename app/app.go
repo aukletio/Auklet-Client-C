@@ -8,6 +8,9 @@ import (
 	"log"
 	"os"
 	"os/exec"
+
+	"github.com/ESG-USA/Auklet-Client/api"
+	"github.com/ESG-USA/Auklet-Client/config"
 )
 
 // An App represents an application using Auklet.
@@ -17,7 +20,9 @@ type App struct {
 
 	// Checksum is the SHA512/224 hash of the executable file (Cmd.Path)
 	// with which we identify a build.
-	CheckSum string
+	CheckSum   string
+	ID         string
+	IsReleased bool
 }
 
 // New returns an App that would execute args.
@@ -26,9 +31,12 @@ func New(args []string) (app *App) {
 	c.Stdin = os.Stdin
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
+	s := sum(c.Path)
 	app = &App{
-		Cmd:      c,
-		CheckSum: sum(c.Path),
+		Cmd:        c,
+		CheckSum:   s,
+		ID:         config.AppID(),
+		IsReleased: api.Release(s),
 	}
 	return
 }

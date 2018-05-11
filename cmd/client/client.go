@@ -4,19 +4,19 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/ESG-USA/Auklet-Client/agent"
-	auklet "github.com/ESG-USA/Auklet-Client/api"
+	"github.com/ESG-USA/Auklet-Client/api"
 	application "github.com/ESG-USA/Auklet-Client/app"
 	"github.com/ESG-USA/Auklet-Client/config"
 	"github.com/ESG-USA/Auklet-Client/device"
+	"github.com/ESG-USA/Auklet-Client/kafka"
 	"github.com/ESG-USA/Auklet-Client/message"
-	"github.com/ESG-USA/Auklet-Client/producer"
 )
 
 func usage() {
@@ -25,10 +25,8 @@ func usage() {
 
 var (
 	app  *application.App
-	api  auklet.API
 	cfg  config.Config
-	prod *producer.Producer
-	kp   auklet.KafkaParams
+	prod *kafka.Producer
 )
 
 func init() {
@@ -52,41 +50,23 @@ func getConfig() config.Config {
 	return config.ReleaseBuild()
 }
 
-func exitIfNotReleased() {
-	if !api.Release(app.CheckSum) {
-		if err := app.Start(); err == nil {
-			app.Wait()
-		}
-		os.Exit(0)
-	}
-}
-
 func setLogOutput() {
-	var w io.Writer
-	if cfg.Dump {
-		w = io.MultiWriter(os.Stdout, prod)
-	} else {
-		w = prod
+	if !cfg.Dump {
+		log.SetOutput(ioutil.Discard)
 	}
-	log.SetOutput(w)
 }
 
 func setupProducer() {
-	kp = api.KafkaParams()
-
 	server := agent.NewServer("/tmp/auklet-"+strconv.Itoa(os.Getpid()), time.Minute, customHandlers)
 	go server.Serve()
 
-	watcher := message.NewExitWatcher(server, app, kp.EventTopic)
+	watcher := message.NewExitWatcher(server, app)
 	go watcher.Serve()
 
 	queue := message.NewQueue(watcher, "persist")
 	go queue.Serve()
 
-	prod = producer.New(queue, kp.Brokers, api.Certificates())
-	if prod != nil {
-		prod.LogTopic = kp.LogTopic
-	}
+	prod = kafka.NewProducer(queue)
 }
 
 func serveApp() {
@@ -100,13 +80,18 @@ func serveApp() {
 func main() {
 	args := checkArgs()
 	cfg = getConfig()
-	api = auklet.New(cfg.BaseURL, cfg.APIKey)
-	app = application.New(args, cfg.AppID)
+	api.BaseURL = cfg.BaseURL
+	app = application.New(args)
+	if !app.IsReleased {
+		if err := app.Start(); err == nil {
+			app.Wait()
+		}
+		os.Exit(0)
+	}
 
-	exitIfNotReleased()
 	setupProducer()
-	//setLogOutput()
-	go api.CreateOrGetDevice(device.MacHash, cfg.AppID)
+	setLogOutput()
+	go api.CreateOrGetDevice(device.MacHash, app.ID)
 
 	serveApp()
 }
