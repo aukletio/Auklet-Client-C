@@ -30,11 +30,10 @@ type Message interface {
 // Producer provides a simple Kafka producer.
 type Producer struct {
 	sarama.SyncProducer
-	api.KafkaParams
 	topic map[Topic]string
 }
 
-// New creates a Kafka producer.
+// NewProducer creates a Kafka producer.
 func NewProducer() (p *Producer) {
 	kp := api.GetKafkaParams()
 	c := sarama.NewConfig()
@@ -57,7 +56,6 @@ func NewProducer() (p *Producer) {
 	}
 	p = &Producer{
 		SyncProducer: sp,
-		KafkaParams:  kp,
 		topic: map[Topic]string{
 			ProfileTopic: kp.ProfileTopic,
 			EventTopic:   kp.EventTopic,
