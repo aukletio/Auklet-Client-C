@@ -2,7 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"io"
+	"fmt"
+	"io/ioutil"
 	"log"
 )
 
@@ -31,16 +32,18 @@ type DataLimit struct {
 
 // GetDataLimit returns a DataLimit from the dataLimit endpoint.
 func GetDataLimit(appID string) (l DataLimit) {
-	resp := get(dataLimitEP+appID, "application/json")
+	resp := get(fmt.Sprintf(dataLimitEP, appID), "application/json")
 	if resp == nil {
 		return
 	}
 	if resp.StatusCode != 200 {
 		log.Printf("api.DataLimit: unexpected status %v", resp.Status)
 	}
-	err := json.NewDecoder(resp.Body).Decode(&l)
-	if err != nil && err != io.EOF {
+	b, _ := ioutil.ReadAll(resp.Body)
+	err := json.Unmarshal(b, &l)
+	if err != nil {
 		log.Print(err)
+		log.Print(string(b))
 	}
 	return
 }

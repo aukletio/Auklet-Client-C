@@ -101,6 +101,7 @@ func main() {
 	}
 	cfg := getConfig()
 	api.BaseURL = cfg.BaseURL
+	api.GetDataLimit(config.AppID())
 	if !cfg.Dump {
 		log.SetOutput(ioutil.Discard)
 	}
