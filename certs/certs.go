@@ -32,7 +32,7 @@ func (c *certs) TLSConfig() (tc *tls.Config) {
 		RootCAs:            certpool,
 		ClientAuth:         tls.NoClientCert,
 		ClientCAs:          nil,
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: false,
 	}
 	return
 }
