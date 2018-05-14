@@ -3,6 +3,7 @@ package kafka
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/Shopify/sarama"
 
@@ -14,6 +15,23 @@ type Producer struct {
 	source MessageSourceError
 	sarama.SyncProducer
 	topic map[Topic]string
+}
+
+func verify(brokers []*sarama.Broker) bool {
+	pattern, err := regexp.Compile(`[^\.]+\.feeds\.auklet\.io:9093`)
+	if err != nil {
+		log.Print(err)
+		return false
+	}
+	for _, b := range brokers {
+		addr := b.Addr()
+		if !pattern.MatchString(addr) {
+			log.Printf("failed to verify broker address %v", addr)
+			return false
+		}
+		log.Printf("broker address: %v", addr)
+	}
+	return true
 }
 
 // NewProducer creates a Kafka producer.
@@ -34,9 +52,10 @@ func NewProducer(input MessageSourceError) (p *Producer) {
 		log.Print(err)
 		return
 	}
-	for _, b := range client.Brokers() {
-		log.Printf("broker address: %v", b.Addr())
+	if !verify(client.Brokers()) {
+		return
 	}
+
 	p = &Producer{
 		source:       input,
 		SyncProducer: sp,
