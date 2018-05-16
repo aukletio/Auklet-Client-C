@@ -1,5 +1,12 @@
 # Changelog
 
+## Merged But Unreleased
+
+**Implemented enhancements:**
+
+- Accept one CA cert file [#24](https://github.com/ESG-USA/Auklet-Client-C/pull/24) ([kdsch](https://github.com/kdsch))
+- APM-1276 Bidirectional Communication for Agent and Client [#23](https://github.com/ESG-USA/Auklet-Client-C/pull/23) ([kdsch](https://github.com/kdsch))
+
 ## [0.6.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.6.0)
 
 **Implemented enhancements:**
