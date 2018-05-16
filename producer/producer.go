@@ -4,6 +4,7 @@ package producer
 import (
 	"crypto/tls"
 	"log"
+	"regexp"
 
 	"github.com/Shopify/sarama"
 )
@@ -27,6 +28,23 @@ type Producer struct {
 	LogTopic string
 }
 
+func verify(brokers []*sarama.Broker) bool {
+	pattern, err := regexp.Compile(`[^\.]+\.feeds\.auklet\.io:9093`)
+	if err != nil {
+		log.Print(err)
+		return false
+	}
+	for _, b := range brokers {
+		addr := b.Addr()
+		if !pattern.MatchString(addr) {
+			log.Printf("failed to verify broker address %v", addr)
+			return false
+		}
+		log.Printf("broker address: %v", addr)
+	}
+	return true
+}
+
 // New creates a Kafka producer with TLS config tc, broker list brokers,
 // and certain default settings.
 func New(brokers []string, tc *tls.Config) (p *Producer) {
@@ -45,9 +63,10 @@ func New(brokers []string, tc *tls.Config) (p *Producer) {
 		log.Print(err)
 		return
 	}
-	for _, b := range client.Brokers() {
-		log.Printf("broker address: %v", b.Addr())
+	if !verify(client.Brokers()) {
+		return
 	}
+
 	p = &Producer{
 		SyncProducer: sp,
 	}
