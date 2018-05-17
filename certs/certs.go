@@ -24,18 +24,15 @@ type certs struct {
 // TLSConfig converts c into a *tls.Config.
 func (c *certs) TLSConfig() (tc *tls.Config) {
 	certpool := x509.NewCertPool()
-	certpool.AppendCertsFromPEM(c.ca)
-	cert, err := tls.X509KeyPair(c.cert, c.privatekey)
-	if err != nil {
-		log.Print(err)
+	if !certpool.AppendCertsFromPEM(c.ca) {
+		log.Print("warning: failed to parse CA")
 		return
 	}
 	tc = &tls.Config{
 		RootCAs:            certpool,
 		ClientAuth:         tls.NoClientCert,
 		ClientCAs:          nil,
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: false,
 	}
 	return
 }
@@ -84,10 +81,10 @@ func Unpack(r io.Reader) (c *certs, err error) {
 // verify checks that the map produced by Unpack has the right
 // number of files and the correct file names.
 func verify(m map[string][]byte) (err error) {
-	filenames := []string{"ck_ca", "ck_cert", "ck_private_key"}
+	filenames := []string{"ck_ca"}
 	errs := []string{}
-	if len(m) != len(filenames) {
-		format := "got %v cert files, expected %v"
+	if len(m) < len(filenames) {
+		format := "got %v cert files, expected at least %v"
 		errs = append(errs, fmt.Sprintf(format, len(m), len(filenames)))
 	}
 	for _, name := range filenames {

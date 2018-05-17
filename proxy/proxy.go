@@ -1,4 +1,4 @@
-// Package proxy implements a server that reads typed data from a Unix domain
+// Package proxy implements a server that requests typed data from a Unix domain
 // socket, transforms it according to client-defined functions, and sends it via
 // a Kafka producer.
 package proxy
@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"time"
 
 	"github.com/ESG-USA/Auklet-Client/producer"
 )
@@ -23,8 +24,8 @@ type sockMessage struct {
 // Handler transforms a byte slice into a producer message.
 type Handler func(data []byte) (producer.Message, error)
 
-// Proxy serves a single-client, simplex connection from a Unix domain
-// socket to a Kafka producer.
+// Proxy periodically requests and receives messages from an Auklet agent and
+// relays them to a Kafka producer.
 type Proxy struct {
 	// Listener is the Unix domain socket on which the Proxy waits for
 	// an incoming connection.
@@ -41,6 +42,9 @@ type Proxy struct {
 	// Errors returned by a handler are logged, and do not shut down the
 	// Proxy.
 	Handlers map[string]Handler
+
+	// Interval sets the period of profile emission requests.
+	Interval time.Duration
 }
 
 // Serve waits for proxy to accept an incoming connection, then serves the
@@ -57,6 +61,7 @@ func (proxy Proxy) Serve() {
 		return
 	}
 	log.Printf("accepted connection on %v", proxy.Addr())
+	go proxy.requestProfiles(conn)
 	d := json.NewDecoder(conn)
 	for {
 		sm := &sockMessage{}
@@ -82,6 +87,14 @@ func (proxy Proxy) Serve() {
 			}
 		} else {
 			log.Printf(`socket message of type "%v" not handled`, sm.Type)
+		}
+	}
+}
+
+func (proxy Proxy) requestProfiles(out io.Writer) {
+	for _ = range time.Tick(proxy.Interval) {
+		if _, err := out.Write([]byte{0}); err != nil {
+			log.Print(err)
 		}
 	}
 }
