@@ -94,7 +94,7 @@ func (l *DataLimiter) setPeriodDay(day int) {
 		return
 	}
 	d := toFutureDate(day)
-	log.Println("limiter: moving period day from %v to %v", l.PeriodEnd, d)
+	log.Printf("limiter: moving period day from %v to %v", l.PeriodEnd, d)
 	l.PeriodEnd = d
 }
 

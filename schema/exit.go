@@ -33,10 +33,10 @@ type exit struct {
 
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
-	Status     int            `json:"exitStatus"`
-	Signal     sig            `json:"signal,omitempty"`
-	MacHash    string         `json:"macAddressHash"`
-	Metrics    device.Metrics `json:"systemMetrics"`
+	Status  int            `json:"exitStatus"`
+	Signal  sig            `json:"signal,omitempty"`
+	MacHash string         `json:"macAddressHash"`
+	Metrics device.Metrics `json:"systemMetrics"`
 }
 
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
@@ -55,6 +55,8 @@ func NewExit(app *app.App) (m kafka.Message, err error) {
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
 	b, err := json.MarshalIndent(e, "", "\t")
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	return kafka.StdPersistor.CreateMessage(b, kafka.Event)
 }

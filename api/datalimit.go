@@ -7,6 +7,8 @@ import (
 	"log"
 )
 
+// CellularConfig defines a limit and date for devices that use a cellular
+// connection.
 type CellularConfig struct {
 	// Limit is the maximum number of application layer
 	// megabytes/period that the client may send over a
@@ -24,7 +26,7 @@ type DataLimit struct {
 		// EmissionPeriod is the time in seconds the client is to wait
 		// between emission requests to the agent.
 		EmissionPeriod int `json:"emission_period"`
-		Storage struct {
+		Storage        struct {
 			// Limit is the maximum number of megabytes the client
 			// may use to store unsent messages. If nil, there is no
 			// storage limit.
@@ -33,6 +35,7 @@ type DataLimit struct {
 		Cellular CellularConfig `json:"data"`
 	} `json:"config"`
 }
+
 // As of May 15, 2018, the backend returns this:
 //
 // {

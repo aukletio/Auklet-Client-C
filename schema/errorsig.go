@@ -41,9 +41,9 @@ type errorSig struct {
 	Signal sig `json:"signal"`
 
 	// Trace is a stacktrace provided by libauklet.
-	Trace      json.RawMessage `json:"stackTrace"`
-	MacHash    string          `json:"macAddressHash"`
-	Metrics    device.Metrics  `json:"systemMetrics"`
+	Trace   json.RawMessage `json:"stackTrace"`
+	MacHash string          `json:"macAddressHash"`
+	Metrics device.Metrics  `json:"systemMetrics"`
 }
 
 // NewErrorSig creates an ErrorSig for app out of JSON data. It assumes that

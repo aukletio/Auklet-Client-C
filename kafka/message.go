@@ -9,10 +9,10 @@ import (
 )
 
 // This file defines interfaces for manipulating streams of Kafka
-// messages.
+// messages, plus a message persistence layer.
 
+// Type encodes a Message type.
 type Type int
-
 const (
 	Profile Type = iota
 	Event
@@ -26,8 +26,10 @@ type Message struct {
 	path  string
 }
 
-var StorageFull = errors.New("persistor: storage full")
+// ErrStorageFull indicates that the corresponding Persistor is full.
+var ErrStorageFull = errors.New("persistor: storage full")
 
+// Persistor controls a persistence layer for kafka Messages.
 type Persistor struct {
 	limit        *int64      // storage limit in bytes; no limit if nil
 	newLimit     chan *int64 // incoming new values for limit
@@ -36,12 +38,15 @@ type Persistor struct {
 	count        int // counter to give messages unique names
 }
 
+// StdPersistor is the standard Persistor.
 var StdPersistor = NewPersistor(".auklet/message")
 
+// CreateMessage creates a new Message under the standard persistor.
 func CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
 	return StdPersistor.CreateMessage(bytes, typ)
 }
 
+// NewPersistor creates a new persistence layer in dir.
 func NewPersistor(dir string) Persistor {
 	p := Persistor{
 		dir:          dir,
@@ -62,6 +67,7 @@ func (p Persistor) serve() {
 	}
 }
 
+// Configure returns a channel on which p's storage limit can be controlled.
 func (p Persistor) Configure() chan<- *int64 {
 	return p.newLimit
 }
@@ -110,10 +116,11 @@ func (p Persistor) Load() (msgs []Message) {
 	return
 }
 
+// CreateMessage creates a new Message under p.
 func (p Persistor) CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
 	lim := <-p.currentLimit
 	if lim != nil && int64(len(bytes))+p.size() > 9**lim/10 {
-		err = StorageFull
+		err = ErrStorageFull
 		return
 	}
 	m = Message{
@@ -146,6 +153,7 @@ func (m Message) save() (err error) {
 	return
 }
 
+// Remove deletes m from the persistence layer.
 func (m Message) Remove() {
 	os.Remove(m.path)
 }
