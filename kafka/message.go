@@ -13,7 +13,9 @@ import (
 
 // Type encodes a Message type.
 type Type int
+
 const (
+	// Profile, Event, and Log are Message types.
 	Profile Type = iota
 	Event
 	Log

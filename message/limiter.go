@@ -215,6 +215,7 @@ func (l *DataLimiter) Output() <-chan kafka.Message {
 	return l.out
 }
 
+// Configure returns a channel by which the configuration can be updated.
 func (l *DataLimiter) Configure() chan<- api.CellularConfig {
 	return l.conf
 }

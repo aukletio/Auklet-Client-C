@@ -48,7 +48,9 @@ func NewProfile(data []byte, app *app.App) (m kafka.Message, err error) {
 	p.Time = time.Now().UnixNano() / 1000000 // milliseconds
 	p.CheckSum = app.CheckSum
 	p.AppID = app.ID
-	b, err := json.MarshalIndent(p,"","\t")
-	if err != nil { return }
+	b, err := json.MarshalIndent(p, "", "\t")
+	if err != nil {
+		return
+	}
 	return kafka.StdPersistor.CreateMessage(b, kafka.Profile)
 }
