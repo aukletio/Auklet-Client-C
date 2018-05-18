@@ -22,19 +22,16 @@ func (p Persistent) Topic() kafka.Topic {
 }
 
 // Bytes returns p's value as a byte slice.
-func (p Persistent) Bytes() ([]byte, error) {
-	return p.BBytes, nil
+func (p Persistent) Bytes() []byte {
+	return p.BBytes
 }
 
 var count = 0
 
-func toPersistent(m kafka.Message, dir string) (p Persistent, err error) {
-	b, err := m.Bytes()
-	if err != nil {
-		return
-	}
+// Persist persists m to a file in dir.
+func Persist(m kafka.Message, dir string) (p Persistent, err error) {
 	p = Persistent{
-		BBytes: json.RawMessage(b),
+		BBytes: json.RawMessage(m.Bytes()),
 		TTopic: m.Topic(),
 		path:   fmt.Sprintf("%v/%v-%v", dir, os.Getpid(), count),
 	}
@@ -63,6 +60,6 @@ func (p *Persistent) save() (err error) {
 	return
 }
 
-func (p *Persistent) remove() error {
+func (p *Persistent) Remove() error {
 	return os.Remove(p.path)
 }

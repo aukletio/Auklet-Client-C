@@ -86,10 +86,7 @@ func (p *Producer) send(m Message) (err error) {
 	if p == nil {
 		return
 	}
-	b, err := m.Bytes()
-	if err != nil {
-		return
-	}
+	b := m.Bytes()
 	log.Print("producer: sending message...")
 	_, _, err = p.SendMessage(&sarama.ProducerMessage{
 		Topic: p.topic[m.Topic()],

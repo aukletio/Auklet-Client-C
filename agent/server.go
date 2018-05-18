@@ -37,24 +37,25 @@ type Server struct {
 	handlers map[string]Handler
 	out      chan kafka.Message
 
-	// period sets the period of profile emission requests.
-	period time.Duration
+	conf chan int
+	// emit triggers profile emission requests.
+	emit *time.Ticker
 }
 
 // NewServer returns a new Server for the Unix domain socket at addr. Incoming
 // messages are processed by the given handlers.
-func NewServer(addr string, period time.Duration, handlers map[string]Handler) Server {
+func NewServer(addr string, handlers map[string]Handler) Server {
 	l, err := net.Listen("unixpacket", addr)
 	if err != nil {
 		log.Print(err)
 	}
-	p := Server{
+	return Server{
 		in:       l,
 		out:      make(chan kafka.Message),
 		handlers: handlers,
-		period:   period,
+		conf:     make(chan int),
+		emit:     time.NewTicker(time.Minute),
 	}
-	return p
 }
 
 // Serve causes s to accept an incoming connection, after which s can send and
@@ -96,10 +97,22 @@ func (s Server) Serve() {
 	}
 }
 
+// Configure returns a channel on which the emission period in seconds can be
+// set.
+func (s Server) Configure() chan<- int {
+	return s.conf
+}
+
 func (s Server) requestProfiles(out io.Writer) {
-	for _ = range time.Tick(s.period) {
-		if _, err := out.Write([]byte{0}); err != nil {
-			log.Print(err)
+	for {
+		select {
+		case <-s.emit.C:
+			if _, err := out.Write([]byte{0}); err != nil {
+				log.Print(err)
+			}
+		case dur := <-s.conf:
+			s.emit.Stop()
+			s.emit = time.NewTicker(time.Duration(dur) * time.Second)
 		}
 	}
 }

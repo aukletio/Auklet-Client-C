@@ -44,20 +44,35 @@ func newAgentServer(app *app.App) agent.Server {
 			return schema.NewLog(data), nil
 		},
 	}
-	return agent.NewServer(addr, time.Minute, handlers)
+	return agent.NewServer(addr, handlers)
 }
 
 func (c *client) createPipeline() {
+	if err := os.MkdirAll(".auklet/queue", 0777); err != nil {
+		log.Print(err)
+	}
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
-	limiter := message.NewDataLimiter(watcher, ".auklet/limit.json")
-	queue := message.NewQueue(limiter, ".auklet")
+	limiter := message.NewDataLimiter(watcher, c.app.ID)
+	queue := message.NewQueue(limiter)
 	c.prod = kafka.NewProducer(queue)
+	pollConfig := func() {
+		poll := func() {
+			dl := api.GetDataLimit(c.app.ID).Config
+			go func() { server.Configure() <- dl.EmissionPeriod }()
+			go func() { limiter.Configure() <- dl.Cellular }()
+		}
+		poll()
+		for _ = range time.Tick(time.Hour) {
+			poll()
+		}
+	}
 
 	go server.Serve()
 	go watcher.Serve()
 	go limiter.Serve()
 	go queue.Serve()
+	go pollConfig()
 }
 
 func (c *client) run() {
@@ -101,7 +116,6 @@ func main() {
 	}
 	cfg := getConfig()
 	api.BaseURL = cfg.BaseURL
-	api.GetDataLimit(config.AppID())
 	if !cfg.Dump {
 		log.SetOutput(ioutil.Discard)
 	}

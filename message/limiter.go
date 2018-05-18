@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/ESG-USA/Auklet-Client/api"
 	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
@@ -14,10 +15,12 @@ import (
 type DataLimiter struct {
 	source kafka.MessageSource
 	out    chan kafka.Message
+	conf   chan api.CellularConfig
 	path   string
 
-	// Budget is how many bytes can be transmitted per period.
-	Budget int `json:"budget"`
+	// Budget is how many bytes can be transmitted per period. If nil, any
+	// number of bytes can be transmitted.
+	Budget *int `json:"budget"`
 
 	// Count is how many bytes have been transmitted during the current
 	// period.
@@ -27,19 +30,28 @@ type DataLimiter struct {
 	PeriodEnd time.Time `json:"periodEnd"`
 }
 
-// NewDataLimiter returns a DataLimiter for input whose state is
-// associated with the given configuration path.
-func NewDataLimiter(input kafka.MessageSource, configpath string) *DataLimiter {
+// NewDataLimiter returns a DataLimiter for input whose state persists on
+// the filesystem.
+func NewDataLimiter(input kafka.MessageSource, appID string) *DataLimiter {
 	l := &DataLimiter{
 		source: input,
 		out:    make(chan kafka.Message),
-		path:   configpath,
+		conf:   make(chan api.CellularConfig),
+		path:   ".auklet/limit.json",
 	}
 	if err := l.load(); err != nil {
 		log.Println(err)
 	}
-	// If load fails, the budget is 0, and no messages will be sent.
+	// If load fails, there is no budget, so all messages will be sent.
 	return l
+}
+
+func (l *DataLimiter) setBudget(megabytes *int) {
+	if megabytes == nil {
+		l.Budget = nil
+		return
+	}
+	*l.Budget = 1e6 * *megabytes
 }
 
 func (l *DataLimiter) load() (err error) {
@@ -117,34 +129,39 @@ func (l *DataLimiter) Serve() {
 }
 
 func (l *DataLimiter) initial() serverState {
-	if l.Count > 9*l.Budget/10 {
+	if l.Budget != nil && l.Count > 9**l.Budget/10 {
 		return l.overBudget
 	}
 	return l.underBudget
 }
 
 func (l *DataLimiter) underBudget() serverState {
-	m, open := <-l.source.Output()
-	if !open {
-		return l.final
-	}
-	b, err := m.Bytes()
-	if err != nil {
-		log.Print(err)
-		return l.underBudget
-	}
-	n := len(b)
-	if n+l.Count > l.Budget {
-		// m would put us over budget. We begin dropping messages.
-		return l.overBudget
-	} else if n+l.Count > 9*l.Budget/10 {
-		// m would put us over 90% of the budget, but not over 100%.
-		// We send it and begin to drop messages.
-		l.out <- m
-		if err := l.increment(n); err != nil {
-			log.Print(err)
+	select {
+	case m, open := <-l.source.Output():
+		if !open {
+			return l.final
 		}
-		return l.overBudget
+		return l.handleMessage(m)
+	case conf := <-l.conf:
+		return l.apply(conf)
+	}
+}
+
+func (l *DataLimiter) handleMessage(m kafka.Message) serverState {
+	n := len(m.Bytes())
+	if l.Budget != nil {
+		if n+l.Count > *l.Budget {
+			// m would put us over budget. We begin dropping messages.
+			return l.overBudget
+		} else if n+l.Count > 9**l.Budget/10 {
+			// m would put us over 90% of the budget, but not over 100%.
+			// We send it and begin to drop messages.
+			l.out <- m
+			if err := l.increment(n); err != nil {
+				log.Print(err)
+			}
+			return l.overBudget
+		}
 	}
 	// m does not put us over 90% of budget.
 	l.out <- m
@@ -152,7 +169,9 @@ func (l *DataLimiter) underBudget() serverState {
 		log.Print(err)
 		// We had a problem persisting the counter. To be safe, we
 		// start dropping data.
-		return l.overBudget
+		if l.Budget != nil {
+			return l.overBudget
+		}
 	}
 	return l.underBudget
 }
@@ -161,10 +180,23 @@ func (l *DataLimiter) underBudget() serverState {
 // Note that it is still possible for the limiter to return to the underBudget
 // state, when Serve notices that a new period has begun.
 func (l *DataLimiter) overBudget() serverState {
-	if _, open := <-l.source.Output(); !open {
-		return l.final
+	select {
+	case _, open := <-l.source.Output():
+		if !open {
+			return l.final
+		}
+		return l.overBudget
+	case conf := <-l.conf:
+		return l.apply(conf)
 	}
-	return l.overBudget
+}
+
+func (l *DataLimiter) apply(conf api.CellularConfig) serverState {
+	log.Print("limiter: got new config", conf)
+	l.setPeriodDay(conf.Date)
+	l.setBudget(conf.Limit)
+	l.startThisPeriod()
+	return l.initial
 }
 
 // The input channel has closed, which implies that the pipeline is shutting
@@ -178,4 +210,8 @@ func (l *DataLimiter) final() serverState {
 // closes when l's input closes.
 func (l *DataLimiter) Output() <-chan kafka.Message {
 	return l.out
+}
+
+func (l *DataLimiter) Configure() chan<- api.CellularConfig {
+	return l.conf
 }

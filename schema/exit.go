@@ -62,6 +62,7 @@ func (e Exit) Topic() kafka.Topic {
 }
 
 // Bytes returns the Exit as a byte slice.
-func (e Exit) Bytes() ([]byte, error) {
-	return json.MarshalIndent(e, "", "\t")
+func (e Exit) Bytes() []byte {
+	b, _ := json.MarshalIndent(e, "", "\t")
+	return b
 }

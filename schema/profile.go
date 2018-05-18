@@ -56,6 +56,7 @@ func (p Profile) Topic() kafka.Topic {
 }
 
 // Bytes returns the Profile as a byte slice.
-func (p Profile) Bytes() ([]byte, error) {
-	return json.MarshalIndent(p, "", "\t")
+func (p Profile) Bytes() []byte {
+	b, _ := json.MarshalIndent(p, "", "\t")
+	return b
 }

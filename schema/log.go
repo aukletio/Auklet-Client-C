@@ -22,6 +22,6 @@ func (l Log) Topic() kafka.Topic {
 }
 
 // Bytes returns the Log as a byte slice.
-func (l Log) Bytes() ([]byte, error) {
-	return l.raw, nil
+func (l Log) Bytes() []byte {
+	return l.raw
 }

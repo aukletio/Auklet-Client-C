@@ -14,7 +14,7 @@ const (
 // Message is implemented by types that can be sent as Kafka messages.
 type Message interface {
 	Topic() Topic
-	Bytes() ([]byte, error)
+	Bytes() []byte
 }
 
 // MessageSource is implemented by types that can generate a Message stream.

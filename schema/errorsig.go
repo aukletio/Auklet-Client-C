@@ -70,8 +70,9 @@ func (e ErrorSig) Topic() kafka.Topic {
 }
 
 // Bytes returns the ErrorSig as a byte slice.
-func (e ErrorSig) Bytes() ([]byte, error) {
-	return json.MarshalIndent(e, "", "\t")
+func (e ErrorSig) Bytes() []byte {
+	b, _ := json.MarshalIndent(e, "", "\t")
+	return b
 }
 
 type sig syscall.Signal

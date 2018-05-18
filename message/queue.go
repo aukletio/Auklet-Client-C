@@ -18,34 +18,55 @@ type Queue struct {
 }
 
 // NewQueue creates a new Queue that receives Messages from in and persists them
-// to the path dir. If dir contains persisted Messages, they are enqueued.
-func NewQueue(in kafka.MessageSource, dir string) (q *Queue) {
+// to the filesystem. Any existing persisted Messages are enqueued.
+func NewQueue(in kafka.MessageSource) (q *Queue) {
 	q = &Queue{
 		source: in,
-		dir:    dir,
+		dir:    ".auklet/queue",
 		q:      make([]Persistent, 0),
 		out:    make(chan kafka.Message),
 		err:    make(chan error),
 	}
-	if err := q.load(); err != nil {
+	q.load()
+	return
+}
+
+// filepaths returns a list of paths of persistent messages.
+func (q *Queue) filepaths() (paths []string) {
+	d, err := os.Open(q.dir)
+	if err != nil {
 		log.Print(err)
+		return
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(0)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	for _, name := range names {
+		paths = append(paths, q.dir+"/"+name)
+	}
+	return
+}
+
+// size computes the amount of storage currently used by persistent messages.
+func (q *Queue) size() (n int64, err error) {
+	for _, path := range q.filepaths() {
+		f, err := os.Stat(path)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		n += f.Size()
 	}
 	return
 }
 
 // load enqueues q with Persistent messages from the filesystem.
 func (q *Queue) load() (err error) {
-	f, err := os.Open(q.dir)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	names, err := f.Readdirnames(0)
-	if err != nil {
-		return
-	}
-	for _, name := range names {
-		p := Persistent{path: q.dir + "/" + name}
+	for _, path := range q.filepaths() {
+		p := Persistent{path: path}
 		if err := p.load(); err != nil {
 			log.Print(err)
 			continue
