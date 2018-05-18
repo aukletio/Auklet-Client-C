@@ -21,7 +21,7 @@ const (
 	Log
 )
 
-// Message is implemented by types that can be sent as Kafka messages.
+// Message represents a Kafka message.
 type Message struct {
 	Type  Type            `json:"type"`
 	Bytes json.RawMessage `json:"bytes"`
@@ -31,24 +31,24 @@ type Message struct {
 // ErrStorageFull indicates that the corresponding Persistor is full.
 var ErrStorageFull = errors.New("persistor: storage full")
 
-// Persistor controls a persistence layer for kafka Messages.
+// Persistor controls a persistence layer for Messages.
 type Persistor struct {
 	limit        *int64      // storage limit in bytes; no limit if nil
 	newLimit     chan *int64 // incoming new values for limit
 	currentLimit chan *int64 // outgoing current values for limit
 	dir          string
-	count        int // counter to give messages unique names
+	count        int // counter to give Messages unique names
 }
 
 // StdPersistor is the standard Persistor.
 var StdPersistor = NewPersistor(".auklet/message")
 
-// CreateMessage creates a new Message under the standard persistor.
+// CreateMessage creates a new Message under the standard Persistor.
 func CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
 	return StdPersistor.CreateMessage(bytes, typ)
 }
 
-// NewPersistor creates a new persistence layer in dir.
+// NewPersistor creates a new Persistor in dir.
 func NewPersistor(dir string) Persistor {
 	p := Persistor{
 		dir:          dir,
