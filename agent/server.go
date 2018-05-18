@@ -38,8 +38,6 @@ type Server struct {
 	out      chan kafka.Message
 
 	conf chan int
-	// emit triggers profile emission requests.
-	emit *time.Ticker
 }
 
 // NewServer returns a new Server for the Unix domain socket at addr. Incoming
@@ -54,7 +52,6 @@ func NewServer(addr string, handlers map[string]Handler) Server {
 		out:      make(chan kafka.Message),
 		handlers: handlers,
 		conf:     make(chan int),
-		emit:     time.NewTicker(time.Minute),
 	}
 }
 
@@ -104,15 +101,16 @@ func (s Server) Configure() chan<- int {
 }
 
 func (s Server) requestProfiles(out io.Writer) {
+	emit := time.NewTicker(time.Second)
 	for {
 		select {
-		case <-s.emit.C:
+		case <-emit.C:
 			if _, err := out.Write([]byte{0}); err != nil {
 				log.Print(err)
 			}
 		case dur := <-s.conf:
-			s.emit.Stop()
-			s.emit = time.NewTicker(time.Duration(dur) * time.Second)
+			emit.Stop()
+			emit = time.NewTicker(time.Duration(dur) * time.Second)
 		}
 	}
 }

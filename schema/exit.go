@@ -12,10 +12,10 @@ import (
 	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
-// Exit represents the exit of an app in which libauklet did not handle a
+// exit represents the exit of an app in which libauklet did not handle a
 // signal. The app may or may not have been delivered a termination signal of
 // some kind, but not one handled by libauklet. See man 7 signal for details.
-type Exit struct {
+type exit struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -39,8 +39,9 @@ type Exit struct {
 	Metrics    device.Metrics `json:"systemMetrics"`
 }
 
-// NewExit creates an Exit for app. It assumes that app.Wait() has returned.
-func NewExit(app *app.App) (e Exit) {
+// NewExit creates an exit for app. It assumes that app.Wait() has returned.
+func NewExit(app *app.App) (m kafka.Message, err error) {
+	var e exit
 	e.AppID = app.ID
 	e.CheckSum = app.CheckSum
 	e.IP = device.CurrentIP()
@@ -53,16 +54,7 @@ func NewExit(app *app.App) (e Exit) {
 	}
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
-	return
-}
-
-// Topic returns the Kafka topic to which e should be sent.
-func (e Exit) Topic() kafka.Topic {
-	return kafka.EventTopic
-}
-
-// Bytes returns the Exit as a byte slice.
-func (e Exit) Bytes() []byte {
-	b, _ := json.MarshalIndent(e, "", "\t")
-	return b
+	b, err := json.MarshalIndent(e, "", "\t")
+	if err != nil { return }
+	return kafka.StdPersistor.CreateMessage(b, kafka.Event)
 }

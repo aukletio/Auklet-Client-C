@@ -36,7 +36,8 @@ type Profile struct {
 }
 
 // NewProfile creates a Profile for app out of JSON data.
-func NewProfile(data []byte, app *app.App) (p Profile, err error) {
+func NewProfile(data []byte, app *app.App) (m kafka.Message, err error) {
+	var p Profile
 	err = json.Unmarshal(data, &p)
 	if err != nil {
 		// There was a problem decoding the JSON.
@@ -47,16 +48,7 @@ func NewProfile(data []byte, app *app.App) (p Profile, err error) {
 	p.Time = time.Now().UnixNano() / 1000000 // milliseconds
 	p.CheckSum = app.CheckSum
 	p.AppID = app.ID
-	return
-}
-
-// Topic returns the Kafka topic to which p should be sent.
-func (p Profile) Topic() kafka.Topic {
-	return kafka.ProfileTopic
-}
-
-// Bytes returns the Profile as a byte slice.
-func (p Profile) Bytes() []byte {
-	b, _ := json.MarshalIndent(p, "", "\t")
-	return b
+	b, err := json.MarshalIndent(p,"","\t")
+	if err != nil { return }
+	return kafka.StdPersistor.CreateMessage(b, kafka.Profile)
 }

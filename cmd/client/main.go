@@ -41,14 +41,14 @@ func newAgentServer(app *app.App) agent.Server {
 			return schema.NewErrorSig(data, app)
 		},
 		"log": func(data []byte) (kafka.Message, error) {
-			return schema.NewLog(data), nil
+			return schema.NewLog(data)
 		},
 	}
 	return agent.NewServer(addr, handlers)
 }
 
 func (c *client) createPipeline() {
-	if err := os.MkdirAll(".auklet/queue", 0777); err != nil {
+	if err := os.MkdirAll(".auklet/message", 0777); err != nil {
 		log.Print(err)
 	}
 	server := newAgentServer(c.app)

@@ -14,9 +14,9 @@ import (
 	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
-// ErrorSig represents the exit of an app in which libauklet handled an "error
+// errorSig represents the exit of an app in which libauklet handled an "error
 // signal" and produced a stacktrace.
-type ErrorSig struct {
+type errorSig struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -48,7 +48,8 @@ type ErrorSig struct {
 
 // NewErrorSig creates an ErrorSig for app out of JSON data. It assumes that
 // app.Wait() has returned.
-func NewErrorSig(data []byte, app *app.App) (e ErrorSig, err error) {
+func NewErrorSig(data []byte, app *app.App) (m kafka.Message, err error) {
+	var e errorSig
 	err = json.Unmarshal(data, &e)
 	if err != nil {
 		return
@@ -61,18 +62,11 @@ func NewErrorSig(data []byte, app *app.App) (e ErrorSig, err error) {
 	e.Status = app.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
-	return
-}
-
-// Topic returns the Kafka topic to which p should be sent.
-func (e ErrorSig) Topic() kafka.Topic {
-	return kafka.EventTopic
-}
-
-// Bytes returns the ErrorSig as a byte slice.
-func (e ErrorSig) Bytes() []byte {
-	b, _ := json.MarshalIndent(e, "", "\t")
-	return b
+	b, err := json.MarshalIndent(e, "", "\t")
+	if err != nil {
+		return
+	}
+	return kafka.StdPersistor.CreateMessage(b, kafka.Event)
 }
 
 type sig syscall.Signal

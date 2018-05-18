@@ -37,7 +37,7 @@ func NewDataLimiter(input kafka.MessageSource, appID string) *DataLimiter {
 		source: input,
 		out:    make(chan kafka.Message),
 		conf:   make(chan api.CellularConfig),
-		path:   ".auklet/limit.json",
+		path:   ".auklet/datalimit.json",
 	}
 	if err := l.load(); err != nil {
 		log.Println(err)
@@ -48,10 +48,12 @@ func NewDataLimiter(input kafka.MessageSource, appID string) *DataLimiter {
 
 func (l *DataLimiter) setBudget(megabytes *int) {
 	if megabytes == nil {
+		log.Print("limiter: setting budget to nil")
 		l.Budget = nil
 		return
 	}
 	*l.Budget = 1e6 * *megabytes
+	log.Printf("limiter: setting budget to %v B", *l.Budget)
 }
 
 func (l *DataLimiter) load() (err error) {
@@ -91,7 +93,9 @@ func (l *DataLimiter) setPeriodDay(day int) {
 	if l.PeriodEnd.Day() == day {
 		return
 	}
-	l.PeriodEnd = toFutureDate(day)
+	d := toFutureDate(day)
+	log.Println("limiter: moving period day from %v to %v", l.PeriodEnd, d)
+	l.PeriodEnd = d
 }
 
 func toFutureDate(day int) time.Time {
@@ -148,7 +152,7 @@ func (l *DataLimiter) underBudget() serverState {
 }
 
 func (l *DataLimiter) handleMessage(m kafka.Message) serverState {
-	n := len(m.Bytes())
+	n := len(m.Bytes)
 	if l.Budget != nil {
 		if n+l.Count > *l.Budget {
 			// m would put us over budget. We begin dropping messages.
@@ -192,7 +196,6 @@ func (l *DataLimiter) overBudget() serverState {
 }
 
 func (l *DataLimiter) apply(conf api.CellularConfig) serverState {
-	log.Print("limiter: got new config", conf)
 	l.setPeriodDay(conf.Date)
 	l.setBudget(conf.Limit)
 	l.startThisPeriod()

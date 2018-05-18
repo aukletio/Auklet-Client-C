@@ -1,20 +1,153 @@
 package kafka
 
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"os"
+)
+
 // This file defines interfaces for manipulating streams of Kafka
 // messages.
 
-type Topic int
+type Type int
 
 const (
-	ProfileTopic Topic = iota
-	EventTopic
-	LogTopic
+	Profile Type = iota
+	Event
+	Log
 )
 
 // Message is implemented by types that can be sent as Kafka messages.
-type Message interface {
-	Topic() Topic
-	Bytes() []byte
+type Message struct {
+	Type  Type            `json:"type"`
+	Bytes json.RawMessage `json:"bytes"`
+	path  string
+}
+
+var StorageFull = errors.New("persistor: storage full")
+
+type Persistor struct {
+	limit        *int64      // storage limit in bytes; no limit if nil
+	newLimit     chan *int64 // incoming new values for limit
+	currentLimit chan *int64 // outgoing current values for limit
+	dir          string
+	count        int // counter to give messages unique names
+}
+
+var StdPersistor = NewPersistor(".auklet/message")
+
+func CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
+	return StdPersistor.CreateMessage(bytes, typ)
+}
+
+func NewPersistor(dir string) Persistor {
+	p := Persistor{
+		dir:          dir,
+		newLimit:     make(chan *int64),
+		currentLimit: make(chan *int64),
+	}
+	go p.serve()
+	return p
+}
+
+// serve serializes access to p.limit
+func (p Persistor) serve() {
+	for {
+		select {
+		case p.limit = <-p.newLimit:
+		case p.currentLimit <- p.limit:
+		}
+	}
+}
+
+func (p Persistor) Configure() chan<- *int64 {
+	return p.newLimit
+}
+
+// filepaths returns a list of paths of persistent messages.
+func (p Persistor) filepaths() (paths []string) {
+	d, err := os.Open(p.dir)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(0)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	for _, name := range names {
+		paths = append(paths, p.dir+"/"+name)
+	}
+	return
+}
+
+func (p Persistor) size() (n int64) {
+	for _, path := range p.filepaths() {
+		f, err := os.Stat(path)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		n += f.Size()
+	}
+	return
+}
+
+// Load loads messages from the filesystem.
+func (p Persistor) Load() (msgs []Message) {
+	for _, path := range p.filepaths() {
+		m := Message{path: path}
+		if err := m.load(); err != nil {
+			log.Print(err)
+			continue
+		}
+		msgs = append(msgs, m)
+	}
+	return
+}
+
+func (p Persistor) CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
+	lim := <-p.currentLimit
+	if lim != nil && int64(len(bytes))+p.size() > 9**lim/10 {
+		err = StorageFull
+		return
+	}
+	m = Message{
+		Type:  typ,
+		Bytes: bytes,
+		path:  fmt.Sprintf("%v/%v-%v", p.dir, os.Getpid(), p.count),
+	}
+	p.count++
+	err = m.save()
+	return
+}
+
+func (m Message) load() (err error) {
+	f, err := os.Open(m.path)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	err = json.NewDecoder(f).Decode(&m)
+	return
+}
+
+func (m Message) save() (err error) {
+	f, err := os.OpenFile(m.path, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	err = json.NewEncoder(f).Encode(m)
+	return
+}
+
+func (m Message) Remove() {
+	os.Remove(m.path)
 }
 
 // MessageSource is implemented by types that can generate a Message stream.

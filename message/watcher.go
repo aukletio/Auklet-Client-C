@@ -1,6 +1,8 @@
 package message
 
 import (
+	"log"
+
 	"github.com/ESG-USA/Auklet-Client/app"
 	"github.com/ESG-USA/Auklet-Client/kafka"
 	"github.com/ESG-USA/Auklet-Client/schema"
@@ -34,15 +36,21 @@ func NewExitWatcher(in kafka.MessageSource, app *app.App) *ExitWatcher {
 func (e *ExitWatcher) Serve() {
 	defer close(e.out)
 	for m := range e.source.Output() {
-		if _, is := m.(schema.ErrorSig); is {
+		if m.Type == kafka.Event {
 			e.errd = true
 		}
 		e.out <- m
 	}
-	if !e.errd {
-		e.app.Wait()
-		e.out <- schema.NewExit(e.app)
+	if e.errd {
+		return
 	}
+	e.app.Wait()
+	m, err := schema.NewExit(e.app)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	e.out <- m
 }
 
 // Output returns e's output stream.

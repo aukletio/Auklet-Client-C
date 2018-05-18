@@ -2,78 +2,27 @@ package message
 
 import (
 	"log"
-	"os"
 
 	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
 // Queue provides an "infinite" buffer for outgoing Messages.
-// Enqueued Messages persist via the filesystem.
 type Queue struct {
 	source kafka.MessageSource
-	dir    string
-	q      []Persistent
+	q      []kafka.Message
 	out    chan kafka.Message
 	err    chan error
 }
 
-// NewQueue creates a new Queue that receives Messages from in and persists them
-// to the filesystem. Any existing persisted Messages are enqueued.
-func NewQueue(in kafka.MessageSource) (q *Queue) {
-	q = &Queue{
+// NewQueue creates a new Queue that buffers Messages. Any existing persisted
+// Messages are enqueued.
+func NewQueue(in kafka.MessageSource) *Queue {
+	return &Queue{
 		source: in,
-		dir:    ".auklet/queue",
-		q:      make([]Persistent, 0),
+		q:      kafka.StdPersistor.Load(),
 		out:    make(chan kafka.Message),
 		err:    make(chan error),
 	}
-	q.load()
-	return
-}
-
-// filepaths returns a list of paths of persistent messages.
-func (q *Queue) filepaths() (paths []string) {
-	d, err := os.Open(q.dir)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	defer d.Close()
-	names, err := d.Readdirnames(0)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	for _, name := range names {
-		paths = append(paths, q.dir+"/"+name)
-	}
-	return
-}
-
-// size computes the amount of storage currently used by persistent messages.
-func (q *Queue) size() (n int64, err error) {
-	for _, path := range q.filepaths() {
-		f, err := os.Stat(path)
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		n += f.Size()
-	}
-	return
-}
-
-// load enqueues q with Persistent messages from the filesystem.
-func (q *Queue) load() (err error) {
-	for _, path := range q.filepaths() {
-		p := Persistent{path: path}
-		if err := p.load(); err != nil {
-			log.Print(err)
-			continue
-		}
-		q.push(p)
-	}
-	return
 }
 
 // Output returns a channel from which enqueued Messages can be received.
@@ -118,14 +67,7 @@ func (q *Queue) empty() serverState {
 		// waiting for our client to shut us down.
 		return q.final
 	}
-	p, err := toPersistent(m, q.dir)
-	if err != nil {
-		log.Print(err)
-		// The message could not be made persistent, so the queue is
-		// still empty.
-		return q.empty
-	}
-	q.push(p)
+	q.push(m)
 	return q.nonEmpty
 }
 
@@ -138,11 +80,7 @@ func (q *Queue) nonEmpty() serverState {
 			// empty, we enter the final state.
 			return q.final
 		}
-		if p, err := toPersistent(m, q.dir); err != nil {
-			log.Print(err)
-		} else {
-			q.push(p)
-		}
+		q.push(m)
 	case q.out <- q.peek():
 	case <-q.err:
 		// We assume that q.err is not closed, because we have not
@@ -157,8 +95,7 @@ func (q *Queue) nonEmpty() serverState {
 
 // The queue's input has closed. This implies that the pipeline is shutting
 // down. Our policy is to not send any more messages, even if the queue is not
-// empty. This is OK because messages are persistent and thus can be sent upon
-// the next startup.
+// empty.
 //
 // We need to wait for our client to close q.err, which indicates that it will
 // not send any more dequeue requests. In the meantime, we handle incoming
@@ -183,15 +120,15 @@ func (q *Queue) final() serverState {
 	return q.final
 }
 
-func (q *Queue) push(p Persistent) {
-	q.q = append(q.q, p)
+func (q *Queue) push(m kafka.Message) {
+	q.q = append(q.q, m)
 }
 
-func (q *Queue) peek() (_ Persistent) {
+func (q *Queue) peek() kafka.Message {
 	return q.q[0]
 }
 
 func (q *Queue) pop() {
-	q.q[0].remove()
+	q.q[0].Remove()
 	q.q = q.q[1:]
 }
