@@ -78,7 +78,7 @@ func setupProducer() {
 
 func openSocket() {
 	var err error
-	sock, err = net.Listen("unixpacket", "/tmp/auklet-"+strconv.Itoa(os.Getpid()))
+	sock, err = net.Listen("unix", "/tmp/auklet-"+strconv.Itoa(os.Getpid()))
 	if err != nil {
 		log.Print(err)
 	}
