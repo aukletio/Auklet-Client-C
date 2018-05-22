@@ -73,6 +73,7 @@ func (proxy Proxy) Serve() {
 			// sockMessage format.
 			b, _ := ioutil.ReadAll(d.Buffered())
 			log.Print(err, string(b))
+			d = json.NewDecoder(conn)
 			continue
 		}
 
