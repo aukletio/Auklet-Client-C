@@ -43,7 +43,7 @@ type Server struct {
 // NewServer returns a new Server for the Unix domain socket at addr. Incoming
 // messages are processed by the given handlers.
 func NewServer(addr string, handlers map[string]Handler) Server {
-	l, err := net.Listen("unixpacket", addr)
+	l, err := net.Listen("unix", addr)
 	if err != nil {
 		log.Print(err)
 	}
@@ -78,6 +78,7 @@ func (s Server) Serve() {
 			// message format.
 			b, _ := ioutil.ReadAll(d.Buffered())
 			log.Print(err, string(b))
+			d = json.NewDecoder(conn)
 			continue
 		}
 
