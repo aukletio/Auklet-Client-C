@@ -36,21 +36,6 @@ type DataLimit struct {
 	} `json:"config"`
 }
 
-// As of May 15, 2018, the backend returns this:
-//
-// {
-//	"config":{
-//		"emission_period":60,
-//		"storage":{
-//			"storage_limit":null
-//		},
-//		"data":{
-//			"cellular_data_limit":null,
-//			"normalized_cell_plan_date":1
-//		}
-//	}
-// }
-
 // GetDataLimit returns a DataLimit from the dataLimit endpoint.
 func GetDataLimit(appID string) (l DataLimit) {
 	resp := get(fmt.Sprintf(dataLimitEP, appID), "application/json")
