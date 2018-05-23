@@ -59,6 +59,7 @@ func (api API) get(args, contenttype string) (resp *http.Response) {
 	resp, err = api.Do(req)
 	if err != nil {
 		log.Print(err)
+		return
 	}
 	if resp.StatusCode != 200 {
 		log.Printf("api.get: got unexpected status %v from %v", resp.Status, url)
