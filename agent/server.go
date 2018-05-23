@@ -67,30 +67,30 @@ func (s Server) Serve() {
 	}
 	log.Printf("accepted connection on %v", s.in.Addr())
 	go s.requestProfiles(conn)
-	d := json.NewDecoder(conn)
+	dec := json.NewDecoder(conn)
 	for {
-		sm := &message{}
-		if err := d.Decode(sm); err == io.EOF {
+		msg := &message{}
+		if err := dec.Decode(msg); err == io.EOF {
 			log.Printf("connection on %v closed", s.in.Addr())
 			break
 		} else if err != nil {
 			// There was a problem decoding the JSON into
 			// message format.
-			b, _ := ioutil.ReadAll(d.Buffered())
-			log.Print(err, string(b))
-			d = json.NewDecoder(conn)
+			buf, _ := ioutil.ReadAll(dec.Buffered())
+			log.Print(err, string(buf))
+			dec = json.NewDecoder(conn)
 			continue
 		}
 
-		if handler, in := s.handlers[sm.Type]; in {
-			pm, err := handler(sm.Data)
+		if handler, in := s.handlers[msg.Type]; in {
+			pm, err := handler(msg.Data)
 			if err != nil {
 				log.Print(err)
 				continue
 			}
 			s.out <- pm
 		} else {
-			log.Printf(`message of type "%v" not handled`, sm.Type)
+			log.Printf(`message of type "%v" not handled`, msg.Type)
 		}
 	}
 }
