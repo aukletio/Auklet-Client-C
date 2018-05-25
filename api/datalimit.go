@@ -46,7 +46,6 @@ func GetDataLimit(appID string) (l DataLimit) {
 		log.Printf("api.DataLimit: unexpected status %v", resp.Status)
 	}
 	d := json.NewDecoder(resp.Body)
-	d.DisallowUnknownFields()
 	err := d.Decode(&l)
 	if err != nil && err != io.EOF {
 		log.Print(err)
