@@ -15,7 +15,7 @@ elif [[ "$1" == "qa" ]]; then
 else
   BASE_URL='https://api.auklet.io'
 fi
-GO_LDFLAGS="-X main.Version=$VERSION -X main.BuildDate=$TIMESTAMP -X github.com/ESG-USA/Auklet-Client/api.StaticBaseURL=$BASE_URL"
+GO_LDFLAGS="-X main.Version=$VERSION -X main.BuildDate=$TIMESTAMP -X github.com/ESG-USA/Auklet-Client/config.StaticBaseURL=$BASE_URL"
 
 echo 'Compiling client for target architectures...'
 echo
