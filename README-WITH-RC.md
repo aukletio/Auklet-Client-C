@@ -1,5 +1,17 @@
 # Changelog
 
+### [0.8.0-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.8.0-rc.1)
+
+**Implemented enhancements:**
+
+- APM-1235 Local Data Storage, APM-1234 Data Upload Limit [#22](https://github.com/ESG-USA/Auklet-Client-C/pull/22) ([kdsch](https://github.com/kdsch))
+
+**Fixed bugs:**
+
+- api: do not use DisallowUnknownFields [#30](https://github.com/ESG-USA/Auklet-Client-C/pull/30) ([kdsch](https://github.com/kdsch))
+- api: return if GET request returns an error [#28](https://github.com/ESG-USA/Auklet-Client-C/pull/28) ([kdsch](https://github.com/kdsch))
+- Troubleshooting bugs in Docker for VDAS [#27](https://github.com/ESG-USA/Auklet-Client-C/pull/27) ([kdsch](https://github.com/kdsch))
+
 ## [0.7.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.7.0)
 
 ### [0.7.0-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.7.0-rc.1)
