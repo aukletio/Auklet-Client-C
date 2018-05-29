@@ -62,16 +62,51 @@ An Auklet configuration is defined by the following environment variables.
 
 	AUKLET_APP_ID
 	AUKLET_API_KEY
+	AUKLET_BASE_URL
+	AUKLET_LOG_INFO
+	AUKLET_LOG_ERRORS
 
 To view your current configuration, run `env | grep AUKLET`.
 
-To make it easier to manage multiple configurations, it is suggested to define
-the envars in a shell script named after the configuration; for example,
-`.env`.
+To make it easier to manage configurations, it is suggested to define the
+environment variables in a shell script named after the configuration; for
+example, `.env.staging`.
 
-	$ cat .env
+	$ cat .env.staging
 	export AUKLET_APP_ID=5171dbff-c0ea-98ee-e70e-dd0af1f9fcdf
 	export AUKLET_API_KEY=SM49BAMCA0...
+	export AUKLET_LOG_INFO=true
+
+## Base URL
+
+`AUKLET_BASE_URL` defines the endpoint against which the client makes API calls.
+If not defined, the default production endpoint is used.
+
+Its format is a URL **without a trailing slash or path.** For example:
+
+	AUKLET_BASE_URL=https://api-staging.auklet.io
+
+
+## Console Logging
+
+Console logging to stdout is disabled by default. There are two logging levels,
+which are controlled by dedicated environment variables. To enable a logging
+level, set its environment variable to `true`. To disable it, `unset` the
+variable.
+
+`AUKLET_LOG_ERRORS=true` logs any unexpected but recoverable errors, including but
+not limited to
+
+- JSON syntax errors
+- unexpected HTTP responses
+- insufficient filesystem permissions
+
+`AUKLET_LOG_INFO=true` logs significant information or events, including but not
+limited to
+
+- Kafka broker list
+- remotely acquired configuraton parameters
+- production of Kafka messages
 
 # Assign a Configuration
 

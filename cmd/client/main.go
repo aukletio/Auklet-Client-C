@@ -13,6 +13,7 @@ import (
 	"github.com/ESG-USA/Auklet-Client/app"
 	"github.com/ESG-USA/Auklet-Client/config"
 	"github.com/ESG-USA/Auklet-Client/device"
+	"github.com/ESG-USA/Auklet-Client/errorlog"
 	"github.com/ESG-USA/Auklet-Client/kafka"
 	"github.com/ESG-USA/Auklet-Client/message"
 	"github.com/ESG-USA/Auklet-Client/schema"
@@ -49,7 +50,7 @@ func newAgentServer(app *app.App) agent.Server {
 
 func (c *client) createPipeline() {
 	if err := os.MkdirAll(".auklet/message", 0777); err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 	}
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
@@ -116,8 +117,11 @@ func main() {
 	}
 	cfg := getConfig()
 	api.BaseURL = cfg.BaseURL
-	if !cfg.Dump {
+	if !cfg.LogInfo {
 		log.SetOutput(ioutil.Discard)
+	}
+	if !cfg.LogErrors {
+		errorlog.SetOutput(ioutil.Discard)
 	}
 	newclient(args).run()
 }

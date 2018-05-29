@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ESG-USA/Auklet-Client/api"
+	"github.com/ESG-USA/Auklet-Client/errorlog"
 	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
@@ -40,7 +41,7 @@ func NewDataLimiter(input kafka.MessageSource, appID string) *DataLimiter {
 		path:   ".auklet/datalimit.json",
 	}
 	if err := l.load(); err != nil {
-		log.Println(err)
+		errorlog.Println(err)
 	}
 	// If load fails, there is no budget, so all messages will be sent.
 	return l
@@ -111,7 +112,7 @@ func (l *DataLimiter) startThisPeriod() {
 	l.advancePeriodEnd()
 	l.Count = 0
 	if err := l.save(); err != nil {
-		log.Println(err)
+		errorlog.Println(err)
 	}
 }
 
@@ -162,7 +163,7 @@ func (l *DataLimiter) handleMessage(m kafka.Message) serverState {
 			// We send it and begin to drop messages.
 			l.out <- m
 			if err := l.increment(n); err != nil {
-				log.Print(err)
+				errorlog.Print(err)
 			}
 			return l.overBudget
 		}
@@ -170,7 +171,7 @@ func (l *DataLimiter) handleMessage(m kafka.Message) serverState {
 	// m does not put us over 90% of budget.
 	l.out <- m
 	if err := l.increment(n); err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		// We had a problem persisting the counter. To be safe, we
 		// start dropping data.
 		if l.Budget != nil {
