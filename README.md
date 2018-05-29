@@ -62,57 +62,20 @@ An Auklet configuration is defined by the following environment variables.
 
 	AUKLET_APP_ID
 	AUKLET_API_KEY
-	AUKLET_BASE_URL
-	AUKLET_BROKERS
-	AUKLET_PROF_TOPIC
-	AUKLET_EVENT_TOPIC
-	AUKLET_LOG_TOPIC
 
 To view your current configuration, run `env | grep AUKLET`.
 
 To make it easier to manage multiple configurations, it is suggested to define
 the envars in a shell script named after the configuration; for example,
-`.env.staging`.
+`.env`.
 
-The variables `AUKLET_API_KEY` and `AUKLET_APP_ID` are likely to be different
-among developers, so it is suggested that they be defined in a separate
-file, `.auklet`, and sourced from within `.env.staging`. For example:
-
-	$ cat .auklet
+	$ cat .env
 	export AUKLET_APP_ID=5171dbff-c0ea-98ee-e70e-dd0af1f9fcdf
 	export AUKLET_API_KEY=SM49BAMCA0...
 
-	$ cat .env.staging
-	. .auklet
-	export AUKLET_BASE_URL=https://api-staging.auklet.io
-	export AUKLET_BROKERS=broker1,broker2,broker3
-	export AUKLET_PROF_TOPIC=z8u1-profiler
-	export AUKLET_EVENT_TOPIC=z8u1-events
-	export AUKLET_LOG_TOPIC=z8u1-logs
-
-## `AUKLET_BROKERS`
-
-A comma-delimited list of Kafka broker addresses. For example:
-
-	broker1,broker2,broker3
-
-## `AUKLET_EVENT_TOPIC`, `AUKLET_PROF_TOPIC` `AUKLET_LOG_TOPIC`
-
-Kafka topics to which `client` should send event, profile, and log data, respectively.
-
-## `AUKLET_BASE_URL`
-
-A URL, without a trailing slash, to be used for API calls. **It must not contain
-a trailing path.**
-For example:
-
-	https://api-staging.auklet.io
-
-If not defined, this defaults to the production endpoint.
-
 # Assign a Configuration
 
-	. .env.staging
+	. .env
 
 # Run an App
 
