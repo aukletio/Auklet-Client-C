@@ -14,7 +14,7 @@ type Config struct {
 	BaseURL string
 
 	// LogErrors and LogInfo control local console logs. By default, both
-	// are false. LogErrors prints error messages, such as 
+	// are false. LogErrors prints error messages, such as
 	//
 	// - unexpected HTTP response
 	// - JSON syntax error
