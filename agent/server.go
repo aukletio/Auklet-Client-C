@@ -9,6 +9,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/ESG-USA/Auklet-Client/errorlog"
 	"github.com/ESG-USA/Auklet-Client/kafka"
 )
 
@@ -45,7 +46,7 @@ type Server struct {
 func NewServer(addr string, handlers map[string]Handler) Server {
 	l, err := net.Listen("unix", addr)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 	}
 	return Server{
 		in:       l,
@@ -62,7 +63,7 @@ func (s Server) Serve() {
 	defer s.in.Close()
 	conn, err := s.in.Accept()
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	log.Printf("accepted connection on %v", s.in.Addr())
@@ -77,7 +78,7 @@ func (s Server) Serve() {
 			// There was a problem decoding the JSON into
 			// message format.
 			buf, _ := ioutil.ReadAll(dec.Buffered())
-			log.Print(err, string(buf))
+			errorlog.Print(err, string(buf))
 			dec = json.NewDecoder(conn)
 			continue
 		}
@@ -85,7 +86,7 @@ func (s Server) Serve() {
 		if handler, in := s.handlers[msg.Type]; in {
 			pm, err := handler(msg.Data)
 			if err != nil {
-				log.Print(err)
+				errorlog.Print(err)
 				continue
 			}
 			s.out <- pm
@@ -107,7 +108,7 @@ func (s Server) requestProfiles(out io.Writer) {
 		select {
 		case <-emit.C:
 			if _, err := out.Write([]byte{0}); err != nil {
-				log.Print(err)
+				errorlog.Print(err)
 			}
 		case dur := <-s.conf:
 			emit.Stop()

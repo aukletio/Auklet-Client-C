@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
+
+	"github.com/ESG-USA/Auklet-Client/errorlog"
 )
 
 // This file defines interfaces for manipulating streams of Kafka
@@ -78,13 +79,13 @@ func (p Persistor) Configure() chan<- *int64 {
 func (p Persistor) filepaths() (paths []string) {
 	d, err := os.Open(p.dir)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	defer d.Close()
 	names, err := d.Readdirnames(0)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	for _, name := range names {
@@ -97,7 +98,7 @@ func (p Persistor) size() (n int64) {
 	for _, path := range p.filepaths() {
 		f, err := os.Stat(path)
 		if err != nil {
-			log.Print(err)
+			errorlog.Print(err)
 			continue
 		}
 		n += f.Size()
@@ -110,7 +111,7 @@ func (p Persistor) Load() (msgs []Message) {
 	for _, path := range p.filepaths() {
 		m := Message{path: path}
 		if err := m.load(); err != nil {
-			log.Print(err)
+			errorlog.Print(err)
 			continue
 		}
 		msgs = append(msgs, m)

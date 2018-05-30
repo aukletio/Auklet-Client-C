@@ -11,6 +11,7 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client/api"
 	"github.com/ESG-USA/Auklet-Client/config"
+	"github.com/ESG-USA/Auklet-Client/errorlog"
 )
 
 // An App represents an application using Auklet.
@@ -47,7 +48,7 @@ func (app *App) Start() (err error) {
 	if err == nil {
 		log.Printf("app %v started", app.Path)
 	} else {
-		log.Print(err)
+		errorlog.Print(err)
 	}
 	return
 }
@@ -62,13 +63,13 @@ func (app *App) Wait() {
 func sum(path string) (hash string) {
 	f, err := os.Open(path)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	defer f.Close()
 	h := sha512.New512_224()
 	if _, err = io.Copy(h, f); err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	hash = fmt.Sprintf("%x", h.Sum(nil))

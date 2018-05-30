@@ -1,9 +1,8 @@
 package message
 
 import (
-	"log"
-
 	"github.com/ESG-USA/Auklet-Client/app"
+	"github.com/ESG-USA/Auklet-Client/errorlog"
 	"github.com/ESG-USA/Auklet-Client/kafka"
 	"github.com/ESG-USA/Auklet-Client/schema"
 )
@@ -47,7 +46,7 @@ func (e *ExitWatcher) Serve() {
 	e.app.Wait()
 	m, err := schema.NewExit(e.app)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	e.out <- m

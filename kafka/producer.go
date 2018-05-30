@@ -8,6 +8,7 @@ import (
 	"github.com/Shopify/sarama"
 
 	"github.com/ESG-USA/Auklet-Client/api"
+	"github.com/ESG-USA/Auklet-Client/errorlog"
 )
 
 // Producer provides a simple Kafka producer.
@@ -20,13 +21,13 @@ type Producer struct {
 func verify(brokers []*sarama.Broker) bool {
 	pattern, err := regexp.Compile(`[^\.]+\.feeds\.auklet\.io:9093`)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return false
 	}
 	for _, b := range brokers {
 		addr := b.Addr()
 		if !pattern.MatchString(addr) {
-			log.Printf("failed to verify broker address %v", addr)
+			errorlog.Printf("failed to verify broker address %v", addr)
 			return false
 		}
 		log.Printf("broker address: %v", addr)
@@ -44,12 +45,12 @@ func NewProducer(input MessageSourceError) (p *Producer) {
 	c.Net.TLS.Config = api.Certificates()
 	client, err := sarama.NewClient(kp.Brokers, c)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	sp, err := sarama.NewSyncProducerFromClient(client)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	if !verify(client.Brokers()) {
@@ -74,7 +75,7 @@ func (p *Producer) Serve() {
 	defer p.Close()
 	for m := range p.source.Output() {
 		if err := p.send(m); err != nil {
-			log.Print(err)
+			errorlog.Print(err)
 			continue
 		}
 		p.source.Err() <- nil

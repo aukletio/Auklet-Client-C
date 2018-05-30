@@ -11,6 +11,7 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client/certs"
 	"github.com/ESG-USA/Auklet-Client/config"
+	"github.com/ESG-USA/Auklet-Client/errorlog"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
@@ -34,7 +35,7 @@ func get(args, contenttype string) (resp *http.Response) {
 	url := BaseURL + args
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	req.Header.Add("Authorization", "JWT "+key)
@@ -44,11 +45,11 @@ func get(args, contenttype string) (resp *http.Response) {
 	c := &http.Client{}
 	resp, err = c.Do(req)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	if resp.StatusCode != 200 {
-		log.Printf("api.get: got unexpected status %v from %v", resp.Status, url)
+		errorlog.Printf("api.get: got unexpected status %v from %v", resp.Status, url)
 	}
 	return
 }
@@ -66,7 +67,7 @@ func Release(checksum string) (ok bool) {
 		log.Printf("not released: %v", checksum)
 		ok = false
 	default:
-		log.Printf("api.Release: got unexpected status %v", resp.Status)
+		errorlog.Printf("api.Release: got unexpected status %v", resp.Status)
 	}
 	return
 }
@@ -78,12 +79,12 @@ func Certificates() (c *tls.Config) {
 		return
 	}
 	if resp.StatusCode != 200 {
-		log.Printf("api.Certificates: unexpected status %v", resp.Status)
+		errorlog.Printf("api.Certificates: unexpected status %v", resp.Status)
 		return
 	}
 	cts, err := certs.Unpack(resp.Body)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	return cts.TLSConfig()
@@ -103,7 +104,7 @@ func CreateOrGetDevice(machash, appid string) {
 	url := BaseURL + devicesEP
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	req.Header.Add("content-type", "application/json")
@@ -112,7 +113,7 @@ func CreateOrGetDevice(machash, appid string) {
 	c := &http.Client{}
 	resp, err := c.Do(req)
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 		return
 	}
 	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
@@ -137,13 +138,13 @@ func GetKafkaParams() (k KafkaParams) {
 		return
 	}
 	if resp.StatusCode != 200 {
-		log.Printf("api.Config: unexpected status %v", resp.Status)
+		errorlog.Printf("api.Config: unexpected status %v", resp.Status)
 		return
 	}
 	d := json.NewDecoder(resp.Body)
 	err := d.Decode(&k)
 	if err != nil && err != io.EOF {
-		log.Print(err)
+		errorlog.Print(err)
 	}
 	return
 }
