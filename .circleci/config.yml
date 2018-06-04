@@ -62,11 +62,14 @@ jobs:
                 name: Download Go dependencies
                 command: |
                   dep ensure -v
-                  ls -al
             - run:
                 name: Run tests
                 command: |
                   go test ./config
+            - run:
+                name: Run Whitesource
+                command: |
+                  bash .devops/whitesource.sh
 
             ##
             # SAVE CACHES
