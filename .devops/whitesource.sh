@@ -21,19 +21,21 @@ echo "apiKey=$WHITESOURCE_ORG_TOKEN" >> $WS_CONFIG
 echo "productToken=$WHITESOURCE_PRODUCT_TOKEN" >> $WS_CONFIG
 
 echo 'Starting WhiteSource FSA...'
-set +e
 $JAVA_HOME/bin/java -jar $WS_AGENT -c $WS_CONFIG -d $CIRCLE_WORKDIR
+WS_REQUEST_FILE="$HOME/whitesource-request.json"
+mv $HOME/whitesource/update-request.txt $WS_REQUEST_FILE
+rm -rf $HOME/whitesource
+set +e
+$JAVA_HOME/bin/java -jar $WS_AGENT -requestFiles $WS_REQUEST_FILE
 RESULT=$?
 set -e
-ls -al
-ls -al $CIRCLE_WORKDIR
 # TODO
 # Add failure logic where applicable.
 # Success=0, Error=-1, Policy Violation=-2, Client Failure=-3, Connection Failure=-4
 
 echo 'Retrieving FSA results...'
 PROJECT_FILE="$HOME/whitesource-results.json"
-export WHITESOURCE_PROJECT_TOKEN=$(curl -H 'Content-Type: application/json' -X POST --data "{\"requestType\" : \"getOrganizationProjectVitals\",\"orgToken\" : \"$WHITESOURCE_ORG_TOKEN\"}" 'https://saas.whitesourcesoftware.com/api' | jq -r ".projectVitals[] | select(.name=='$WHITESOURCE_PROJECT_NAME') | .token")
+export WHITESOURCE_PROJECT_TOKEN=$(curl -H 'Content-Type: application/json' -X POST --data "{\"requestType\" : \"getOrganizationProjectVitals\",\"orgToken\" : \"$WHITESOURCE_ORG_TOKEN\"}" 'https://saas.whitesourcesoftware.com/api' | jq -r ".projectVitals[] | select(.name==\`$WHITESOURCE_PROJECT_NAME\`) | .token")
 curl -H 'Content-Type: application/json' -X POST --data "{\"requestType\" : \"getProjectHierarchy\",\"projectToken\" : \"$WHITESOURCE_PROJECT_TOKEN\"}" -o $PROJECT_FILE 'https://saas.whitesourcesoftware.com/api'
 
 echo 'Stripping all transitive dependencies from the results...'
