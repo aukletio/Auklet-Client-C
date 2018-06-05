@@ -9,9 +9,9 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/ESG-USA/Auklet-Client/api"
-	"github.com/ESG-USA/Auklet-Client/config"
-	"github.com/ESG-USA/Auklet-Client/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/api"
+	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // An App represents an application using Auklet.

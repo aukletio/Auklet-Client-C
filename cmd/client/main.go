@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client/agent"
-	"github.com/ESG-USA/Auklet-Client/api"
-	"github.com/ESG-USA/Auklet-Client/app"
-	"github.com/ESG-USA/Auklet-Client/config"
-	"github.com/ESG-USA/Auklet-Client/device"
-	"github.com/ESG-USA/Auklet-Client/errorlog"
-	"github.com/ESG-USA/Auklet-Client/kafka"
-	"github.com/ESG-USA/Auklet-Client/message"
-	"github.com/ESG-USA/Auklet-Client/schema"
+	"github.com/ESG-USA/Auklet-Client-C/agent"
+	"github.com/ESG-USA/Auklet-Client-C/api"
+	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/device"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/message"
+	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
 type client struct {

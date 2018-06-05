@@ -15,10 +15,10 @@ elif [[ "$1" == "qa" ]]; then
 else
   BASE_URL='https://api.auklet.io'
 fi
-GO_LDFLAGS="-X main.Version=$VERSION -X main.BuildDate=$TIMESTAMP -X github.com/ESG-USA/Auklet-Client/config.StaticBaseURL=$BASE_URL"
 
 echo 'Compiling client for target architectures...'
 echo
+GO_LDFLAGS="-X main.Version=$VERSION -X main.BuildDate=$TIMESTAMP -X github.com/ESG-USA/Auklet-Client-C/config.StaticBaseURL=$BASE_URL"
 PREFIX='auklet-client'
 S3_BUCKET='auklet'
 S3_PREFIX='client'

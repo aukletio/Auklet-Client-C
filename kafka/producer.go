@@ -7,8 +7,8 @@ import (
 
 	"github.com/Shopify/sarama"
 
-	"github.com/ESG-USA/Auklet-Client/api"
-	"github.com/ESG-USA/Auklet-Client/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/api"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // Producer provides a simple Kafka producer.

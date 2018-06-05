@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ESG-USA/Auklet-Client/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // This file defines interfaces for manipulating streams of Kafka

@@ -9,9 +9,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ESG-USA/Auklet-Client/certs"
-	"github.com/ESG-USA/Auklet-Client/config"
-	"github.com/ESG-USA/Auklet-Client/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/certs"
+	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
