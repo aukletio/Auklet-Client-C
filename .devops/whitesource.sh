@@ -2,7 +2,7 @@
 set -e
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $HOME # Prevents codebase contamination.
-CIRCLE_WORKDIR=$(eval $CIRCLE_WORKING_DIRECTORY)
+CIRCLE_WORKDIR=$(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
 
 echo 'Installing Oracle JRE 8...'
 JAVA_HOME="$HOME/jre"
