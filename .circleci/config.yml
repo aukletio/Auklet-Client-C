@@ -69,14 +69,19 @@ jobs:
             - run:
                 name: Run Whitesource
                 command: |
-                  echo 'Initializing...'
-                  WS_CONFIG='whitesource.cfg'
-                  export WHITESOURCE_PROJECT_NAME=$(grep 'projectName=' $WS_CONFIG | cut -d"=" -f 2)
-                  export WHITESOURCE_PROJECT_VERSION=$(grep 'projectVersion=' $WS_CONFIG | cut -d"=" -f 2)
-                  cd .devops
-                  npm install --no-spin follow-redirects@1.5.0 > /dev/null 2>&1
-                  node .devops/whitesource.js $(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
-                  rm -rf node_modules package-lock.json
+                  set -ou pipefail
+                  if [[ ! -f ~/.localCircleBuild ]]; then
+                    echo 'Initializing...'
+                    WS_CONFIG='whitesource.cfg'
+                    export WHITESOURCE_PROJECT_NAME=$(grep 'projectName=' $WS_CONFIG | cut -d"=" -f 2)
+                    export WHITESOURCE_PROJECT_VERSION=$(grep 'projectVersion=' $WS_CONFIG | cut -d"=" -f 2)
+                    cd .devops
+                    npm install --no-spin follow-redirects@1.5.0 > /dev/null 2>&1
+                    node whitesource.js $(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
+                    rm -rf node_modules package-lock.json
+                  else
+                    echo 'This is a local build; skipping WhiteSource.'
+                  fi
 
             ##
             # SAVE CACHES
