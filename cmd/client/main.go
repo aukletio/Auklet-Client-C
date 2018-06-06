@@ -52,9 +52,14 @@ func (c *client) createPipeline() {
 	if err := os.MkdirAll(".auklet/message", 0777); err != nil {
 		errorlog.Print(err)
 	}
+	logHandler := func(msg []byte) (kafka.Message, error) {
+		return schema.NewAppLog(msg, c.app)
+	}
+	logger := agent.NewLogger("/tmp/auklet-log-" + strconv.Itoa(os.Getpid()), logHandler)
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
-	limiter := message.NewDataLimiter(watcher, c.app.ID)
+	merger := message.NewMerger(logger, watcher)
+	limiter := message.NewDataLimiter(merger, c.app.ID)
 	queue := message.NewQueue(limiter)
 	c.prod = kafka.NewProducer(queue)
 	pollConfig := func() {
@@ -69,7 +74,9 @@ func (c *client) createPipeline() {
 		}
 	}
 
+	go logger.Serve()
 	go server.Serve()
+	go merger.Serve()
 	go watcher.Serve()
 	go limiter.Serve()
 	go queue.Serve()
