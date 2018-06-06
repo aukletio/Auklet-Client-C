@@ -26,8 +26,8 @@ func NewLogger(addr string, handler Handler) Logger {
 		errorlog.Print(err)
 	}
 	return Logger{
-		l:   l,
-		out: make(chan kafka.Message),
+		l:       l,
+		out:     make(chan kafka.Message),
 		handler: handler,
 	}
 }

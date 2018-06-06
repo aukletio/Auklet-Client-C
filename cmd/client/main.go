@@ -52,7 +52,7 @@ func (c *client) createPipeline() {
 	logHandler := func(msg []byte) (kafka.Message, error) {
 		return schema.NewAppLog(msg, c.app)
 	}
-	logger := agent.NewLogger("/tmp/auklet-log-" + strconv.Itoa(os.Getpid()), logHandler)
+	logger := agent.NewLogger("/tmp/auklet-log-"+strconv.Itoa(os.Getpid()), logHandler)
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
 	merger := message.NewMerger(logger, watcher)
