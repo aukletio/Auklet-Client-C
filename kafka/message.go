@@ -36,7 +36,7 @@ type ErrStorageFull struct {
 
 // Error returns e as a string.
 func (e ErrStorageFull) Error() string {
-	return fmt.Sprint("persistor: storage full: %v used of %v budget", e.count, e.limit)
+	return fmt.Sprintf("persistor: storage full: %v used of %v limit", e.count, e.limit)
 }
 
 // Persistor controls a persistence layer for Messages.
