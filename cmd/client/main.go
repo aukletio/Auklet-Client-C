@@ -105,12 +105,12 @@ func licenses() {
 	licensesBox := packr.NewBox("./licenses")
 	licenses := licensesBox.List()
 	// Print the Auklet license first, then iterate over all the others.
-	format := "License for %v\n-------------------------\n%v\n"
+	format := "License for %v\n-------------------------\n%v"
 	fmt.Printf(format, "Auklet Client", licensesBox.String("LICENSE"))
 	for _, l := range licenses {
 		if l != "LICENSE" {
 			ownerName := strings.Split(l, "--")
-			fmt.Println("\n\n")
+			fmt.Printf("\n\n\n")
 			header := fmt.Sprintf("package: %v/%v", ownerName[0], ownerName[1])
 			fmt.Printf(format, header, licensesBox.String(l))
 		}
