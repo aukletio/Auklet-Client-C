@@ -49,9 +49,6 @@ func newAgentServer(app *app.App) agent.Server {
 }
 
 func (c *client) createPipeline() {
-	if err := os.MkdirAll(".auklet/message", 0777); err != nil {
-		errorlog.Print(err)
-	}
 	logHandler := func(msg []byte) (kafka.Message, error) {
 		return schema.NewAppLog(msg, c.app)
 	}
