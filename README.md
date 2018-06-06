@@ -119,6 +119,51 @@ Auklet agent and properly released using the Auklet releaser), run
 
 	client ./x
 
+## Remote logging
+
+`client` opens a `SOCK_STREAM` Unix domain socket at `/tmp/auklet-log-%d`, where
+`%d` is `getppid()` (`client`'s PID). `client` accepts at most one connection to
+this socket, to which a released executable can write newline-delimited
+messages. Such messages are accessible via the user interface.
+
+Here's a C program demonstrating how to use the socket, assuming the compilation
+flags `-std=c99 -pedantic -D_POSIX_C_SOURCE=200809L`:
+
+	#include <stdio.h>
+	#include <string.h>
+	#include <sys/socket.h>
+	#include <sys/un.h>
+	#include <unistd.h>
+
+	/* connectAukletLog attempts to connect to Auklet's remote logging
+	 * socket. If successful, a file descriptor for the socket is returned.
+	 * Otherwise, 0 (stdout's file descriptor) is returned. */
+	int
+	connectAukletLog()
+	{
+		int len;
+		struct sockaddr_un remote = { .sun_family = AF_UNIX };
+		int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+		if (fd == -1) {
+			perror("socket");
+			return 0;
+		}
+		sprintf(remote.sun_path, "/tmp/auklet-log-%d", getppid());
+		len = strlen(remote.sun_path) + sizeof(remote.sun_family);
+		if (-1 == connect(fd, (struct sockaddr *)&remote, len)) {
+			perror("connect");
+			return 0;
+		}
+		return fd;
+	}
+
+	int
+	main()
+	{
+		int aukletLog = connectAukletLog();
+		dprintf(aukletLog, "hello, auklet\n");
+	}
+
 # Docker Setup
 
 1. Install Docker for Mac Beta.
