@@ -86,7 +86,6 @@ Its format is a URL **without a trailing slash or path.** For example:
 
 	AUKLET_BASE_URL=https://api-staging.auklet.io
 
-
 ## Console Logging
 
 Console logging to stdout is disabled by default. There are two logging levels,
@@ -118,6 +117,18 @@ To run an Auklet-enabled executable called `x` (an executable compiled with the
 Auklet agent and properly released using the Auklet releaser), run
 
 	client ./x
+
+## Runtime dependencies
+
+`client` assumes the following directory structure:
+
+	./.auklet/
+		datalimit.json
+		message/
+
+If this structure does not exist, it will be created.
+
+`client` creates files in `/tmp`.
 
 # Docker Setup
 

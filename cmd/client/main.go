@@ -49,9 +49,6 @@ func newAgentServer(app *app.App) agent.Server {
 }
 
 func (c *client) createPipeline() {
-	if err := os.MkdirAll(".auklet/message", 0777); err != nil {
-		errorlog.Print(err)
-	}
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
 	limiter := message.NewDataLimiter(watcher, c.app.ID)
