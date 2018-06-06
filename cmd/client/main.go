@@ -6,7 +6,10 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/gobuffalo/packr"
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
 	"github.com/ESG-USA/Auklet-Client-C/api"
@@ -95,6 +98,27 @@ func (c *client) run() {
 
 func usage() {
 	fmt.Printf("usage: %v command [args ...]\n", os.Args[0])
+	fmt.Printf("view OSS licenses: %v --licenses\n", os.Args[0])
+}
+
+func licenses() {
+	licensesBox := packr.NewBox("./licenses")
+	licenses := licensesBox.List()
+	// Print the Auklet license first, then iterate over all the others.
+	fmt.Println("License for Auklet Client")
+	fmt.Println("-------------------------")
+	fmt.Println(licensesBox.String("LICENSE"))
+	for _, l := range licenses {
+		if l != "LICENSE" {
+			ownerName := strings.Split(l, "--")
+			fmt.Println("")
+			fmt.Println("")
+			fmt.Println("")
+			fmt.Printf("License for package: %v/%v\n", ownerName[0], ownerName[1])
+			fmt.Println("-------------------------")
+			fmt.Println(licensesBox.String(l))
+		}
+	}
 }
 
 func getConfig() config.Config {
@@ -106,7 +130,6 @@ func getConfig() config.Config {
 
 func init() {
 	log.SetFlags(log.Lmicroseconds)
-	log.Printf("Auklet Client version %s (%s)\n", Version, BuildDate)
 }
 
 func main() {
@@ -115,6 +138,11 @@ func main() {
 		usage()
 		os.Exit(1)
 	}
+	if args[0] == "--licenses" {
+		licenses()
+		os.Exit(1)
+	}
+	log.Printf("Auklet Client version %s (%s)\n", Version, BuildDate)
 	cfg := getConfig()
 	api.BaseURL = cfg.BaseURL
 	if !cfg.LogInfo {

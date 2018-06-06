@@ -16,6 +16,23 @@ else
   BASE_URL='https://api.auklet.io'
 fi
 
+echo 'Gathering license files for dependencies...'
+REPO_DIR=$(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
+LICENSES_DIR="$REPO_DIR/cmd/client/licenses"
+mkdir -p $LICENSES_DIR
+cp LICENSE $LICENSES_DIR
+cd .devops
+npm install --no-spin follow-redirects@1.5.0 > /dev/null 2>&1
+node licenses.js "$REPO_DIR" "$LICENSES_DIR"
+rm -rf node_modules package-lock.json
+cd ..
+echo
+
+echo 'Generating packed resource files...'
+curl -sSL https://github.com/gobuffalo/packr/releases/download/v1.11.0/packr_1.11.0_linux_amd64.tar.gz | tar -xz packr
+./packr -v -z
+echo
+
 echo 'Compiling client for target architectures...'
 echo
 GO_LDFLAGS="-X main.Version=$VERSION -X main.BuildDate=$TIMESTAMP -X github.com/ESG-USA/Auklet-Client-C/config.StaticBaseURL=$BASE_URL"
