@@ -19,7 +19,6 @@ fi
 echo 'Gathering license files for dependencies...'
 REPO_DIR=$(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
 LICENSES_DIR="$REPO_DIR/cmd/client/licenses"
-mkdir -p $LICENSES_DIR
 cp LICENSE $LICENSES_DIR
 cd .devops
 npm install --no-spin follow-redirects@1.5.0 > /dev/null 2>&1
