@@ -27,52 +27,55 @@ exec('dep status -json', { cwd: repoDir }, (error, stdout, stderr) => {
   deps.forEach(function(dep) {
     // Get the project name.
     var fullName = dep.ProjectRoot;
-    // Remap non-GitHub projects.
+    // Remap non-GitHub project names.
     if (fullName === 'golang.org/x/sys') fullName = 'github.com/golang/sys';
     // Get the project owner and name.
     var owner = fullName.substring(fullName.indexOf('/') + 1);
     owner = owner.substring(0, owner.indexOf('/'));
     var name = fullName.substring(fullName.lastIndexOf('/') + 1);
     var ownerName = `${owner}/${name}`;
-    // Get the license and write it to disk.
+    // Get the license and write it to disk, unless it is already there.
     var licenseFile = `${licensesDir}/${owner}--${name}`;
-    https.get({
-      host: 'api.github.com',
-      path: `/repos/${ownerName}/license?access_token=${process.env.CHANGELOG_GITHUB_TOKEN}`,
-      headers: {
-        'User-Agent': 'esg-usa-bot',
-        // Get the raw license text.
-        'Accept': 'application/vnd.github.VERSION.raw'
-      }
-    }, function(response) {
-      // Only accept a 200 response.
-      // Otherwise, check to make sure that we already have a license file for this project.
-      // If we don't, warn the user and make sure we exit with a non-zero code.
-      if (response.statusCode === 200) {
-        console.log(`${ownerName}: retrieved from GitHub.`);
-        var resp = '';
-        response.on('data', (chunk) => { resp += chunk; });
-        response.on('end', () => {
-          fs.writeFileSync(licenseFile, resp);
-        });
-      } else if (fs.existsSync(licenseFile)) {
-        console.log(`${ownerName}: already on disk.`);
-      } else {
-        console.log(`${ownerName}: not found!`);
-        // No license found; make note of this.
-        missingDeps = true;
-      }
-      // Are we done yet?
-      depsCounter++
-      if (depsCounter === depsLength) finish();
-    });
+    if (fs.existsSync(licenseFile)) {
+      console.log(`${ownerName}: already on disk.`);
+      finish();
+    } else {
+      https.get({
+        host: 'api.github.com',
+        path: `/repos/${ownerName}/license?access_token=${process.env.CHANGELOG_GITHUB_TOKEN}`,
+        headers: {
+          'User-Agent': 'esg-usa-bot',
+          // Get the raw license text.
+          'Accept': 'application/vnd.github.VERSION.raw'
+        }
+      }, function(response) {
+        // Only accept a 200 response.
+        if (response.statusCode === 200) {
+          console.log(`${ownerName}: retrieved from GitHub.`);
+          var resp = '';
+          response.on('data', (chunk) => { resp += chunk; });
+          response.on('end', () => {
+            fs.writeFileSync(licenseFile, resp);
+          });
+        } else {
+          console.log(`${ownerName}: not found!`);
+          // No license found; make note of this.
+          missingDeps = true;
+        }
+        finish();
+      });
+    }
   });
 });
 function finish() {
-  if (missingDeps) {
-    console.log('ERROR: some licenses could not be found.');
-    process.exitCode = 1;
-  } else {
-    console.log('Done.');
+  depsCounter++
+  // Are we done yet?
+  if (depsCounter === depsLength) {
+    if (missingDeps) {
+      console.log('ERROR: some licenses could not be found.');
+      process.exitCode = 1;
+    } else {
+      console.log('Done.');
+    }
   }
 }
