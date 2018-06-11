@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client/api"
-	"github.com/ESG-USA/Auklet-Client/errorlog"
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/api"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // DataLimiter is a passthrough that limits the number of application-layer

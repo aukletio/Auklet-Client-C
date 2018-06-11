@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ESG-USA/Auklet-Client/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // CellularConfig defines a limit and date for devices that use a cellular

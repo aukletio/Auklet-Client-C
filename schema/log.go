@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // NewLog converts data into a Log that can be sent to topic.

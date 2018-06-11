@@ -1,10 +1,10 @@
 package message
 
 import (
-	"github.com/ESG-USA/Auklet-Client/app"
-	"github.com/ESG-USA/Auklet-Client/errorlog"
-	"github.com/ESG-USA/Auklet-Client/kafka"
-	"github.com/ESG-USA/Auklet-Client/schema"
+	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
 // ExitWatcher passes through all incoming messages. If it never sees a message
