@@ -3,7 +3,7 @@ package message
 import (
 	"log"
 
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // Queue provides an "infinite" buffer for outgoing Messages.

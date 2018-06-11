@@ -6,16 +6,20 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client/agent"
-	"github.com/ESG-USA/Auklet-Client/api"
-	"github.com/ESG-USA/Auklet-Client/app"
-	"github.com/ESG-USA/Auklet-Client/config"
-	"github.com/ESG-USA/Auklet-Client/device"
-	"github.com/ESG-USA/Auklet-Client/kafka"
-	"github.com/ESG-USA/Auklet-Client/message"
-	"github.com/ESG-USA/Auklet-Client/schema"
+	"github.com/gobuffalo/packr"
+
+	"github.com/ESG-USA/Auklet-Client-C/agent"
+	"github.com/ESG-USA/Auklet-Client-C/api"
+	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/device"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/message"
+	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
 type client struct {
@@ -48,9 +52,6 @@ func newAgentServer(app *app.App) agent.Server {
 }
 
 func (c *client) createPipeline() {
-	if err := os.MkdirAll(".auklet/message", 0777); err != nil {
-		log.Print(err)
-	}
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
 	limiter := message.NewDataLimiter(watcher, c.app.ID)
@@ -94,6 +95,23 @@ func (c *client) run() {
 
 func usage() {
 	fmt.Printf("usage: %v command [args ...]\n", os.Args[0])
+	fmt.Printf("view OSS licenses: %v --licenses\n", os.Args[0])
+}
+
+func licenses() {
+	licensesBox := packr.NewBox("./licenses")
+	licenses := licensesBox.List()
+	// Print the Auklet license first, then iterate over all the others.
+	format := "License for %v\n-------------------------\n%v"
+	fmt.Printf(format, "Auklet Client", licensesBox.String("LICENSE"))
+	for _, l := range licenses {
+		if l != "LICENSE" {
+			ownerName := strings.Split(l, "--")
+			fmt.Printf("\n\n\n")
+			header := fmt.Sprintf("package: %v/%v", ownerName[0], ownerName[1])
+			fmt.Printf(format, header, licensesBox.String(l))
+		}
+	}
 }
 
 func getConfig() config.Config {
@@ -105,7 +123,6 @@ func getConfig() config.Config {
 
 func init() {
 	log.SetFlags(log.Lmicroseconds)
-	log.Printf("Auklet Client version %s (%s)\n", Version, BuildDate)
 }
 
 func main() {
@@ -114,10 +131,18 @@ func main() {
 		usage()
 		os.Exit(1)
 	}
+	if args[0] == "--licenses" {
+		licenses()
+		os.Exit(1)
+	}
+	log.Printf("Auklet Client version %s (%s)\n", Version, BuildDate)
 	cfg := getConfig()
 	api.BaseURL = cfg.BaseURL
-	if !cfg.Dump {
+	if !cfg.LogInfo {
 		log.SetOutput(ioutil.Discard)
+	}
+	if !cfg.LogErrors {
+		errorlog.SetOutput(ioutil.Discard)
 	}
 	newclient(args).run()
 }

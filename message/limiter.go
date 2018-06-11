@@ -6,8 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client/api"
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/api"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // DataLimiter is a passthrough that limits the number of application-layer
@@ -39,16 +40,14 @@ func NewDataLimiter(input kafka.MessageSource, appID string) *DataLimiter {
 		conf:   make(chan api.CellularConfig),
 		path:   ".auklet/datalimit.json",
 	}
-	if err := l.load(); err != nil {
-		log.Println(err)
-	}
+	l.load()
 	// If load fails, there is no budget, so all messages will be sent.
 	return l
 }
 
 func (l *DataLimiter) setBudget(megabytes *int) {
 	if megabytes == nil {
-		log.Print("limiter: setting budget to nil")
+		log.Print("limiter: setting budget to unlimited")
 		l.Budget = nil
 		return
 	}
@@ -59,17 +58,29 @@ func (l *DataLimiter) setBudget(megabytes *int) {
 func (l *DataLimiter) load() (err error) {
 	f, err := os.Open(l.path)
 	if err != nil {
+		// This err value is treated as informative, since on
+		// the first start of the client, there will be no state
+		// to load.
+		log.Println("limiter: could not load state:", err)
 		return
 	}
 	defer f.Close()
-	return json.NewDecoder(f).Decode(l)
+	err = json.NewDecoder(f).Decode(l)
+	if err != nil {
+		errorlog.Println("limiter: failed to load state:", err)
+	}
+	return
 }
 
+// save saves the data limiter's state to disk. If there is an error, it's a
+// JSON error.
 func (l *DataLimiter) save() (err error) {
+	defer func() {
+		if err != nil {
+			errorlog.Printf("limiter: error saving state to %v: %v", l.path, err)
+		}
+	}()
 	f, err := os.Create(l.path)
-	if err != nil {
-		return
-	}
 	defer f.Close()
 	return json.NewEncoder(f).Encode(l)
 }
@@ -110,9 +121,7 @@ func toFutureDate(day int) time.Time {
 func (l *DataLimiter) startThisPeriod() {
 	l.advancePeriodEnd()
 	l.Count = 0
-	if err := l.save(); err != nil {
-		log.Println(err)
-	}
+	l.save()
 }
 
 func (l *DataLimiter) increment(n int) (err error) {
@@ -161,16 +170,13 @@ func (l *DataLimiter) handleMessage(m kafka.Message) serverState {
 			// m would put us over 90% of the budget, but not over 100%.
 			// We send it and begin to drop messages.
 			l.out <- m
-			if err := l.increment(n); err != nil {
-				log.Print(err)
-			}
+			l.increment(n)
 			return l.overBudget
 		}
 	}
 	// m does not put us over 90% of budget.
 	l.out <- m
-	if err := l.increment(n); err != nil {
-		log.Print(err)
+	if l.increment(n) != nil {
 		// We had a problem persisting the counter. To be safe, we
 		// start dropping data.
 		if l.Budget != nil {

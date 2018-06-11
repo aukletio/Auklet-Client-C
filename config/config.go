@@ -2,8 +2,9 @@
 package config
 
 import (
-	"log"
 	"os"
+
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // A Config represents the parameters of an Auklet client invocation.
@@ -12,9 +13,21 @@ type Config struct {
 	// typically either staging, QA, or production.
 	BaseURL string
 
-	// Dump enables console logs. In production it is false; in
-	// development it is usually true.
-	Dump bool
+	// LogErrors and LogInfo control local console logs. By default, both
+	// are false. LogErrors prints error messages, such as
+	//
+	// - unexpected HTTP response
+	// - JSON syntax error
+	// - bad filesystem permissions
+	//
+	// LogInfo prints information, such as
+	//
+	// - Kafka broker list
+	// - configuration info acquired remotely
+	// - time and contents of produced Kafka messages
+	//
+	LogErrors bool
+	LogInfo   bool
 }
 
 // Production defines the base URL for the production environment.
@@ -29,8 +42,9 @@ const prefix = "AUKLET_"
 // LocalBuild creates a Config entirely from environment variables.
 func LocalBuild() (c Config) {
 	c = Config{
-		BaseURL: envar("BASE_URL"),
-		Dump:    envar("DUMP") == "true",
+		BaseURL:   envar("BASE_URL"),
+		LogErrors: os.Getenv(prefix+"LOG_ERRORS") == "true",
+		LogInfo:   os.Getenv(prefix+"LOG_INFO") == "true",
 	}
 	if c.BaseURL == "" {
 		c.BaseURL = Production
@@ -43,15 +57,16 @@ func LocalBuild() (c Config) {
 // overridden by the end user.
 func ReleaseBuild() Config {
 	return Config{
-		BaseURL: StaticBaseURL,
-		Dump:    false,
+		BaseURL:   StaticBaseURL,
+		LogErrors: os.Getenv(prefix+"LOG_ERRORS") == "true",
+		LogInfo:   os.Getenv(prefix+"LOG_INFO") == "true",
 	}
 }
 
 func envar(s string) string {
 	k := os.Getenv(prefix + s)
 	if k == "" {
-		log.Print("warning: empty", s)
+		errorlog.Print("warning: empty ", prefix+s)
 	}
 	return k
 }

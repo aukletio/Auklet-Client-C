@@ -10,8 +10,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"strings"
+
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // certs represents SSL certificates.
@@ -25,7 +26,7 @@ type certs struct {
 func (c *certs) TLSConfig() (tc *tls.Config) {
 	certpool := x509.NewCertPool()
 	if !certpool.AppendCertsFromPEM(c.ca) {
-		log.Print("warning: failed to parse CA")
+		errorlog.Print("warning: failed to parse CA")
 		return
 	}
 	tc = &tls.Config{

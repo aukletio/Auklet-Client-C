@@ -6,7 +6,6 @@ package device
 import (
 	"bytes"
 	"fmt"
-	"log"
 	snet "net"
 	"time"
 
@@ -14,11 +13,16 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
+
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // CurrentIP returns the device's current public IP address.
 func CurrentIP() (ip string) {
-	ip, _ = ipify.GetIp()
+	ip, err := ipify.GetIp()
+	if err != nil {
+		errorlog.Print(err)
+	}
 	return
 }
 
@@ -36,7 +40,7 @@ func ifacehash() string {
 	sum := make([]byte, 6)
 	interfaces, err := snet.Interfaces()
 	if err != nil {
-		log.Print(err)
+		errorlog.Print(err)
 	}
 
 	for _, i := range interfaces {
