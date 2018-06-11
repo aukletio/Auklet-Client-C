@@ -134,8 +134,9 @@ If this structure does not exist, it will be created.
 
 `client` opens a `SOCK_STREAM` Unix domain socket at `/tmp/auklet-log-%d`, where
 `%d` is `getppid()` (`client`'s PID). `client` accepts at most one connection to
-this socket, to which a released executable can write newline-delimited
-messages. Such messages are accessible via the user interface.
+this socket, to which a released executable can write newline-delimited JSON
+messages. These messages are accessible via the user interface. Malformed JSON
+messages will still be transported.
 
 Here's a C program demonstrating how to use the socket, assuming the compilation
 flags `-std=c99 -pedantic -D_POSIX_C_SOURCE=200809L`:
@@ -172,7 +173,7 @@ flags `-std=c99 -pedantic -D_POSIX_C_SOURCE=200809L`:
 	main()
 	{
 		int aukletLog = connectAukletLog();
-		dprintf(aukletLog, "hello, auklet\n");
+		dprintf(aukletLog, "{\"message":\"hello, auklet\"}\n");
 	}
 
 # Docker Setup
