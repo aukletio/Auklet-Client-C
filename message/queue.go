@@ -65,6 +65,7 @@ func (q *Queue) empty() serverState {
 	if !open {
 		// The queue's input has closed. We enter the final state,
 		// waiting for our client to shut us down.
+		close(q.out)
 		return q.final
 	}
 	q.push(m)
@@ -78,6 +79,7 @@ func (q *Queue) nonEmpty() serverState {
 		if !open {
 			// The queue's input has closed. Since the queue is not
 			// empty, we enter the final state.
+			close(q.out)
 			return q.final
 		}
 		q.push(m)
@@ -97,13 +99,13 @@ func (q *Queue) nonEmpty() serverState {
 // down. Our policy is to not send any more messages, even if the queue is not
 // empty.
 //
+// We have informed our client, by having closed q.out, that we won't be sending
+// any more values. We expect them to shut us down soon.
+//
 // We need to wait for our client to close q.err, which indicates that it will
 // not send any more dequeue requests. In the meantime, we handle incoming
 // dequeue requests.
 func (q *Queue) final() serverState {
-	// We inform our client that we won't be sending any more values. We
-	// expect them to shut us down soon.
-	close(q.out)
 	if _, open := <-q.err; !open {
 		// Our client has indicated that they have no more requests to
 		// send. We can shut down immediately.
