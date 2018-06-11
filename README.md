@@ -1,5 +1,27 @@
 # Changelog
 
+## Merged But Unreleased
+
+**Implemented enhancements:**
+
+- License under Apache 2.0 / harvest dependency licenses [#41](https://github.com/ESG-USA/Auklet-Client-C/pull/41) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- APM-1320 Allow Console Logs in Production Releases of Client [#32](https://github.com/ESG-USA/Auklet-Client-C/pull/32) ([kdsch](https://github.com/kdsch))
+
+**Fixed bugs:**
+
+- APM-1335 No C data on Staging [#42](https://github.com/ESG-USA/Auklet-Client-C/pull/42) ([kdsch](https://github.com/kdsch))
+
+**DevOps changes:**
+
+- Push prod branch to aukletio [#44](https://github.com/ESG-USA/Auklet-Client-C/pull/44) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- Improve WhiteSource integration [#40](https://github.com/ESG-USA/Auklet-Client-C/pull/40) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- Add WhiteSource integration [#38](https://github.com/ESG-USA/Auklet-Client-C/pull/38) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- Fix prod PR update script [#37](https://github.com/ESG-USA/Auklet-Client-C/pull/37) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- Fix changelog generation syntax [#36](https://github.com/ESG-USA/Auklet-Client-C/pull/36) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- TS-419: Stop using GitHub API for gathering commit lists [#35](https://github.com/ESG-USA/Auklet-Client-C/pull/35) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- TS-417: update prod release PR after QA release finishes [#34](https://github.com/ESG-USA/Auklet-Client-C/pull/34) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- APM-1329: Fix GitHub API abuse rate limits [#33](https://github.com/ESG-USA/Auklet-Client-C/pull/33) ([rjenkinsjr](https://github.com/rjenkinsjr))
+
 ## [0.8.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.8.0)
 
 **Implemented enhancements:**
