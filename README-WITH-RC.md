@@ -1,5 +1,13 @@
 # Changelog
 
+## Merged But Unreleased
+
+**Fixed bugs:**
+
+- message: don't doubly close queue output channel [#47](https://github.com/ESG-USA/Auklet-Client-C/pull/47) ([kdsch](https://github.com/kdsch))
+
+## [0.9.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.9.0)
+
 ### [0.9.0-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.9.0-rc.1)
 
 **Implemented enhancements:**

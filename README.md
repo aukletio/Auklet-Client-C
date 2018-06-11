@@ -2,6 +2,12 @@
 
 ## Merged But Unreleased
 
+**Fixed bugs:**
+
+- message: don't doubly close queue output channel [#47](https://github.com/ESG-USA/Auklet-Client-C/pull/47) ([kdsch](https://github.com/kdsch))
+
+## [0.9.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.9.0)
+
 **Implemented enhancements:**
 
 - License under Apache 2.0 / harvest dependency licenses [#41](https://github.com/ESG-USA/Auklet-Client-C/pull/41) ([rjenkinsjr](https://github.com/rjenkinsjr))
