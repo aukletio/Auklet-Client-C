@@ -9,8 +9,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client/errorlog"
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // message represents messages that can be received by a Server, and thus,

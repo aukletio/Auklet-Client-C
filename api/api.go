@@ -9,9 +9,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ESG-USA/Auklet-Client/certs"
-	"github.com/ESG-USA/Auklet-Client/config"
-	"github.com/ESG-USA/Auklet-Client/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/certs"
+	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
@@ -28,9 +28,6 @@ const (
 // should not assume any particular namespace.
 var BaseURL string
 
-// key is the API key provided by package config.
-var key = config.APIKey()
-
 func get(args, contenttype string) (resp *http.Response) {
 	url := BaseURL + args
 	req, err := http.NewRequest("GET", url, nil)
@@ -38,7 +35,7 @@ func get(args, contenttype string) (resp *http.Response) {
 		errorlog.Print(err)
 		return
 	}
-	req.Header.Add("Authorization", "JWT "+key)
+	req.Header.Add("Authorization", "JWT "+config.APIKey())
 	if contenttype != "" {
 		req.Header.Add("content-type", contenttype)
 	}
@@ -108,7 +105,7 @@ func CreateOrGetDevice(machash, appid string) {
 		return
 	}
 	req.Header.Add("content-type", "application/json")
-	req.Header.Add("Authorization", "JWT "+key)
+	req.Header.Add("Authorization", "JWT "+config.APIKey())
 
 	c := &http.Client{}
 	resp, err := c.Do(req)

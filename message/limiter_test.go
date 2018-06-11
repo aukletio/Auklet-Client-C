@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 type source struct {

@@ -4,7 +4,7 @@ package config
 import (
 	"os"
 
-	"github.com/ESG-USA/Auklet-Client/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // A Config represents the parameters of an Auklet client invocation.

@@ -14,7 +14,7 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 
-	"github.com/ESG-USA/Auklet-Client/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // CurrentIP returns the device's current public IP address.
