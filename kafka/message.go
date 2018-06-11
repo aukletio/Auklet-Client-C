@@ -2,7 +2,6 @@ package kafka
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 
@@ -30,7 +29,15 @@ type Message struct {
 }
 
 // ErrStorageFull indicates that the corresponding Persistor is full.
-var ErrStorageFull = errors.New("persistor: storage full")
+type ErrStorageFull struct {
+	limit int64
+	count int
+}
+
+// Error returns e as a string.
+func (e ErrStorageFull) Error() string {
+	return fmt.Sprintf("persistor: storage full: %v used of %v limit", e.count, e.limit)
+}
 
 // Persistor controls a persistence layer for Messages.
 type Persistor struct {
@@ -51,6 +58,9 @@ func CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
 
 // NewPersistor creates a new Persistor in dir.
 func NewPersistor(dir string) Persistor {
+	if err := os.MkdirAll(dir, 0777); err != nil {
+		errorlog.Printf("persistor: unable to save unsent messages to %v: %v", dir, err)
+	}
 	p := Persistor{
 		dir:          dir,
 		newLimit:     make(chan *int64),
@@ -79,13 +89,13 @@ func (p Persistor) Configure() chan<- *int64 {
 func (p Persistor) filepaths() (paths []string) {
 	d, err := os.Open(p.dir)
 	if err != nil {
-		errorlog.Print(err)
+		errorlog.Printf("persistor: failed to open message directory: %v", err)
 		return
 	}
 	defer d.Close()
 	names, err := d.Readdirnames(0)
 	if err != nil {
-		errorlog.Print(err)
+		errorlog.Printf("persistor: failed to read directory names in %v: %v", d.Name(), err)
 		return
 	}
 	for _, name := range names {
@@ -98,7 +108,7 @@ func (p Persistor) size() (n int64) {
 	for _, path := range p.filepaths() {
 		f, err := os.Stat(path)
 		if err != nil {
-			errorlog.Print(err)
+			errorlog.Printf("persistor: failed to calculate storage size of message %v: %v", path, err)
 			continue
 		}
 		n += f.Size()
@@ -110,8 +120,7 @@ func (p Persistor) size() (n int64) {
 func (p Persistor) Load() (msgs []Message) {
 	for _, path := range p.filepaths() {
 		m := Message{path: path}
-		if err := m.load(); err != nil {
-			errorlog.Print(err)
+		if m.load() != nil {
 			continue
 		}
 		msgs = append(msgs, m)
@@ -123,7 +132,10 @@ func (p Persistor) Load() (msgs []Message) {
 func (p Persistor) CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
 	lim := <-p.currentLimit
 	if lim != nil && int64(len(bytes))+p.size() > 9**lim/10 {
-		err = ErrStorageFull
+		err = ErrStorageFull{
+			limit: *lim,
+			count: p.count,
+		}
 		return
 	}
 	m = Message{
@@ -132,11 +144,18 @@ func (p Persistor) CreateMessage(bytes json.RawMessage, typ Type) (m Message, er
 		path:  fmt.Sprintf("%v/%v-%v", p.dir, os.Getpid(), p.count),
 	}
 	p.count++
-	err = m.save()
+	// Failing to save a message is a recoverable error that does not affect
+	// our caller's logic. Thus, we don't return save's error value.
+	m.save()
 	return
 }
 
 func (m Message) load() (err error) {
+	defer func() {
+		if err != nil {
+			errorlog.Printf("persistor: failed to load message %v: %v", m.path, err)
+		}
+	}()
 	f, err := os.Open(m.path)
 	if err != nil {
 		return
@@ -147,6 +166,11 @@ func (m Message) load() (err error) {
 }
 
 func (m Message) save() (err error) {
+	defer func() {
+		if err != nil {
+			errorlog.Printf("persistor: failed to save message %v: %v", m.path, err)
+		}
+	}()
 	f, err := os.OpenFile(m.path, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return

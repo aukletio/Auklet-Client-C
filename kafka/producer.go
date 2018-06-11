@@ -21,16 +21,16 @@ type Producer struct {
 func verify(brokers []*sarama.Broker) bool {
 	pattern, err := regexp.Compile(`[^\.]+\.feeds\.auklet\.io:9093`)
 	if err != nil {
-		errorlog.Print(err)
+		errorlog.Println("producer:", err)
 		return false
 	}
 	for _, b := range brokers {
 		addr := b.Addr()
 		if !pattern.MatchString(addr) {
-			errorlog.Printf("failed to verify broker address %v", addr)
+			errorlog.Printf("producer: failed to verify broker address %v", addr)
 			return false
 		}
-		log.Printf("broker address: %v", addr)
+		log.Printf("producer: broker address: %v", addr)
 	}
 	return true
 }
@@ -45,12 +45,12 @@ func NewProducer(input MessageSourceError) (p *Producer) {
 	c.Net.TLS.Config = api.Certificates()
 	client, err := sarama.NewClient(kp.Brokers, c)
 	if err != nil {
-		errorlog.Print(err)
+		errorlog.Print("producer:", err)
 		return
 	}
 	sp, err := sarama.NewSyncProducerFromClient(client)
 	if err != nil {
-		errorlog.Print(err)
+		errorlog.Print("producer:", err)
 		return
 	}
 	if !verify(client.Brokers()) {
@@ -75,7 +75,7 @@ func (p *Producer) Serve() {
 	defer p.Close()
 	for m := range p.source.Output() {
 		if err := p.send(m); err != nil {
-			errorlog.Print(err)
+			errorlog.Println("producer:", err)
 			continue
 		}
 		p.source.Err() <- nil
@@ -93,9 +93,8 @@ func (p *Producer) send(m Message) (err error) {
 		Topic: p.topic[m.Type],
 		Value: sarama.ByteEncoder(b),
 	})
-	log.Print("producer: message sent")
 	if err == nil {
-		log.Print(string(b))
+		log.Println("producer: message sent:", string(b))
 	}
 	return
 }

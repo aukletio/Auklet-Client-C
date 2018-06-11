@@ -85,8 +85,12 @@ func (s Server) Serve() {
 
 		if handler, in := s.handlers[msg.Type]; in {
 			pm, err := handler(msg.Data)
-			if err != nil {
-				errorlog.Print(err)
+			switch err.(type) {
+			case kafka.ErrStorageFull:
+				// Our persistent storage is full, so we drop
+				// messages. This isn't an error; it's desired
+				// behavior.
+				log.Print(err)
 				continue
 			}
 			s.out <- pm
