@@ -44,6 +44,12 @@
   version = "v1.2.1"
 
 [[projects]]
+  name = "github.com/gobuffalo/packr"
+  packages = ["."]
+  revision = "7f4074995d431987caaa35088199f13c44b24440"
+  version = "v1.11.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
@@ -66,6 +72,12 @@
   packages = ["xxHash32"]
   revision = "f051bb7f1d1aaf1b5a665d74fb6b0217712c69f7"
   version = "v0.1.1"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   branch = "master"
@@ -100,6 +112,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "df12a062644b68e90551148ccb9828a2ee5bfd1613b741bd6a3a951a1caa8ecc"
+  inputs-digest = "1d7a2a696d08576f77c2235371d8b0ca02e5b0c32797d3e5c0769d0ba1a8bd39"
   solver-name = "gps-cdcl"
   solver-version = 1
