@@ -1,11 +1,11 @@
-package agent
-
 // +build linux
 
+package agent
+
 import (
-	"syscall"
-	"os"
 	"fmt"
+	"os"
+	"syscall"
 )
 
 func socketpair(prefix string) (local, remote *os.File, err error) {
