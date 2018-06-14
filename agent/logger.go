@@ -4,29 +4,31 @@ import (
 	"bufio"
 	"log"
 	"net"
+	"os"
 
-	"github.com/ESG-USA/Auklet-Client/errorlog"
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // Logger is a remote logging connection server. Applications using Auklet can
 // write newline-delimited messages to the logger's socket to send logs to
 // Auklet's backend.
 type Logger struct {
-	l       net.Listener
-	out     chan kafka.Message
-	handler Handler
+	local, remote *os.File
+	out           chan kafka.Message
+	handler       Handler
 }
 
-// NewLogger opens a socket at addr and returns a Logger that uses handler to
+// NewLogger opens an anonymous socket and returns a Logger that uses handler to
 // convert socket messages into kafka Messages.
-func NewLogger(addr string, handler Handler) Logger {
-	l, err := net.Listen("unix", addr)
+func NewLogger(handler Handler) Logger {
+	local, remote, err := socketpair("logserver-")
 	if err != nil {
 		errorlog.Print(err)
 	}
 	return Logger{
-		l:       l,
+		local:   local,
+		remote:  remote,
 		out:     make(chan kafka.Message),
 		handler: handler,
 	}
@@ -34,13 +36,13 @@ func NewLogger(addr string, handler Handler) Logger {
 
 // Serve activates l, causing it to send and receive messages.
 func (l Logger) Serve() {
-	defer l.l.Close()
-	conn, err := l.l.Accept()
+	defer close(l.out)
+	conn, err := net.FileConn(l.local)
 	if err != nil {
 		errorlog.Print(err)
 	}
-	log.Printf("accepted connection on %v", l.l.Addr())
-	defer log.Printf("connection on %v closed", l.l.Addr())
+	log.Printf("accepted connection on %v", l.local.Name())
+	defer log.Printf("connection on %v closed", l.local.Name())
 	s := bufio.NewScanner(conn)
 	s.Split(bufio.ScanLines)
 	for s.Scan() {
@@ -57,4 +59,9 @@ func (l Logger) Serve() {
 // Output returns l's output channel.
 func (l Logger) Output() <-chan kafka.Message {
 	return l.out
+}
+
+// Remote returns the socket to be inherited by the child process.
+func (l Logger) Remote() *os.File {
+	return l.remote
 }

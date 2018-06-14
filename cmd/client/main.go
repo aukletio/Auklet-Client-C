@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,7 +33,6 @@ func newclient(args []string) *client {
 }
 
 func newAgentServer(app *app.App) agent.Server {
-	addr := "/tmp/auklet-" + strconv.Itoa(os.Getpid())
 	handlers := map[string]agent.Handler{
 		"profile": func(data []byte) (kafka.Message, error) {
 			return schema.NewProfile(data, app)
@@ -48,14 +46,14 @@ func newAgentServer(app *app.App) agent.Server {
 			return schema.NewLog(data)
 		},
 	}
-	return agent.NewServer(addr, handlers)
+	return agent.NewServer(handlers)
 }
 
 func (c *client) createPipeline() {
 	logHandler := func(msg []byte) (kafka.Message, error) {
 		return schema.NewAppLog(msg, c.app)
 	}
-	logger := agent.NewLogger("/tmp/auklet-log-"+strconv.Itoa(os.Getpid()), logHandler)
+	logger := agent.NewLogger(logHandler)
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
 	merger := message.NewMerger(logger, watcher)
@@ -81,6 +79,11 @@ func (c *client) createPipeline() {
 	go limiter.Serve()
 	go queue.Serve()
 	go pollConfig()
+
+	c.app.ExtraFiles = append(c.app.ExtraFiles,
+		logger.Remote(), // fd 3 - application use
+		server.Remote(), // fd 4 - agent use
+	)
 }
 
 func (c *client) run() {
