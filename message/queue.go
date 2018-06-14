@@ -43,8 +43,12 @@ func (q *Queue) Err() chan<- error {
 // Serve activates q, causing it to receive and send Messages. Serve returns
 // when q shuts down.
 func (q *Queue) Serve() {
+	prevlen := len(q.q)
 	for state := q.initial; state != nil; state = state() {
-		log.Print("queued messages: ", len(q.q))
+		if len(q.q) != prevlen {
+			log.Print("queued messages: ", len(q.q))
+			prevlen = len(q.q)
+		}
 	}
 }
 
