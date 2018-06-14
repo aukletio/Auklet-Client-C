@@ -3,7 +3,7 @@ package message
 import (
 	"sync"
 
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // Merger is a kafka.MessageSource that merges multiple other MessageSources

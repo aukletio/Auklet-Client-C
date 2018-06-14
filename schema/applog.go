@@ -7,9 +7,9 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client/app"
-	"github.com/ESG-USA/Auklet-Client/device"
-	"github.com/ESG-USA/Auklet-Client/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/device"
+	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // appLog represents custom log data as expected by Kafka consumers.
