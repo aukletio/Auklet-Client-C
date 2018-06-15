@@ -17,7 +17,7 @@ type Config struct {
 	// are false. LogErrors prints error messages, such as
 	//
 	// - unexpected HTTP response
-	// - JSON syntax error
+	// - encoding error
 	// - bad filesystem permissions
 	//
 	// LogInfo prints information, such as

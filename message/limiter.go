@@ -73,7 +73,7 @@ func (l *DataLimiter) load() (err error) {
 }
 
 // save saves the data limiter's state to disk. If there is an error, it's a
-// JSON error.
+// encoding error.
 func (l *DataLimiter) save() (err error) {
 	defer func() {
 		if err != nil {

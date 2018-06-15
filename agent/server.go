@@ -70,7 +70,7 @@ func (s Server) Serve() {
 		if err := dec.Decode(msg); err == io.EOF {
 			return
 		} else if err != nil {
-			// There was a problem decoding the JSON into
+			// There was a problem decoding the stream into
 			// message format.
 			buf, _ := ioutil.ReadAll(dec.Buffered())
 			errorlog.Print(err, string(buf))

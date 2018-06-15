@@ -53,7 +53,7 @@ func get(args, contenttype string) (resp *http.Response) {
 
 // Release returns true if checksum represents an app that has been released.
 func Release(checksum string) (ok bool) {
-	resp := get(releasesEP + checksum, "")
+	resp := get(releasesEP+checksum, "")
 	if resp == nil {
 		return
 	}
@@ -87,14 +87,12 @@ func Certificates() (c *tls.Config) {
 	return cts.TLSConfig()
 }
 
-type deviceJSON struct {
-	Mac   string `json:"mac_address_hash"`
-	AppID string `json:"application"`
-}
-
 // CreateOrGetDevice associates machash and appid in the backend.
 func CreateOrGetDevice(machash, appid string) {
-	b, _ := json.Marshal(deviceJSON{
+	b, _ := json.Marshal(struct {
+		Mac   string `json:"mac_address_hash"`
+		AppID string `json:"application"`
+	}{
 		Mac:   machash,
 		AppID: appid,
 	})

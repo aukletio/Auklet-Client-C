@@ -12,9 +12,9 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// exit represents the exit of an app in which libauklet did not handle a
+// exit represents the exit of an app in which an agent did not handle a
 // signal. The app may or may not have been delivered a termination signal of
-// some kind, but not one handled by libauklet. See man 7 signal for details.
+// some kind, but not one handled by an agent. See man 7 signal for details.
 type exit struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
