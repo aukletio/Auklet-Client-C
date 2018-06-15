@@ -8,11 +8,11 @@ import (
 	"github.com/satori/go.uuid"
 
 	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
-// appLog represents custom log data as expected by Kafka consumers.
+// appLog represents custom log data as expected by broker consumers.
 type appLog struct {
 	// AppID is a long string uniquely associated with a particular app.
 	AppID string `json:"application"`
@@ -40,7 +40,7 @@ type appLog struct {
 }
 
 // NewAppLog converts msg into a custom log message.
-func NewAppLog(msg []byte, app *app.App) (m kafka.Message, err error) {
+func NewAppLog(msg []byte, app *app.App) (m broker.Message, err error) {
 	var a appLog
 	a.AppID = app.ID
 	a.CheckSum = app.CheckSum
@@ -54,5 +54,5 @@ func NewAppLog(msg []byte, app *app.App) (m kafka.Message, err error) {
 	if err != nil {
 		return
 	}
-	return kafka.StdPersistor.CreateMessage(b, kafka.Log)
+	return broker.StdPersistor.CreateMessage(b, broker.Log)
 }

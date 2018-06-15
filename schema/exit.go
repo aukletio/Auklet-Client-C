@@ -8,13 +8,13 @@ import (
 	"github.com/satori/go.uuid"
 
 	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
-// exit represents the exit of an app in which libauklet did not handle a
+// exit represents the exit of an app in which an agent did not handle a
 // signal. The app may or may not have been delivered a termination signal of
-// some kind, but not one handled by libauklet. See man 7 signal for details.
+// some kind, but not one handled by an agent. See man 7 signal for details.
 type exit struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
@@ -40,7 +40,7 @@ type exit struct {
 }
 
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
-func NewExit(app *app.App) (m kafka.Message, err error) {
+func NewExit(app *app.App) (m broker.Message, err error) {
 	var e exit
 	e.AppID = app.ID
 	e.CheckSum = app.CheckSum
@@ -58,5 +58,5 @@ func NewExit(app *app.App) (m kafka.Message, err error) {
 	if err != nil {
 		return
 	}
-	return kafka.StdPersistor.CreateMessage(b, kafka.Event)
+	return broker.StdPersistor.CreateMessage(b, broker.Event)
 }

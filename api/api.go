@@ -53,7 +53,7 @@ func get(args, contenttype string) (resp *http.Response) {
 
 // Release returns true if checksum represents an app that has been released.
 func Release(checksum string) (ok bool) {
-	resp := get(releasesEP + checksum, "")
+	resp := get(releasesEP+checksum, "")
 	if resp == nil {
 		return
 	}
@@ -87,14 +87,12 @@ func Certificates() (c *tls.Config) {
 	return cts.TLSConfig()
 }
 
-type deviceJSON struct {
-	Mac   string `json:"mac_address_hash"`
-	AppID string `json:"application"`
-}
-
 // CreateOrGetDevice associates machash and appid in the backend.
 func CreateOrGetDevice(machash, appid string) {
-	b, _ := json.Marshal(deviceJSON{
+	b, _ := json.Marshal(struct {
+		Mac   string `json:"mac_address_hash"`
+		AppID string `json:"application"`
+	}{
 		Mac:   machash,
 		AppID: appid,
 	})
@@ -116,20 +114,20 @@ func CreateOrGetDevice(machash, appid string) {
 	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
 }
 
-// KafkaParams represents parameters affecting Kafka communication.
-type KafkaParams struct {
+// BrokerParams represents parameters affecting broker communication.
+type BrokerParams struct {
 	// Brokers is a list of broker addresses.
 	Brokers []string `json:"brokers"`
 
 	// LogTopic, ProfileTopic, and EventTopic are topics to which we produce
-	// Kafka messages.
+	// broker messages.
 	LogTopic     string `json:"log_topic"`
 	ProfileTopic string `json:"prof_topic"`
 	EventTopic   string `json:"event_topic"`
 }
 
-// GetKafkaParams returns Kafka parameters from the config endpoint.
-func GetKafkaParams() (k KafkaParams) {
+// GetBrokerParams returns broker parameters from the config endpoint.
+func GetBrokerParams() (k BrokerParams) {
 	resp := get(configEP, "application/json")
 	if resp == nil {
 		return
