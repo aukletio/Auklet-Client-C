@@ -96,7 +96,7 @@ variable.
 `AUKLET_LOG_ERRORS=true` logs any unexpected but recoverable errors, including but
 not limited to
 
-- JSON syntax errors
+- encoding errors
 - unexpected HTTP responses
 - insufficient filesystem permissions
 
