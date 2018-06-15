@@ -37,7 +37,7 @@ func verify(brokers []*sarama.Broker) bool {
 
 // NewProducer creates a broker producer.
 func NewProducer(input MessageSourceError) (p *Producer) {
-	kp := api.GetbrokerParams()
+	kp := api.GetBrokerParams()
 	c := sarama.NewConfig()
 	c.ClientID = "ProfileTest"
 	c.Producer.Return.Successes = true
