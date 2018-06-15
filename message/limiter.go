@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/ESG-USA/Auklet-Client-C/api"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // DataLimiter is a passthrough that limits the number of application-layer

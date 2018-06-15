@@ -13,10 +13,10 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/agent"
 	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/config"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
-	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/message"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
 )

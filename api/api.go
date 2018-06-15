@@ -128,7 +128,7 @@ type BrokerParams struct {
 	EventTopic   string `json:"event_topic"`
 }
 
-// GetbrokerParams returns broker parameters from the config endpoint.
+// GetBrokerParams returns broker parameters from the config endpoint.
 func GetBrokerParams() (k BrokerParams) {
 	resp := get(configEP, "application/json")
 	if resp == nil {

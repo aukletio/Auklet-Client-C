@@ -6,8 +6,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // Logger is a remote logging connection server. Applications using Auklet can

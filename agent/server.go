@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // message represents messages that can be received by a Server, and thus,

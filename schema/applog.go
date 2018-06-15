@@ -8,8 +8,8 @@ import (
 	"github.com/satori/go.uuid"
 
 	"github.com/ESG-USA/Auklet-Client-C/app"
-	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
 // appLog represents custom log data as expected by broker consumers.
