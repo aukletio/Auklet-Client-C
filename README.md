@@ -128,7 +128,44 @@ Auklet agent and properly released using the Auklet releaser), run
 
 If this structure does not exist, it will be created.
 
-`client` creates files in `/tmp`.
+## Remote logging
+
+`client` opens an anonymous `SOCK_STREAM` Unix domain socket to which
+newline-delimited JSON messages can be written.  If `client` confirms that the
+executable has been released, the child process will inherit the socket as file
+descriptor 3. Otherwise, the child process will not inherit the file descriptor.
+Messages written to the socket are transported without checking for syntax
+errors and will be accessible via the user interface.
+
+Here's a C program demonstrating how to use the socket, assuming the compilation
+flags `-std=c99 -pedantic -D_POSIX_C_SOURCE=200809L`:
+
+	#include <fcntl.h>
+	#include <stdio.h>
+	#include <sys/stat.h>
+	#include <sys/types.h>
+	#include <unistd.h>
+
+	/* getAukletLogFD checks if file descriptor 3 is valid. If so, it
+	 * returns the file descriptor. Otherwise, it opens /dev/null and
+	 * returns its file descriptor. */
+	int
+	getAukletLogFD()
+	{
+		struct stat buf;
+		int fd = 3;
+		if (-1 == fstat(fd, &buf)
+			fd = open("/dev/null", O_WRONLY);
+		return fd;
+	}
+
+	int
+	main()
+	{
+		int logFD = getAukletLogFD();
+		dprintf(logFD, "{\"message\":\"hello, auklet\"}\n");
+		close(logFD);
+	}
 
 # Docker Setup
 

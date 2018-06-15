@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,7 +33,6 @@ func newclient(args []string) *client {
 }
 
 func newAgentServer(app *app.App) agent.Server {
-	addr := "/tmp/auklet-" + strconv.Itoa(os.Getpid())
 	handlers := map[string]agent.Handler{
 		"profile": func(data []byte) (kafka.Message, error) {
 			return schema.NewProfile(data, app)
@@ -48,13 +46,18 @@ func newAgentServer(app *app.App) agent.Server {
 			return schema.NewLog(data)
 		},
 	}
-	return agent.NewServer(addr, handlers)
+	return agent.NewServer(handlers)
 }
 
 func (c *client) createPipeline() {
+	logHandler := func(msg []byte) (kafka.Message, error) {
+		return schema.NewAppLog(msg, c.app)
+	}
+	logger := agent.NewLogger(logHandler)
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
-	limiter := message.NewDataLimiter(watcher, c.app.ID)
+	merger := message.NewMerger(logger, watcher)
+	limiter := message.NewDataLimiter(merger, c.app.ID)
 	queue := message.NewQueue(limiter)
 	c.prod = kafka.NewProducer(queue)
 	pollConfig := func() {
@@ -69,11 +72,18 @@ func (c *client) createPipeline() {
 		}
 	}
 
+	go logger.Serve()
 	go server.Serve()
+	go merger.Serve()
 	go watcher.Serve()
 	go limiter.Serve()
 	go queue.Serve()
 	go pollConfig()
+
+	c.app.ExtraFiles = append(c.app.ExtraFiles,
+		logger.Remote(), // fd 3 - application use
+		server.Remote(), // fd 4 - agent use
+	)
 }
 
 func (c *client) run() {
