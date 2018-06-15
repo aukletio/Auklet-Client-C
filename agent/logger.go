@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
 // Logger is a remote logging connection server. Applications using Auklet can
@@ -15,12 +15,12 @@ import (
 // Auklet's backend.
 type Logger struct {
 	local, remote *os.File
-	out           chan kafka.Message
+	out           chan broker.Message
 	handler       Handler
 }
 
 // NewLogger opens an anonymous socket and returns a Logger that uses handler to
-// convert socket messages into kafka Messages.
+// convert socket messages into broker Messages.
 func NewLogger(handler Handler) Logger {
 	local, remote, err := socketpair("logserver-")
 	if err != nil {
@@ -29,7 +29,7 @@ func NewLogger(handler Handler) Logger {
 	return Logger{
 		local:   local,
 		remote:  remote,
-		out:     make(chan kafka.Message),
+		out:     make(chan broker.Message),
 		handler: handler,
 	}
 }
@@ -57,7 +57,7 @@ func (l Logger) Serve() {
 }
 
 // Output returns l's output channel.
-func (l Logger) Output() <-chan kafka.Message {
+func (l Logger) Output() <-chan broker.Message {
 	return l.out
 }
 

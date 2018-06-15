@@ -1,5 +1,5 @@
-// Package kafka provides a simple wrapper around sarama.SyncProducer.
-package kafka
+// Package broker provides a simple wrapper around sarama.SyncProducer.
+package broker
 
 import (
 	"log"
@@ -11,7 +11,7 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
-// Producer provides a simple Kafka producer.
+// Producer provides a simple broker producer.
 type Producer struct {
 	source MessageSourceError
 	sarama.SyncProducer
@@ -35,9 +35,9 @@ func verify(brokers []*sarama.Broker) bool {
 	return true
 }
 
-// NewProducer creates a Kafka producer.
+// NewProducer creates a broker producer.
 func NewProducer(input MessageSourceError) (p *Producer) {
-	kp := api.GetKafkaParams()
+	kp := api.GetbrokerParams()
 	c := sarama.NewConfig()
 	c.ClientID = "ProfileTest"
 	c.Producer.Return.Successes = true

@@ -9,7 +9,7 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
 // exit represents the exit of an app in which libauklet did not handle a
@@ -40,7 +40,7 @@ type exit struct {
 }
 
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
-func NewExit(app *app.App) (m kafka.Message, err error) {
+func NewExit(app *app.App) (m broker.Message, err error) {
 	var e exit
 	e.AppID = app.ID
 	e.CheckSum = app.CheckSum
@@ -58,5 +58,5 @@ func NewExit(app *app.App) (m kafka.Message, err error) {
 	if err != nil {
 		return
 	}
-	return kafka.StdPersistor.CreateMessage(b, kafka.Event)
+	return broker.StdPersistor.CreateMessage(b, broker.Event)
 }

@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
 type source struct {
 	size, num int
-	out       chan kafka.Message
+	out       chan broker.Message
 }
 
 // newsource creates a source that generates num messages of the given size in
@@ -18,7 +18,7 @@ func newsource(num, size int) source {
 	return source{
 		size: size,
 		num:  num,
-		out:  make(chan kafka.Message),
+		out:  make(chan broker.Message),
 	}
 }
 
@@ -33,14 +33,14 @@ func (s source) Serve() {
 }
 
 // Output returns s's output. The channel closes when s shuts down.
-func (s source) Output() <-chan kafka.Message {
+func (s source) Output() <-chan broker.Message {
 	return s.out
 }
 
 type msg []byte
 
 // Topic provides the topic of m.
-func (m msg) Topic() (t kafka.Topic) {
+func (m msg) Topic() (t broker.Topic) {
 	return
 }
 

@@ -8,10 +8,10 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
-// Profile represents profile data as expected by Kafka consumers.
+// Profile represents profile data as expected by broker consumers.
 type Profile struct {
 	// AppID is a long string uniquely associated with a particular app.
 	AppID string `json:"application"`
@@ -36,7 +36,7 @@ type Profile struct {
 }
 
 // NewProfile creates a Profile for app out of JSON data.
-func NewProfile(data []byte, app *app.App) (m kafka.Message, err error) {
+func NewProfile(data []byte, app *app.App) (m broker.Message, err error) {
 	var p Profile
 	err = json.Unmarshal(data, &p)
 	if err != nil {
@@ -52,5 +52,5 @@ func NewProfile(data []byte, app *app.App) (m kafka.Message, err error) {
 	if err != nil {
 		return
 	}
-	return kafka.StdPersistor.CreateMessage(b, kafka.Profile)
+	return broker.StdPersistor.CreateMessage(b, broker.Profile)
 }

@@ -116,20 +116,20 @@ func CreateOrGetDevice(machash, appid string) {
 	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
 }
 
-// KafkaParams represents parameters affecting Kafka communication.
-type KafkaParams struct {
+// BrokerParams represents parameters affecting broker communication.
+type BrokerParams struct {
 	// Brokers is a list of broker addresses.
 	Brokers []string `json:"brokers"`
 
 	// LogTopic, ProfileTopic, and EventTopic are topics to which we produce
-	// Kafka messages.
+	// broker messages.
 	LogTopic     string `json:"log_topic"`
 	ProfileTopic string `json:"prof_topic"`
 	EventTopic   string `json:"event_topic"`
 }
 
-// GetKafkaParams returns Kafka parameters from the config endpoint.
-func GetKafkaParams() (k KafkaParams) {
+// GetbrokerParams returns broker parameters from the config endpoint.
+func GetBrokerParams() (k BrokerParams) {
 	resp := get(configEP, "application/json")
 	if resp == nil {
 		return

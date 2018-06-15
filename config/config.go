@@ -22,9 +22,9 @@ type Config struct {
 	//
 	// LogInfo prints information, such as
 	//
-	// - Kafka broker list
+	// - broker list
 	// - configuration info acquired remotely
-	// - time and contents of produced Kafka messages
+	// - time and contents of produced broker messages
 	//
 	LogErrors bool
 	LogInfo   bool
@@ -80,7 +80,7 @@ func APIKey() string {
 
 // AppID identifies a customer's application as a whole, but not a particular
 // release of it. It is used in API calls relating to devices and in profile
-// data sent to Kafka.
+// data sent to broker.
 func AppID() string {
 	return envar("APP_ID")
 }

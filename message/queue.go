@@ -3,24 +3,24 @@ package message
 import (
 	"log"
 
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
 // Queue provides an "infinite" buffer for outgoing Messages.
 type Queue struct {
-	source kafka.MessageSource
-	q      []kafka.Message
-	out    chan kafka.Message
+	source broker.MessageSource
+	q      []broker.Message
+	out    chan broker.Message
 	err    chan error
 }
 
 // NewQueue creates a new Queue that buffers Messages. Any existing persisted
 // Messages are enqueued.
-func NewQueue(in kafka.MessageSource) *Queue {
+func NewQueue(in broker.MessageSource) *Queue {
 	return &Queue{
 		source: in,
-		q:      kafka.StdPersistor.Load(),
-		out:    make(chan kafka.Message),
+		q:      broker.StdPersistor.Load(),
+		out:    make(chan broker.Message),
 		err:    make(chan error),
 	}
 }
@@ -28,7 +28,7 @@ func NewQueue(in kafka.MessageSource) *Queue {
 // Output returns a channel from which enqueued Messages can be received.
 // Messages sent on this channel are not automatically dequeued. The channel
 // closes when q's input closes.
-func (q *Queue) Output() <-chan kafka.Message {
+func (q *Queue) Output() <-chan broker.Message {
 	return q.out
 }
 
@@ -126,11 +126,11 @@ func (q *Queue) final() serverState {
 	return q.final
 }
 
-func (q *Queue) push(m kafka.Message) {
+func (q *Queue) push(m broker.Message) {
 	q.q = append(q.q, m)
 }
 
-func (q *Queue) peek() kafka.Message {
+func (q *Queue) peek() broker.Message {
 	return q.q[0]
 }
 

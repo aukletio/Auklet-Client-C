@@ -11,7 +11,7 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
 // errorSig represents the exit of an app in which libauklet handled an "error
@@ -48,7 +48,7 @@ type errorSig struct {
 
 // NewErrorSig creates an ErrorSig for app out of JSON data. It assumes that
 // app.Wait() has returned.
-func NewErrorSig(data []byte, app *app.App) (m kafka.Message, err error) {
+func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
 	var e errorSig
 	err = json.Unmarshal(data, &e)
 	if err != nil {
@@ -66,7 +66,7 @@ func NewErrorSig(data []byte, app *app.App) (m kafka.Message, err error) {
 	if err != nil {
 		return
 	}
-	return kafka.StdPersistor.CreateMessage(b, kafka.Event)
+	return broker.StdPersistor.CreateMessage(b, broker.Event)
 }
 
 type sig syscall.Signal
