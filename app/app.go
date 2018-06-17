@@ -50,6 +50,13 @@ func (app *App) Start() (err error) {
 	} else {
 		errorlog.Print(err)
 	}
+	// We will not be using our copies of any file descriptors we
+	// passed on to the app. We close them to ensure that our
+	// servers receive EOF when the app's copies are closed.
+	for _, f := range app.ExtraFiles {
+		log.Println("closing ", f.Name())
+		f.Close()
+	}
 	return
 }
 

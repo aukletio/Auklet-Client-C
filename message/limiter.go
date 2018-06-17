@@ -7,15 +7,15 @@ import (
 	"time"
 
 	"github.com/ESG-USA/Auklet-Client-C/api"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
 // DataLimiter is a passthrough that limits the number of application-layer
 // bytes transmitted per period.
 type DataLimiter struct {
-	source kafka.MessageSource
-	out    chan kafka.Message
+	source broker.MessageSource
+	out    chan broker.Message
 	conf   chan api.CellularConfig
 	path   string
 
@@ -33,10 +33,10 @@ type DataLimiter struct {
 
 // NewDataLimiter returns a DataLimiter for input whose state persists on
 // the filesystem.
-func NewDataLimiter(input kafka.MessageSource, appID string) *DataLimiter {
+func NewDataLimiter(input broker.MessageSource, appID string) *DataLimiter {
 	l := &DataLimiter{
 		source: input,
-		out:    make(chan kafka.Message),
+		out:    make(chan broker.Message),
 		conf:   make(chan api.CellularConfig),
 		path:   ".auklet/datalimit.json",
 	}
@@ -73,7 +73,7 @@ func (l *DataLimiter) load() (err error) {
 }
 
 // save saves the data limiter's state to disk. If there is an error, it's a
-// JSON error.
+// encoding error.
 func (l *DataLimiter) save() (err error) {
 	defer func() {
 		if err != nil {
@@ -160,7 +160,7 @@ func (l *DataLimiter) underBudget() serverState {
 	}
 }
 
-func (l *DataLimiter) handleMessage(m kafka.Message) serverState {
+func (l *DataLimiter) handleMessage(m broker.Message) serverState {
 	n := len(m.Bytes)
 	if l.Budget != nil {
 		if n+l.Count > *l.Budget {
@@ -217,7 +217,7 @@ func (l *DataLimiter) final() serverState {
 
 // Output returns a channel on which messages can be received. The channel
 // closes when l's input closes.
-func (l *DataLimiter) Output() <-chan kafka.Message {
+func (l *DataLimiter) Output() <-chan broker.Message {
 	return l.out
 }
 

@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -14,17 +13,17 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/agent"
 	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/config"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
 	"github.com/ESG-USA/Auklet-Client-C/message"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
 type client struct {
 	app  *app.App
-	prod *kafka.Producer
+	prod *broker.Producer
 }
 
 func newclient(args []string) *client {
@@ -34,29 +33,33 @@ func newclient(args []string) *client {
 }
 
 func newAgentServer(app *app.App) agent.Server {
-	addr := "/tmp/auklet-" + strconv.Itoa(os.Getpid())
 	handlers := map[string]agent.Handler{
-		"profile": func(data []byte) (kafka.Message, error) {
+		"profile": func(data []byte) (broker.Message, error) {
 			return schema.NewProfile(data, app)
 		},
-		"event": func(data []byte) (kafka.Message, error) {
+		"event": func(data []byte) (broker.Message, error) {
 			app.Cmd.Wait()
 			log.Printf("app %v exited with error signal", app.Path)
 			return schema.NewErrorSig(data, app)
 		},
-		"log": func(data []byte) (kafka.Message, error) {
+		"log": func(data []byte) (broker.Message, error) {
 			return schema.NewLog(data)
 		},
 	}
-	return agent.NewServer(addr, handlers)
+	return agent.NewServer(handlers)
 }
 
 func (c *client) createPipeline() {
+	logHandler := func(msg []byte) (broker.Message, error) {
+		return schema.NewAppLog(msg, c.app)
+	}
+	logger := agent.NewLogger(logHandler)
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
-	limiter := message.NewDataLimiter(watcher, c.app.ID)
+	merger := message.NewMerger(logger, watcher)
+	limiter := message.NewDataLimiter(merger, c.app.ID)
 	queue := message.NewQueue(limiter)
-	c.prod = kafka.NewProducer(queue)
+	c.prod = broker.NewProducer(queue)
 	pollConfig := func() {
 		poll := func() {
 			dl := api.GetDataLimit(c.app.ID).Config
@@ -69,11 +72,18 @@ func (c *client) createPipeline() {
 		}
 	}
 
+	go logger.Serve()
 	go server.Serve()
+	go merger.Serve()
 	go watcher.Serve()
 	go limiter.Serve()
 	go queue.Serve()
 	go pollConfig()
+
+	c.app.ExtraFiles = append(c.app.ExtraFiles,
+		logger.Remote(), // fd 3 - application use
+		server.Remote(), // fd 4 - agent use
+	)
 }
 
 func (c *client) run() {
