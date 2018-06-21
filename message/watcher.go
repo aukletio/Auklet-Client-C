@@ -8,8 +8,7 @@ import (
 )
 
 // ExitWatcher passes through all incoming messages. If it never sees a message
-// of type schema.ErrorSig, it will generate a schema.Exit when its input
-// closes.
+// of Type broker.Event, it will generate a schema.Exit when its input closes.
 //
 // This ensures that we generate Exit events in situations where the agent did
 // not generate a stacktrace.

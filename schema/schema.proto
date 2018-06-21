@@ -1,0 +1,51 @@
+syntax = "proto3";
+package schema;
+option go_package = "github.com/ESG-USA/Auklet-Client-C/schema";
+
+import "device/device.proto";
+
+message Exit {
+	string application = 1;
+	string checksum = 2;
+	string publicIP = 3;
+	string id = 4;
+	string timestamp = 5;
+	int32 exitStatus = 6;
+	string signal = 7;
+	repeated StackTrace stackTrace = 8;
+	string macAddressHash = 9;
+	device.Metrics systemMetrics = 10;
+}
+
+message StackTrace {
+	uint64 functionAddress = 1;
+	uint64 callSiteAddress = 2;
+}
+
+message Profile {
+	string application = 1;
+	string checksum = 2;
+	string publicIP = 3;
+	string id = 4;
+	int64 timestamp = 5; // Unix epoch milliseconds
+	Tree tree = 6;
+}
+
+message Tree {
+	uint64 functionAddress = 1;
+	uint64 callSiteAddress = 2;
+	uint32 nCalls = 3;
+	uint32 nSamples = 4;
+	repeated Tree callees = 5;
+}
+
+message AppLog {
+	string application = 1;
+	string checksum = 2;
+	string publicIP = 3;
+	string id = 4;
+	string timestamp = 5;
+	string message = 6;
+	string macAddressHash = 7;
+	device.Metrics systemMetrics = 8;
+}

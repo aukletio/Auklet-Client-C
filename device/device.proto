@@ -1,0 +1,10 @@
+syntax = "proto3";
+package device;
+option go_package = "github.com/ESG-USA/Auklet-Client-C/device";
+
+message Metrics {
+	double cpuUsage = 1;
+	double memoryUsage = 2;
+	uint64 inboundNetwork = 3;
+	uint64 outboundNetwork = 4;
+}
