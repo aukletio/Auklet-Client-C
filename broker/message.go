@@ -23,8 +23,8 @@ const (
 
 // Message represents a broker message.
 type Message struct {
-	Type  Type            `json:"type"`
-	Bytes json.RawMessage `json:"bytes"`
+	Type  Type   `json:"type"`
+	Bytes []byte `json:"bytes"`
 	path  string
 }
 
@@ -52,7 +52,7 @@ type Persistor struct {
 var StdPersistor = NewPersistor(".auklet/message")
 
 // CreateMessage creates a new Message under the standard Persistor.
-func CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
+func CreateMessage(bytes []byte, typ Type) (m Message, err error) {
 	return StdPersistor.CreateMessage(bytes, typ)
 }
 
@@ -129,7 +129,7 @@ func (p Persistor) Load() (msgs []Message) {
 }
 
 // CreateMessage creates a new Message under p.
-func (p Persistor) CreateMessage(bytes json.RawMessage, typ Type) (m Message, err error) {
+func (p Persistor) CreateMessage(bytes []byte, typ Type) (m Message, err error) {
 	lim := <-p.currentLimit
 	if lim != nil && int64(len(bytes))+p.size() > 9**lim/10 {
 		err = ErrStorageFull{
