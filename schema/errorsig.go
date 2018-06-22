@@ -30,9 +30,5 @@ func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
 	e.ExitStatus = int32(app.ProcessState.Sys().(syscall.WaitStatus).ExitStatus())
 	e.MacAddressHash = device.MacHash
 	e.SystemMetrics = device.GetMetrics()
-	b, err := json.MarshalIndent(e, "", "\t")
-	if err != nil {
-		return
-	}
-	return broker.StdPersistor.CreateMessage(b, broker.Event)
+	return broker.StdPersistor.CreateMessage(e, broker.Event)
 }

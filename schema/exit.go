@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"encoding/json"
 	"syscall"
 	"time"
 
@@ -27,9 +26,5 @@ func NewExit(app *app.App) (m broker.Message, err error) {
 	}
 	e.MacAddressHash = device.MacHash
 	e.SystemMetrics = device.GetMetrics()
-	b, err := json.MarshalIndent(e, "", "\t")
-	if err != nil {
-		return
-	}
-	return broker.StdPersistor.CreateMessage(b, broker.Event)
+	return broker.StdPersistor.CreateMessage(e, broker.Event)
 }

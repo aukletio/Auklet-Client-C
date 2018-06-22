@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/satori/go.uuid"
@@ -22,9 +21,5 @@ func NewAppLog(msg []byte, app *app.App) (m broker.Message, err error) {
 	a.MacAddressHash = device.MacHash
 	a.SystemMetrics = device.GetMetrics()
 	a.Message = msg
-	b, err := json.MarshalIndent(a, "", "\t")
-	if err != nil {
-		return
-	}
-	return broker.StdPersistor.CreateMessage(b, broker.Log)
+	return broker.StdPersistor.CreateMessage(a, broker.Log)
 }
