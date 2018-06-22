@@ -45,7 +45,7 @@ message AppLog {
 	string publicIP = 3;
 	string id = 4;
 	string timestamp = 5;
-	string message = 6;
+	bytes message = 6;
 	string macAddressHash = 7;
 	device.Metrics systemMetrics = 8;
 }

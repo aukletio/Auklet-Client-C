@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"time"
 
@@ -22,7 +21,7 @@ func NewAppLog(msg []byte, app *app.App) (m broker.Message, err error) {
 	a.Timestamp = time.Now().String()
 	a.MacAddressHash = device.MacHash
 	a.SystemMetrics = device.GetMetrics()
-	a.Message = base64.StdEncoding.EncodeToString(msg)
+	a.Message = msg
 	b, err := json.MarshalIndent(a, "", "\t")
 	if err != nil {
 		return
