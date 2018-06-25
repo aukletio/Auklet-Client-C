@@ -13,11 +13,16 @@ import (
 
 // This file implements a JSON-to-protobuf adapter stage.
 
+// PBAdapter is a stage that translates incoming JSON-encoded messages to
+// Protocol Buffer encoding. If a message cannot be translated, the preceding
+// stage is send an error value. Otherwise, the input's Err channel is passed to
+// the PBAdapter's consumer.
 type PBAdapter struct {
 	in  broker.MessageSourceError
 	out chan broker.Message
 }
 
+// NewPBAdapter returns a PBAdapter that translates messages from in.
 func NewPBAdapter(in broker.MessageSourceError) PBAdapter {
 	return PBAdapter{
 		in:  in,
@@ -25,14 +30,17 @@ func NewPBAdapter(in broker.MessageSourceError) PBAdapter {
 	}
 }
 
+// Output returns the adapter's output channel.
 func (p PBAdapter) Output() <-chan broker.Message {
 	return p.out
 }
 
+// Err returns the Err channel of the adapter's input.
 func (p PBAdapter) Err() chan<- error {
 	return p.in.Err()
 }
 
+// Serve runs the adapter, allowing messages to be sent and received.
 func (p PBAdapter) Serve() {
 	defer close(p.out)
 	for msg := range p.in.Output() {
