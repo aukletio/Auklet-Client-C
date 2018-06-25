@@ -11,19 +11,21 @@ import (
 // This file defines interfaces for manipulating streams of broker
 // messages, plus a message persistence layer.
 
-// Type encodes a Message type.
-type Type int
+// Topic encodes a Message topic.
+type Topic int
 
 // Profile, Event, and Log are Message types.
 const (
-	Profile Type = iota
+	Profile Topic = iota
 	Event
 	Log
 )
 
 // Message represents a broker message.
 type Message struct {
-	Type  Type            `json:"type"`
+	// Type encodes the concrete Go type, for use by adapters.
+	Type  string          `json:"type"`
+	Topic Topic           `json:"topic"`
 	Bytes json.RawMessage `json:"bytes"`
 	path  string
 }
@@ -53,8 +55,8 @@ var StdPersistor = NewPersistor(".auklet/message")
 
 // CreateMessage creates a new Message under the standard Persistor. v is
 // assumed to be losslessly encodable via the encoding/json package.
-func CreateMessage(v interface{}, typ Type) (m Message, err error) {
-	return StdPersistor.CreateMessage(v, typ)
+func CreateMessage(v interface{}, topic Topic) (m Message, err error) {
+	return StdPersistor.CreateMessage(v, topic)
 }
 
 // NewPersistor creates a new Persistor in dir.
@@ -130,7 +132,7 @@ func (p Persistor) Load() (msgs []Message) {
 }
 
 // CreateMessage creates a new Message under p.
-func (p Persistor) CreateMessage(v interface{}, typ Type) (m Message, err error) {
+func (p Persistor) CreateMessage(v interface{}, topic Topic) (m Message, err error) {
 	bytes, err := json.Marshal(v)
 	if err != nil {
 		return
@@ -144,7 +146,8 @@ func (p Persistor) CreateMessage(v interface{}, typ Type) (m Message, err error)
 		return
 	}
 	m = Message{
-		Type:  typ,
+		Type:  fmt.Sprintf("%T", v),
+		Topic: topic,
 		Bytes: bytes,
 		path:  fmt.Sprintf("%v/%v-%v", p.dir, os.Getpid(), p.count),
 	}

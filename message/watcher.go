@@ -34,7 +34,7 @@ func NewExitWatcher(in broker.MessageSource, app *app.App) *ExitWatcher {
 func (e *ExitWatcher) Serve() {
 	defer close(e.out)
 	for m := range e.source.Output() {
-		if m.Type == broker.Event {
+		if m.Topic == broker.Event {
 			e.errd = true
 		}
 		e.out <- m

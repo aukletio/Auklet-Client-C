@@ -43,7 +43,7 @@ func newAgentServer(app *app.App) agent.Server {
 			return schema.NewErrorSig(data, app)
 		},
 		"log": func(data []byte) (broker.Message, error) {
-			return schema.NewLog(data)
+			return schema.NewAgentLog(data)
 		},
 	}
 	return agent.NewServer(handlers)

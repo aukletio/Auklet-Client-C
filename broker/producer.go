@@ -15,7 +15,7 @@ import (
 type Producer struct {
 	source MessageSourceError
 	sarama.SyncProducer
-	topic map[Type]string
+	topic map[Topic]string
 }
 
 func verify(brokers []*sarama.Broker) bool {
@@ -60,7 +60,7 @@ func NewProducer(input MessageSourceError) (p *Producer) {
 	p = &Producer{
 		source:       input,
 		SyncProducer: sp,
-		topic: map[Type]string{
+		topic: map[Topic]string{
 			Profile: kp.ProfileTopic,
 			Event:   kp.EventTopic,
 			Log:     kp.LogTopic,
@@ -87,14 +87,13 @@ func (p *Producer) send(m Message) (err error) {
 	if p == nil {
 		return
 	}
-	b := m.Bytes
 	log.Print("producer: sending message...")
 	_, _, err = p.SendMessage(&sarama.ProducerMessage{
-		Topic: p.topic[m.Type],
-		Value: sarama.ByteEncoder(b),
+		Topic: p.topic[m.Topic],
+		Value: sarama.ByteEncoder(m.Bytes),
 	})
 	if err == nil {
-		log.Println("producer: message sent:", string(b))
+		log.Printf("producer: message sent: %+q", string(m.Bytes))
 	}
 	return
 }

@@ -1,11 +1,18 @@
 package schema
 
 import (
+	"encoding/json"
+
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
-// NewLog converts data into a Log that can be sent to topic.
-func NewLog(data []byte) (m broker.Message, err error) {
-	// logs are not formatted in any particular way.
-	return broker.StdPersistor.CreateMessage(data, broker.Log)
+// NewAgentLog converts data into an AgentLog and returns it as a broker
+// message.
+func NewAgentLog(data []byte) (m broker.Message, err error) {
+	var a AgentLog
+	err = json.Unmarshal(data, &a)
+	if err != nil {
+		return
+	}
+	return broker.StdPersistor.CreateMessage(a, broker.Log)
 }

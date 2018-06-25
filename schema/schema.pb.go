@@ -19,27 +19,28 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// Exit represents the termination of an app.
 type Exit struct {
-	Application          string          `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
-	Checksum             string          `protobuf:"bytes,2,opt,name=checksum,proto3" json:"checksum,omitempty"`
-	PublicIP             string          `protobuf:"bytes,3,opt,name=publicIP,proto3" json:"publicIP,omitempty"`
-	Id                   string          `protobuf:"bytes,4,opt,name=id,proto3" json:"id,omitempty"`
-	Timestamp            string          `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	ExitStatus           int32           `protobuf:"varint,6,opt,name=exitStatus,proto3" json:"exitStatus,omitempty"`
-	Signal               string          `protobuf:"bytes,7,opt,name=signal,proto3" json:"signal,omitempty"`
-	StackTrace           []*StackTrace   `protobuf:"bytes,8,rep,name=stackTrace,proto3" json:"stackTrace,omitempty"`
-	MacAddressHash       string          `protobuf:"bytes,9,opt,name=macAddressHash,proto3" json:"macAddressHash,omitempty"`
-	SystemMetrics        *device.Metrics `protobuf:"bytes,10,opt,name=systemMetrics,proto3" json:"systemMetrics,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	Application          string             `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
+	Checksum             string             `protobuf:"bytes,2,opt,name=checksum,proto3" json:"checksum,omitempty"`
+	PublicIP             string             `protobuf:"bytes,3,opt,name=publicIP,proto3" json:"publicIP,omitempty"`
+	Id                   string             `protobuf:"bytes,4,opt,name=id,proto3" json:"id,omitempty"`
+	Timestamp            string             `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	ExitStatus           int32              `protobuf:"varint,6,opt,name=exitStatus,proto3" json:"exitStatus,omitempty"`
+	Signal               string             `protobuf:"bytes,7,opt,name=signal,proto3" json:"signal,omitempty"`
+	StackTrace           []*Exit_StackFrame `protobuf:"bytes,8,rep,name=stackTrace,proto3" json:"stackTrace,omitempty"`
+	MacAddressHash       string             `protobuf:"bytes,9,opt,name=macAddressHash,proto3" json:"macAddressHash,omitempty"`
+	SystemMetrics        *device.Metrics    `protobuf:"bytes,10,opt,name=systemMetrics,proto3" json:"systemMetrics,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
+	XXX_unrecognized     []byte             `json:"-"`
+	XXX_sizecache        int32              `json:"-"`
 }
 
 func (m *Exit) Reset()         { *m = Exit{} }
 func (m *Exit) String() string { return proto.CompactTextString(m) }
 func (*Exit) ProtoMessage()    {}
 func (*Exit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_schema_d75e329f48f13a96, []int{0}
+	return fileDescriptor_schema_0b0780588d4051af, []int{0}
 }
 func (m *Exit) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Exit.Unmarshal(m, b)
@@ -108,7 +109,7 @@ func (m *Exit) GetSignal() string {
 	return ""
 }
 
-func (m *Exit) GetStackTrace() []*StackTrace {
+func (m *Exit) GetStackTrace() []*Exit_StackFrame {
 	if m != nil {
 		return m.StackTrace
 	}
@@ -129,7 +130,7 @@ func (m *Exit) GetSystemMetrics() *device.Metrics {
 	return nil
 }
 
-type StackTrace struct {
+type Exit_StackFrame struct {
 	FunctionAddress      uint64   `protobuf:"varint,1,opt,name=functionAddress,proto3" json:"functionAddress,omitempty"`
 	CallSiteAddress      uint64   `protobuf:"varint,2,opt,name=callSiteAddress,proto3" json:"callSiteAddress,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -137,38 +138,38 @@ type StackTrace struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *StackTrace) Reset()         { *m = StackTrace{} }
-func (m *StackTrace) String() string { return proto.CompactTextString(m) }
-func (*StackTrace) ProtoMessage()    {}
-func (*StackTrace) Descriptor() ([]byte, []int) {
-	return fileDescriptor_schema_d75e329f48f13a96, []int{1}
+func (m *Exit_StackFrame) Reset()         { *m = Exit_StackFrame{} }
+func (m *Exit_StackFrame) String() string { return proto.CompactTextString(m) }
+func (*Exit_StackFrame) ProtoMessage()    {}
+func (*Exit_StackFrame) Descriptor() ([]byte, []int) {
+	return fileDescriptor_schema_0b0780588d4051af, []int{0, 0}
 }
-func (m *StackTrace) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_StackTrace.Unmarshal(m, b)
+func (m *Exit_StackFrame) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Exit_StackFrame.Unmarshal(m, b)
 }
-func (m *StackTrace) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_StackTrace.Marshal(b, m, deterministic)
+func (m *Exit_StackFrame) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Exit_StackFrame.Marshal(b, m, deterministic)
 }
-func (dst *StackTrace) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StackTrace.Merge(dst, src)
+func (dst *Exit_StackFrame) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Exit_StackFrame.Merge(dst, src)
 }
-func (m *StackTrace) XXX_Size() int {
-	return xxx_messageInfo_StackTrace.Size(m)
+func (m *Exit_StackFrame) XXX_Size() int {
+	return xxx_messageInfo_Exit_StackFrame.Size(m)
 }
-func (m *StackTrace) XXX_DiscardUnknown() {
-	xxx_messageInfo_StackTrace.DiscardUnknown(m)
+func (m *Exit_StackFrame) XXX_DiscardUnknown() {
+	xxx_messageInfo_Exit_StackFrame.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StackTrace proto.InternalMessageInfo
+var xxx_messageInfo_Exit_StackFrame proto.InternalMessageInfo
 
-func (m *StackTrace) GetFunctionAddress() uint64 {
+func (m *Exit_StackFrame) GetFunctionAddress() uint64 {
 	if m != nil {
 		return m.FunctionAddress
 	}
 	return 0
 }
 
-func (m *StackTrace) GetCallSiteAddress() uint64 {
+func (m *Exit_StackFrame) GetCallSiteAddress() uint64 {
 	if m != nil {
 		return m.CallSiteAddress
 	}
@@ -176,22 +177,22 @@ func (m *StackTrace) GetCallSiteAddress() uint64 {
 }
 
 type Profile struct {
-	Application          string   `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
-	Checksum             string   `protobuf:"bytes,2,opt,name=checksum,proto3" json:"checksum,omitempty"`
-	PublicIP             string   `protobuf:"bytes,3,opt,name=publicIP,proto3" json:"publicIP,omitempty"`
-	Id                   string   `protobuf:"bytes,4,opt,name=id,proto3" json:"id,omitempty"`
-	Timestamp            int64    `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Tree                 *Tree    `protobuf:"bytes,6,opt,name=tree,proto3" json:"tree,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Application          string        `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
+	Checksum             string        `protobuf:"bytes,2,opt,name=checksum,proto3" json:"checksum,omitempty"`
+	PublicIP             string        `protobuf:"bytes,3,opt,name=publicIP,proto3" json:"publicIP,omitempty"`
+	Id                   string        `protobuf:"bytes,4,opt,name=id,proto3" json:"id,omitempty"`
+	Timestamp            int64         `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Tree                 *Profile_Tree `protobuf:"bytes,6,opt,name=tree,proto3" json:"tree,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
 }
 
 func (m *Profile) Reset()         { *m = Profile{} }
 func (m *Profile) String() string { return proto.CompactTextString(m) }
 func (*Profile) ProtoMessage()    {}
 func (*Profile) Descriptor() ([]byte, []int) {
-	return fileDescriptor_schema_d75e329f48f13a96, []int{2}
+	return fileDescriptor_schema_0b0780588d4051af, []int{1}
 }
 func (m *Profile) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Profile.Unmarshal(m, b)
@@ -246,83 +247,85 @@ func (m *Profile) GetTimestamp() int64 {
 	return 0
 }
 
-func (m *Profile) GetTree() *Tree {
+func (m *Profile) GetTree() *Profile_Tree {
 	if m != nil {
 		return m.Tree
 	}
 	return nil
 }
 
-type Tree struct {
-	FunctionAddress      uint64   `protobuf:"varint,1,opt,name=functionAddress,proto3" json:"functionAddress,omitempty"`
-	CallSiteAddress      uint64   `protobuf:"varint,2,opt,name=callSiteAddress,proto3" json:"callSiteAddress,omitempty"`
-	NCalls               uint32   `protobuf:"varint,3,opt,name=nCalls,proto3" json:"nCalls,omitempty"`
-	NSamples             uint32   `protobuf:"varint,4,opt,name=nSamples,proto3" json:"nSamples,omitempty"`
-	Callees              []*Tree  `protobuf:"bytes,5,rep,name=callees,proto3" json:"callees,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+type Profile_Tree struct {
+	FunctionAddress      uint64          `protobuf:"varint,1,opt,name=functionAddress,proto3" json:"functionAddress,omitempty"`
+	CallSiteAddress      uint64          `protobuf:"varint,2,opt,name=callSiteAddress,proto3" json:"callSiteAddress,omitempty"`
+	NCalls               uint32          `protobuf:"varint,3,opt,name=nCalls,proto3" json:"nCalls,omitempty"`
+	NSamples             uint32          `protobuf:"varint,4,opt,name=nSamples,proto3" json:"nSamples,omitempty"`
+	Callees              []*Profile_Tree `protobuf:"bytes,5,rep,name=callees,proto3" json:"callees,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
 }
 
-func (m *Tree) Reset()         { *m = Tree{} }
-func (m *Tree) String() string { return proto.CompactTextString(m) }
-func (*Tree) ProtoMessage()    {}
-func (*Tree) Descriptor() ([]byte, []int) {
-	return fileDescriptor_schema_d75e329f48f13a96, []int{3}
+func (m *Profile_Tree) Reset()         { *m = Profile_Tree{} }
+func (m *Profile_Tree) String() string { return proto.CompactTextString(m) }
+func (*Profile_Tree) ProtoMessage()    {}
+func (*Profile_Tree) Descriptor() ([]byte, []int) {
+	return fileDescriptor_schema_0b0780588d4051af, []int{1, 0}
 }
-func (m *Tree) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Tree.Unmarshal(m, b)
+func (m *Profile_Tree) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Profile_Tree.Unmarshal(m, b)
 }
-func (m *Tree) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Tree.Marshal(b, m, deterministic)
+func (m *Profile_Tree) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Profile_Tree.Marshal(b, m, deterministic)
 }
-func (dst *Tree) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Tree.Merge(dst, src)
+func (dst *Profile_Tree) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Profile_Tree.Merge(dst, src)
 }
-func (m *Tree) XXX_Size() int {
-	return xxx_messageInfo_Tree.Size(m)
+func (m *Profile_Tree) XXX_Size() int {
+	return xxx_messageInfo_Profile_Tree.Size(m)
 }
-func (m *Tree) XXX_DiscardUnknown() {
-	xxx_messageInfo_Tree.DiscardUnknown(m)
+func (m *Profile_Tree) XXX_DiscardUnknown() {
+	xxx_messageInfo_Profile_Tree.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_Tree proto.InternalMessageInfo
+var xxx_messageInfo_Profile_Tree proto.InternalMessageInfo
 
-func (m *Tree) GetFunctionAddress() uint64 {
+func (m *Profile_Tree) GetFunctionAddress() uint64 {
 	if m != nil {
 		return m.FunctionAddress
 	}
 	return 0
 }
 
-func (m *Tree) GetCallSiteAddress() uint64 {
+func (m *Profile_Tree) GetCallSiteAddress() uint64 {
 	if m != nil {
 		return m.CallSiteAddress
 	}
 	return 0
 }
 
-func (m *Tree) GetNCalls() uint32 {
+func (m *Profile_Tree) GetNCalls() uint32 {
 	if m != nil {
 		return m.NCalls
 	}
 	return 0
 }
 
-func (m *Tree) GetNSamples() uint32 {
+func (m *Profile_Tree) GetNSamples() uint32 {
 	if m != nil {
 		return m.NSamples
 	}
 	return 0
 }
 
-func (m *Tree) GetCallees() []*Tree {
+func (m *Profile_Tree) GetCallees() []*Profile_Tree {
 	if m != nil {
 		return m.Callees
 	}
 	return nil
 }
 
+// AppLog is a message generated by an app for the purposes of remote monitoring
+// by users.
 type AppLog struct {
 	Application          string          `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
 	Checksum             string          `protobuf:"bytes,2,opt,name=checksum,proto3" json:"checksum,omitempty"`
@@ -341,7 +344,7 @@ func (m *AppLog) Reset()         { *m = AppLog{} }
 func (m *AppLog) String() string { return proto.CompactTextString(m) }
 func (*AppLog) ProtoMessage()    {}
 func (*AppLog) Descriptor() ([]byte, []int) {
-	return fileDescriptor_schema_d75e329f48f13a96, []int{4}
+	return fileDescriptor_schema_0b0780588d4051af, []int{2}
 }
 func (m *AppLog) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AppLog.Unmarshal(m, b)
@@ -417,46 +420,97 @@ func (m *AppLog) GetSystemMetrics() *device.Metrics {
 	return nil
 }
 
-func init() {
-	proto.RegisterType((*Exit)(nil), "schema.Exit")
-	proto.RegisterType((*StackTrace)(nil), "schema.StackTrace")
-	proto.RegisterType((*Profile)(nil), "schema.Profile")
-	proto.RegisterType((*Tree)(nil), "schema.Tree")
-	proto.RegisterType((*AppLog)(nil), "schema.AppLog")
+// AgentLog is a log message generated by an agent; typically an error or info
+// message.
+type AgentLog struct {
+	Level                string   `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
+	Message              string   `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func init() { proto.RegisterFile("schema/schema.proto", fileDescriptor_schema_d75e329f48f13a96) }
+func (m *AgentLog) Reset()         { *m = AgentLog{} }
+func (m *AgentLog) String() string { return proto.CompactTextString(m) }
+func (*AgentLog) ProtoMessage()    {}
+func (*AgentLog) Descriptor() ([]byte, []int) {
+	return fileDescriptor_schema_0b0780588d4051af, []int{3}
+}
+func (m *AgentLog) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AgentLog.Unmarshal(m, b)
+}
+func (m *AgentLog) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AgentLog.Marshal(b, m, deterministic)
+}
+func (dst *AgentLog) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AgentLog.Merge(dst, src)
+}
+func (m *AgentLog) XXX_Size() int {
+	return xxx_messageInfo_AgentLog.Size(m)
+}
+func (m *AgentLog) XXX_DiscardUnknown() {
+	xxx_messageInfo_AgentLog.DiscardUnknown(m)
+}
 
-var fileDescriptor_schema_d75e329f48f13a96 = []byte{
-	// 471 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x54, 0xd1, 0x6a, 0xdb, 0x30,
-	0x14, 0xc5, 0x4e, 0x62, 0x27, 0x37, 0x4d, 0x0b, 0x2a, 0x0c, 0x51, 0xc6, 0x30, 0x7e, 0x28, 0x1e,
-	0x23, 0x09, 0x64, 0xec, 0x03, 0xb2, 0x50, 0xb6, 0xc1, 0x06, 0xc5, 0xee, 0x5e, 0xf6, 0x34, 0x45,
-	0xbe, 0x4d, 0x44, 0x24, 0xdb, 0x58, 0xf2, 0xe8, 0x3e, 0x61, 0xdf, 0x33, 0xd8, 0xbf, 0xec, 0x6f,
-	0x86, 0x65, 0x3b, 0x4d, 0xc3, 0x1e, 0xfa, 0x32, 0xd6, 0x27, 0x71, 0xce, 0xb9, 0xbe, 0xf6, 0x3d,
-	0xf7, 0x58, 0x70, 0xae, 0xf9, 0x16, 0x15, 0x9b, 0x37, 0xc7, 0xac, 0x28, 0x73, 0x93, 0x13, 0xaf,
-	0x41, 0x17, 0xe7, 0x29, 0x7e, 0x13, 0x1c, 0xe7, 0xcd, 0xd1, 0x88, 0xe1, 0x6f, 0x17, 0xfa, 0x57,
-	0x77, 0xc2, 0x90, 0x00, 0xc6, 0xac, 0x28, 0xa4, 0xe0, 0xcc, 0x88, 0x3c, 0xa3, 0x4e, 0xe0, 0x44,
-	0xa3, 0xf8, 0x90, 0x22, 0x17, 0x30, 0xe4, 0x5b, 0xe4, 0x3b, 0x5d, 0x29, 0xea, 0x5a, 0x79, 0x8f,
-	0x6b, 0xad, 0xa8, 0xd6, 0x52, 0xf0, 0x0f, 0xd7, 0xb4, 0xd7, 0x68, 0x1d, 0x26, 0xa7, 0xe0, 0x8a,
-	0x94, 0xf6, 0x2d, 0xeb, 0x8a, 0x94, 0x3c, 0x87, 0x91, 0x11, 0x0a, 0xb5, 0x61, 0xaa, 0xa0, 0x03,
-	0x4b, 0xdf, 0x13, 0xe4, 0x05, 0x00, 0xde, 0x09, 0x93, 0x18, 0x66, 0x2a, 0x4d, 0xbd, 0xc0, 0x89,
-	0x06, 0xf1, 0x01, 0x43, 0x9e, 0x81, 0xa7, 0xc5, 0x26, 0x63, 0x92, 0xfa, 0xf6, 0xd1, 0x16, 0x91,
-	0x05, 0x80, 0x36, 0x8c, 0xef, 0x6e, 0x4a, 0xc6, 0x91, 0x0e, 0x83, 0x5e, 0x34, 0x5e, 0x90, 0x59,
-	0x6b, 0x44, 0xb2, 0x57, 0xe2, 0x83, 0x2a, 0x72, 0x09, 0xa7, 0x8a, 0xf1, 0x65, 0x9a, 0x96, 0xa8,
-	0xf5, 0x7b, 0xa6, 0xb7, 0x74, 0x64, 0x7b, 0x1e, 0xb1, 0xe4, 0x0d, 0x4c, 0xf4, 0x77, 0x6d, 0x50,
-	0x7d, 0x42, 0x53, 0x0a, 0xae, 0x29, 0x04, 0x4e, 0x34, 0x5e, 0x9c, 0xcd, 0x5a, 0x2b, 0x5b, 0x3a,
-	0x7e, 0x58, 0x15, 0x7e, 0x05, 0xb8, 0x7f, 0x31, 0x89, 0xe0, 0xec, 0xb6, 0xca, 0x78, 0x6d, 0x65,
-	0xdb, 0xdb, 0x9a, 0xdc, 0x8f, 0x8f, 0xe9, 0xba, 0x92, 0x33, 0x29, 0x13, 0x61, 0xb0, 0xab, 0x74,
-	0x9b, 0xca, 0x23, 0x3a, 0xfc, 0xe9, 0x80, 0x7f, 0x5d, 0xe6, 0xb7, 0x42, 0xe2, 0xff, 0x5c, 0x60,
-	0xef, 0x70, 0x81, 0x01, 0xf4, 0x4d, 0x89, 0x68, 0x57, 0x37, 0x5e, 0x9c, 0x74, 0x2b, 0xb8, 0x29,
-	0x11, 0x63, 0xab, 0x84, 0xbf, 0x1c, 0xe8, 0xd7, 0xf0, 0x5f, 0x58, 0x52, 0xe7, 0x23, 0x5b, 0x31,
-	0x29, 0xb5, 0x1d, 0x63, 0x12, 0xb7, 0xa8, 0x1e, 0x30, 0x4b, 0x98, 0x2a, 0x24, 0x6a, 0x3b, 0xca,
-	0x24, 0xde, 0x63, 0x72, 0x09, 0x7e, 0xdd, 0x06, 0x51, 0xd3, 0x81, 0x0d, 0xce, 0xc3, 0xaf, 0xee,
-	0xc4, 0xf0, 0x87, 0x0b, 0xde, 0xb2, 0x28, 0x3e, 0xe6, 0x9b, 0x27, 0xf3, 0xbb, 0x50, 0xf0, 0x15,
-	0x6a, 0xcd, 0x36, 0x8d, 0xe1, 0x27, 0x71, 0x07, 0xff, 0x12, 0x6e, 0xff, 0x71, 0xe1, 0x1e, 0x3e,
-	0x26, 0xdc, 0x6f, 0x5f, 0x7d, 0x79, 0xb9, 0x11, 0x66, 0x5b, 0xad, 0x67, 0x3c, 0x57, 0xf3, 0xab,
-	0xe4, 0xdd, 0xf4, 0x73, 0xb2, 0x9c, 0x2f, 0xab, 0x9d, 0x44, 0x33, 0x5d, 0x49, 0x81, 0x99, 0x99,
-	0xae, 0xda, 0x8b, 0x68, 0xed, 0xd9, 0xcb, 0xe6, 0xf5, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xdf,
-	0x4a, 0xba, 0x3f, 0xa0, 0x04, 0x00, 0x00,
+var xxx_messageInfo_AgentLog proto.InternalMessageInfo
+
+func (m *AgentLog) GetLevel() string {
+	if m != nil {
+		return m.Level
+	}
+	return ""
+}
+
+func (m *AgentLog) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
+func init() {
+	proto.RegisterType((*Exit)(nil), "schema.Exit")
+	proto.RegisterType((*Exit_StackFrame)(nil), "schema.Exit.StackFrame")
+	proto.RegisterType((*Profile)(nil), "schema.Profile")
+	proto.RegisterType((*Profile_Tree)(nil), "schema.Profile.Tree")
+	proto.RegisterType((*AppLog)(nil), "schema.AppLog")
+	proto.RegisterType((*AgentLog)(nil), "schema.AgentLog")
+}
+
+func init() { proto.RegisterFile("schema/schema.proto", fileDescriptor_schema_0b0780588d4051af) }
+
+var fileDescriptor_schema_0b0780588d4051af = []byte{
+	// 505 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x54, 0x4d, 0x6b, 0xdb, 0x40,
+	0x10, 0xc5, 0xf2, 0xf7, 0xb8, 0x4e, 0x60, 0x13, 0xda, 0xc5, 0x94, 0x62, 0x7c, 0x28, 0x2a, 0xc5,
+	0x32, 0xb8, 0x94, 0x42, 0x6f, 0xae, 0x49, 0x3f, 0xa0, 0x85, 0x20, 0xa5, 0x97, 0x9e, 0xba, 0x5e,
+	0x4f, 0xe4, 0xc5, 0xbb, 0x92, 0xd0, 0xae, 0x42, 0xfa, 0x13, 0xfa, 0xa7, 0x4a, 0x7f, 0x58, 0x0f,
+	0x65, 0x57, 0x52, 0xa2, 0x9a, 0x1c, 0x72, 0x29, 0xed, 0x69, 0x79, 0x6f, 0x9e, 0x46, 0x33, 0x6f,
+	0x66, 0x17, 0x4e, 0x34, 0xdf, 0xa1, 0x62, 0x8b, 0xf2, 0x08, 0xb2, 0x3c, 0x35, 0x29, 0xe9, 0x95,
+	0x68, 0x72, 0xb2, 0xc5, 0x2b, 0xc1, 0x71, 0x51, 0x1e, 0x65, 0x70, 0xf6, 0xb3, 0x0d, 0x9d, 0xb3,
+	0x6b, 0x61, 0xc8, 0x14, 0x46, 0x2c, 0xcb, 0xa4, 0xe0, 0xcc, 0x88, 0x34, 0xa1, 0xad, 0x69, 0xcb,
+	0x1f, 0x86, 0x4d, 0x8a, 0x4c, 0x60, 0xc0, 0x77, 0xc8, 0xf7, 0xba, 0x50, 0xd4, 0x73, 0xe1, 0x1b,
+	0x6c, 0x63, 0x59, 0xb1, 0x91, 0x82, 0x7f, 0x38, 0xa7, 0xed, 0x32, 0x56, 0x63, 0x72, 0x04, 0x9e,
+	0xd8, 0xd2, 0x8e, 0x63, 0x3d, 0xb1, 0x25, 0x8f, 0x61, 0x68, 0x84, 0x42, 0x6d, 0x98, 0xca, 0x68,
+	0xd7, 0xd1, 0xb7, 0x04, 0x79, 0x02, 0x80, 0xd7, 0xc2, 0x44, 0x86, 0x99, 0x42, 0xd3, 0xde, 0xb4,
+	0xe5, 0x77, 0xc3, 0x06, 0x43, 0x1e, 0x42, 0x4f, 0x8b, 0x38, 0x61, 0x92, 0xf6, 0xdd, 0xa7, 0x15,
+	0x22, 0xaf, 0x00, 0xb4, 0x61, 0x7c, 0x7f, 0x91, 0x33, 0x8e, 0x74, 0x30, 0x6d, 0xfb, 0xa3, 0xe5,
+	0xa3, 0xa0, 0x32, 0xc2, 0x76, 0x18, 0x44, 0x36, 0xfc, 0x36, 0x67, 0x0a, 0xc3, 0x86, 0x94, 0x3c,
+	0x85, 0x23, 0xc5, 0xf8, 0x6a, 0xbb, 0xcd, 0x51, 0xeb, 0xf7, 0x4c, 0xef, 0xe8, 0xd0, 0x25, 0x3e,
+	0x60, 0xc9, 0x4b, 0x18, 0xeb, 0x6f, 0xda, 0xa0, 0xfa, 0x84, 0x26, 0x17, 0x5c, 0x53, 0x98, 0xb6,
+	0xfc, 0xd1, 0xf2, 0x38, 0xa8, 0xfc, 0xac, 0xe8, 0xf0, 0x4f, 0xd5, 0xe4, 0x2b, 0xc0, 0xed, 0x8f,
+	0x89, 0x0f, 0xc7, 0x97, 0x45, 0xc2, 0xad, 0x9f, 0x55, 0x6e, 0xe7, 0x74, 0x27, 0x3c, 0xa4, 0xad,
+	0x92, 0x33, 0x29, 0x23, 0x61, 0xb0, 0x56, 0x7a, 0xa5, 0xf2, 0x80, 0x9e, 0xfd, 0xf2, 0xa0, 0x7f,
+	0x9e, 0xa7, 0x97, 0x42, 0xe2, 0xbf, 0x9c, 0x62, 0xbb, 0x39, 0x45, 0x1f, 0x3a, 0x26, 0x47, 0x74,
+	0xf3, 0x1b, 0x2d, 0x4f, 0xeb, 0x39, 0x54, 0x65, 0x06, 0x17, 0x39, 0x62, 0xe8, 0x14, 0x93, 0x1f,
+	0x2d, 0xe8, 0x58, 0xf8, 0x37, 0xac, 0xb1, 0xcb, 0x92, 0xac, 0x99, 0x94, 0xda, 0xb5, 0x33, 0x0e,
+	0x2b, 0x64, 0x1b, 0x4d, 0x22, 0xa6, 0x32, 0x89, 0xda, 0xb5, 0x34, 0x0e, 0x6f, 0x30, 0x09, 0xa0,
+	0x6f, 0xd3, 0x20, 0x6a, 0xda, 0x75, 0x5b, 0x74, 0x77, 0xf5, 0xb5, 0x68, 0xf6, 0xdd, 0x83, 0xde,
+	0x2a, 0xcb, 0x3e, 0xa6, 0xf1, 0x7f, 0x73, 0x87, 0x28, 0xf4, 0x15, 0x6a, 0xcd, 0xe2, 0x72, 0x00,
+	0x0f, 0xc2, 0x1a, 0xde, 0xb1, 0xec, 0xfd, 0xfb, 0x2d, 0xfb, 0xe0, 0x3e, 0xcb, 0x3e, 0x7b, 0x0d,
+	0x83, 0x55, 0x8c, 0x89, 0xb1, 0x66, 0x9c, 0x42, 0x57, 0xe2, 0x15, 0xca, 0xca, 0x86, 0x12, 0x34,
+	0x4b, 0x2b, 0xfb, 0xaf, 0xe1, 0x9b, 0xe7, 0x5f, 0x9e, 0xc5, 0xc2, 0xec, 0x8a, 0x4d, 0xc0, 0x53,
+	0xb5, 0x38, 0x8b, 0xde, 0xcd, 0x3f, 0x47, 0xab, 0xc5, 0xaa, 0xd8, 0x4b, 0x34, 0xf3, 0xb5, 0x14,
+	0x98, 0x98, 0xf9, 0xba, 0x7a, 0xd9, 0x36, 0x3d, 0xf7, 0x7a, 0xbd, 0xf8, 0x1d, 0x00, 0x00, 0xff,
+	0xff, 0x99, 0x72, 0x2f, 0x5a, 0xf1, 0x04, 0x00, 0x00,
 }
