@@ -58,8 +58,7 @@ func (c *client) createPipeline() {
 	watcher := message.NewExitWatcher(server, c.app)
 	merger := message.NewMerger(logger, watcher, broker.StdPersistor)
 	limiter := message.NewDataLimiter(merger, c.app.ID)
-	queue := message.NewQueue(limiter)
-	c.prod = broker.NewProducer(queue)
+	c.prod = broker.NewProducer(limiter)
 	pollConfig := func() {
 		poll := func() {
 			dl := api.GetDataLimit(c.app.ID).Config
@@ -77,7 +76,6 @@ func (c *client) createPipeline() {
 	go merger.Serve()
 	go watcher.Serve()
 	go limiter.Serve()
-	go queue.Serve()
 	go pollConfig()
 
 	c.app.ExtraFiles = append(c.app.ExtraFiles,
