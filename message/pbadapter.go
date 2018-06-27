@@ -14,16 +14,14 @@ import (
 // This file implements a JSON-to-protobuf adapter stage.
 
 // PBAdapter is a stage that translates incoming JSON-encoded messages to
-// Protocol Buffer encoding. If a message cannot be translated, the preceding
-// stage is send an error value. Otherwise, the input's Err channel is passed to
-// the PBAdapter's consumer.
+// Protocol Buffer encoding.
 type PBAdapter struct {
-	in  broker.MessageSourceError
+	in  broker.MessageSource
 	out chan broker.Message
 }
 
 // NewPBAdapter returns a PBAdapter that translates messages from in.
-func NewPBAdapter(in broker.MessageSourceError) PBAdapter {
+func NewPBAdapter(in broker.MessageSource) PBAdapter {
 	return PBAdapter{
 		in:  in,
 		out: make(chan broker.Message),
@@ -35,23 +33,16 @@ func (p PBAdapter) Output() <-chan broker.Message {
 	return p.out
 }
 
-// Err returns the Err channel of the adapter's input.
-func (p PBAdapter) Err() chan<- error {
-	return p.in.Err()
-}
-
 // Serve runs the adapter, allowing messages to be sent and received.
 func (p PBAdapter) Serve() {
 	defer close(p.out)
 	for msg := range p.in.Output() {
 		if err := adapt(&msg); err != nil {
 			errorlog.Print(err)
-			// Normally, the adapter has no reason to talk to its
-			// source, because it defers this responsibility to its
-			// sink. However, when a message fails to be translated,
-			// it is undeliverable, and must be deleted.
-			p.in.Err() <- nil
-			continue
+			// It should be impossible for a message to fail
+			// translation; but if it ever happens, we want to
+			// know about it. So we send it anyway, hoping that
+			// backend logs will make it visible.
 		}
 		p.out <- msg
 	}
@@ -78,7 +69,7 @@ func adapt(msg *broker.Message) error {
 		return err
 	}
 	// Bytes is of type json.RawMessage, which is necessary for the
-	// persistor, but the producers don't care. They see it as []byte.
+	// persistor, but the other stages don't care. They see it as []byte.
 	msg.Bytes = b
 	return nil
 }
