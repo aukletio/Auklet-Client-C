@@ -48,7 +48,7 @@ type Persistor struct {
 	currentLimit chan *int64 // outgoing current values for limit
 	dir          string
 	count        int // counter to give Messages unique names
-	out chan Message
+	out          chan Message
 }
 
 // StdPersistor is the standard Persistor.
@@ -122,7 +122,7 @@ func (p *Persistor) size() (n int64) {
 }
 
 // load loads the output channel with messages from the filesystem.
-func (p *Persistor) load()  {
+func (p *Persistor) load() {
 	paths := p.filepaths()
 	p.out = make(chan Message, len(paths))
 	defer close(p.out)
@@ -135,6 +135,8 @@ func (p *Persistor) load()  {
 	}
 }
 
+// Output returns p's output channel, which closes after all persisted messages
+// have been sent.
 func (p *Persistor) Output() <-chan Message {
 	return p.out
 }
