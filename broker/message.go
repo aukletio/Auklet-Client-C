@@ -48,6 +48,7 @@ type Persistor struct {
 	currentLimit chan *int64 // outgoing current values for limit
 	dir          string
 	count        int // counter to give Messages unique names
+	out chan Message
 }
 
 // StdPersistor is the standard Persistor.
@@ -60,21 +61,22 @@ func CreateMessage(v interface{}, topic Topic) (m Message, err error) {
 }
 
 // NewPersistor creates a new Persistor in dir.
-func NewPersistor(dir string) Persistor {
+func NewPersistor(dir string) *Persistor {
 	if err := os.MkdirAll(dir, 0777); err != nil {
 		errorlog.Printf("persistor: unable to save unsent messages to %v: %v", dir, err)
 	}
-	p := Persistor{
+	p := &Persistor{
 		dir:          dir,
 		newLimit:     make(chan *int64),
 		currentLimit: make(chan *int64),
 	}
+	p.load()
 	go p.serve()
 	return p
 }
 
 // serve serializes access to p.limit
-func (p Persistor) serve() {
+func (p *Persistor) serve() {
 	for {
 		select {
 		case p.limit = <-p.newLimit:
@@ -84,12 +86,12 @@ func (p Persistor) serve() {
 }
 
 // Configure returns a channel on which p's storage limit can be controlled.
-func (p Persistor) Configure() chan<- *int64 {
+func (p *Persistor) Configure() chan<- *int64 {
 	return p.newLimit
 }
 
 // filepaths returns a list of paths of persistent messages.
-func (p Persistor) filepaths() (paths []string) {
+func (p *Persistor) filepaths() (paths []string) {
 	d, err := os.Open(p.dir)
 	if err != nil {
 		errorlog.Printf("persistor: failed to open message directory: %v", err)
@@ -107,7 +109,7 @@ func (p Persistor) filepaths() (paths []string) {
 	return
 }
 
-func (p Persistor) size() (n int64) {
+func (p *Persistor) size() (n int64) {
 	for _, path := range p.filepaths() {
 		f, err := os.Stat(path)
 		if err != nil {
@@ -119,20 +121,26 @@ func (p Persistor) size() (n int64) {
 	return
 }
 
-// Load loads messages from the filesystem.
-func (p Persistor) Load() (msgs []Message) {
-	for _, path := range p.filepaths() {
+// load loads the output channel with messages from the filesystem.
+func (p *Persistor) load()  {
+	paths := p.filepaths()
+	p.out = make(chan Message, len(paths))
+	defer close(p.out)
+	for _, path := range paths {
 		m := Message{path: path}
 		if m.load() != nil {
 			continue
 		}
-		msgs = append(msgs, m)
+		p.out <- m
 	}
-	return
+}
+
+func (p *Persistor) Output() <-chan Message {
+	return p.out
 }
 
 // CreateMessage creates a new Message under p.
-func (p Persistor) CreateMessage(v interface{}, topic Topic) (m Message, err error) {
+func (p *Persistor) CreateMessage(v interface{}, topic Topic) (m Message, err error) {
 	bytes, err := json.Marshal(v)
 	if err != nil {
 		return

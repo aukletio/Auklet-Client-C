@@ -19,7 +19,6 @@ type Queue struct {
 func NewQueue(in broker.MessageSource) *Queue {
 	return &Queue{
 		source: in,
-		q:      broker.StdPersistor.Load(),
 		out:    make(chan broker.Message),
 		err:    make(chan error),
 	}
