@@ -21,5 +21,5 @@ func NewAppLog(msg []byte, app *app.App) (m broker.Message, err error) {
 	a.MacAddressHash = device.MacHash
 	a.SystemMetrics = device.GetMetrics()
 	a.Message = msg
-	return broker.StdPersistor.CreateMessage(a, broker.Log)
+	return broker.StdPersistor.CreateMessage(a, broker.Event)
 }
