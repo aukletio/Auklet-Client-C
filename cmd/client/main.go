@@ -21,9 +21,13 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
+type server interface {
+	Serve()
+}
+
 type client struct {
 	app  *app.App
-	prod *broker.Producer
+	prod server
 }
 
 func newclient(args []string) *client {
@@ -59,6 +63,7 @@ func (c *client) createPipeline() {
 	merger := message.NewMerger(logger, watcher, broker.StdPersistor)
 	limiter := message.NewDataLimiter(merger, c.app.ID)
 	c.prod = broker.NewProducer(limiter)
+	//c.prod = broker.NewMQTTProducer(limiter)
 	pollConfig := func() {
 		poll := func() {
 			dl := api.GetDataLimit(c.app.ID).Config

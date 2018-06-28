@@ -168,7 +168,7 @@ func (p *Persistor) CreateMessage(v interface{}, topic Topic) (m Message, err er
 	return
 }
 
-func (m Message) load() (err error) {
+func (m *Message) load() (err error) {
 	defer func() {
 		if err != nil {
 			errorlog.Printf("persistor: failed to load message %v: %v", m.path, err)
