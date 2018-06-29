@@ -25,7 +25,7 @@ func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
 	e.Application = &app.ID
 	e.Checksum = &app.CheckSum
 	e.PublicIP = device.CurrentIP()
-	id :=uuid.NewV4().String()
+	id := uuid.NewV4().String()
 	e.Id = &id
 	t := time.Now().String()
 	e.Timestamp = &t

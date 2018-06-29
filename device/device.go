@@ -18,7 +18,7 @@ import (
 )
 
 // CurrentIP returns the device's current public IP address.
-func CurrentIP() (*string) {
+func CurrentIP() *string {
 	ip, err := ipify.GetIp()
 	if err != nil {
 		errorlog.Print(err)
