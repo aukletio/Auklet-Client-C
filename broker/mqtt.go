@@ -24,7 +24,7 @@ func wait(t mqtt.Token) error {
 func NewMQTTProducer(in MessageSource) MQTTProducer {
 	opt := mqtt.NewClientOptions()
 	opt.AddBroker("tcp://:8080")
-	opt.ClientID("C")
+	opt.SetClientID("C")
 	c := mqtt.NewClient(opt)
 
 	if err := wait(c.Connect()); err != nil {
