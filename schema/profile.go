@@ -20,9 +20,11 @@ func NewProfile(data []byte, app *app.App) (m broker.Message, err error) {
 		return
 	}
 	p.PublicIP = device.CurrentIP()
-	p.Id = uuid.NewV4().String()
-	p.Timestamp = time.Now().UnixNano() / 1000000 // milliseconds
-	p.Checksum = app.CheckSum
-	p.Application = app.ID
+	id := uuid.NewV4().String()
+	p.Id = &id
+	t := time.Now().UnixNano() / 1000000 // milliseconds
+	p.Timestamp = &t
+	p.Checksum = &app.CheckSum
+	p.Application = &app.ID
 	return broker.StdPersistor.CreateMessage(p, broker.Profile)
 }

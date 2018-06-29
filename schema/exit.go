@@ -14,17 +14,21 @@ import (
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
 func NewExit(app *app.App) (m broker.Message, err error) {
 	var e Exit
-	e.Application = app.ID
-	e.Checksum = app.CheckSum
+	e.Application = &app.ID
+	e.Checksum = &app.CheckSum
 	e.PublicIP = device.CurrentIP()
-	e.Id = uuid.NewV4().String()
-	e.Timestamp = time.Now().String()
+	id := uuid.NewV4().String()
+	e.Id = &id
+	t := time.Now().String()
+	e.Timestamp = &t
 	ws := app.ProcessState.Sys().(syscall.WaitStatus)
-	e.ExitStatus = int32(ws.ExitStatus())
+	status := int32(ws.ExitStatus())
+	e.ExitStatus = &status
 	if ws.Signaled() {
-		e.Signal = ws.Signal().String()
+		sig := ws.Signal().String()
+		e.Signal = &sig
 	}
-	e.MacAddressHash = device.MacHash
+	e.MacAddressHash = &device.MacHash
 	e.SystemMetrics = device.GetMetrics()
 	return broker.StdPersistor.CreateMessage(e, broker.Event)
 }

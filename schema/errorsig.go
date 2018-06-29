@@ -22,13 +22,16 @@ func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
 	if err != nil {
 		return
 	}
-	e.Application = app.ID
-	e.Checksum = app.CheckSum
+	e.Application = &app.ID
+	e.Checksum = &app.CheckSum
 	e.PublicIP = device.CurrentIP()
-	e.Id = uuid.NewV4().String()
-	e.Timestamp = time.Now().String()
-	e.ExitStatus = int32(app.ProcessState.Sys().(syscall.WaitStatus).ExitStatus())
-	e.MacAddressHash = device.MacHash
+	id :=uuid.NewV4().String()
+	e.Id = &id
+	t := time.Now().String()
+	e.Timestamp = &t
+	es := int32(app.ProcessState.Sys().(syscall.WaitStatus).ExitStatus())
+	e.ExitStatus = &es
+	e.MacAddressHash = &device.MacHash
 	e.SystemMetrics = device.GetMetrics()
 	return broker.StdPersistor.CreateMessage(e, broker.Event)
 }

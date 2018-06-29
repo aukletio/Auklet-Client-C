@@ -19,10 +19,10 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type Metrics struct {
-	CpuUsage             float64  `protobuf:"fixed64,1,opt,name=cpuUsage,proto3" json:"cpuUsage,omitempty"`
-	MemoryUsage          float64  `protobuf:"fixed64,2,opt,name=memoryUsage,proto3" json:"memoryUsage,omitempty"`
-	InboundNetwork       uint64   `protobuf:"varint,3,opt,name=inboundNetwork,proto3" json:"inboundNetwork,omitempty"`
-	OutboundNetwork      uint64   `protobuf:"varint,4,opt,name=outboundNetwork,proto3" json:"outboundNetwork,omitempty"`
+	CpuUsage             *float64 `protobuf:"fixed64,1,opt,name=cpuUsage" json:"cpuUsage,omitempty"`
+	MemoryUsage          *float64 `protobuf:"fixed64,2,opt,name=memoryUsage" json:"memoryUsage,omitempty"`
+	InboundNetwork       *uint64  `protobuf:"varint,3,opt,name=inboundNetwork" json:"inboundNetwork,omitempty"`
+	OutboundNetwork      *uint64  `protobuf:"varint,4,opt,name=outboundNetwork" json:"outboundNetwork,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -32,7 +32,7 @@ func (m *Metrics) Reset()         { *m = Metrics{} }
 func (m *Metrics) String() string { return proto.CompactTextString(m) }
 func (*Metrics) ProtoMessage()    {}
 func (*Metrics) Descriptor() ([]byte, []int) {
-	return fileDescriptor_device_357b37533722dd50, []int{0}
+	return fileDescriptor_device_32579c000212dd7d, []int{0}
 }
 func (m *Metrics) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Metrics.Unmarshal(m, b)
@@ -53,29 +53,29 @@ func (m *Metrics) XXX_DiscardUnknown() {
 var xxx_messageInfo_Metrics proto.InternalMessageInfo
 
 func (m *Metrics) GetCpuUsage() float64 {
-	if m != nil {
-		return m.CpuUsage
+	if m != nil && m.CpuUsage != nil {
+		return *m.CpuUsage
 	}
 	return 0
 }
 
 func (m *Metrics) GetMemoryUsage() float64 {
-	if m != nil {
-		return m.MemoryUsage
+	if m != nil && m.MemoryUsage != nil {
+		return *m.MemoryUsage
 	}
 	return 0
 }
 
 func (m *Metrics) GetInboundNetwork() uint64 {
-	if m != nil {
-		return m.InboundNetwork
+	if m != nil && m.InboundNetwork != nil {
+		return *m.InboundNetwork
 	}
 	return 0
 }
 
 func (m *Metrics) GetOutboundNetwork() uint64 {
-	if m != nil {
-		return m.OutboundNetwork
+	if m != nil && m.OutboundNetwork != nil {
+		return *m.OutboundNetwork
 	}
 	return 0
 }
@@ -84,10 +84,10 @@ func init() {
 	proto.RegisterType((*Metrics)(nil), "device.Metrics")
 }
 
-func init() { proto.RegisterFile("device/device.proto", fileDescriptor_device_357b37533722dd50) }
+func init() { proto.RegisterFile("device/device.proto", fileDescriptor_device_32579c000212dd7d) }
 
-var fileDescriptor_device_357b37533722dd50 = []byte{
-	// 181 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_device_32579c000212dd7d = []byte{
+	// 175 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x4e, 0x49, 0x2d, 0xcb,
 	0x4c, 0x4e, 0xd5, 0x87, 0x50, 0x7a, 0x05, 0x45, 0xf9, 0x25, 0xf9, 0x42, 0x6c, 0x10, 0x9e, 0xd2,
 	0x4c, 0x46, 0x2e, 0x76, 0xdf, 0xd4, 0x92, 0xa2, 0xcc, 0xe4, 0x62, 0x21, 0x29, 0x2e, 0x8e, 0xe4,
@@ -98,6 +98,5 @@ var fileDescriptor_device_357b37533722dd50 = []byte{
 	0x2f, 0x2d, 0x41, 0x51, 0xc8, 0x02, 0x56, 0x88, 0x2e, 0xec, 0xa4, 0x1d, 0xa5, 0x99, 0x9e, 0x59,
 	0x92, 0x51, 0x9a, 0xa4, 0x97, 0x9c, 0x9f, 0xab, 0xef, 0x1a, 0xec, 0xae, 0x1b, 0x1a, 0xec, 0xa8,
 	0xef, 0x58, 0x9a, 0x9d, 0x93, 0x5a, 0xa2, 0xeb, 0x9c, 0x93, 0x99, 0x9a, 0x57, 0xa2, 0xeb, 0x0c,
-	0xf5, 0x56, 0x12, 0x1b, 0xd8, 0x5f, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x08, 0x8d, 0x87,
-	0xbc, 0xee, 0x00, 0x00, 0x00,
+	0xf5, 0x16, 0x20, 0x00, 0x00, 0xff, 0xff, 0x93, 0x33, 0x70, 0xdb, 0xe6, 0x00, 0x00, 0x00,
 }
