@@ -24,6 +24,7 @@ func wait(t mqtt.Token) error {
 func NewMQTTProducer(in MessageSource) MQTTProducer {
 	opt := mqtt.NewClientOptions()
 	opt.AddBroker("tcp://:8080")
+	opt.ClientID("C")
 	c := mqtt.NewClient(opt)
 
 	if err := wait(c.Connect()); err != nil {
@@ -46,7 +47,7 @@ func (p MQTTProducer) Serve() {
 	}()
 
 	for msg := range p.in.Output() {
-		if err := wait(p.c.Publish("test-topic", 0, false, []byte(msg.Bytes))); err != nil {
+		if err := wait(p.c.Publish("test-topic", 1, false, []byte(msg.Bytes))); err != nil {
 			errorlog.Print("producer:", err)
 			continue
 		}
