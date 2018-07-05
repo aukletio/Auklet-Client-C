@@ -2,9 +2,18 @@
 
 ## Merged But Unreleased
 
+**Implemented enhancements:**
+
+- APM-1353 Use generic terms instead of names of specific technologies [#48](https://github.com/ESG-USA/Auklet-Client-C/pull/48) ([kdsch](https://github.com/kdsch))
+- APM-1333 C/C++ Agent Logging [#43](https://github.com/ESG-USA/Auklet-Client-C/pull/43) ([kdsch](https://github.com/kdsch))
+
 **Fixed bugs:**
 
 - message: don't doubly close queue output channel [#47](https://github.com/ESG-USA/Auklet-Client-C/pull/47) ([kdsch](https://github.com/kdsch))
+
+**DevOps changes:**
+
+- Fix CircleCI Docker image [#50](https://github.com/ESG-USA/Auklet-Client-C/pull/50) ([rjenkinsjr](https://github.com/rjenkinsjr))
 
 ## [0.9.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.9.0)
 
