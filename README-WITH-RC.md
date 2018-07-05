@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.10.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.10.0)
+
 ### [0.10.0-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.10.0-rc.1)
 
 **Implemented enhancements:**
