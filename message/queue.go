@@ -3,24 +3,24 @@ package message
 import (
 	"log"
 
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
 // Queue provides an "infinite" buffer for outgoing Messages.
 type Queue struct {
-	source kafka.MessageSource
-	q      []kafka.Message
-	out    chan kafka.Message
+	source broker.MessageSource
+	q      []broker.Message
+	out    chan broker.Message
 	err    chan error
 }
 
 // NewQueue creates a new Queue that buffers Messages. Any existing persisted
 // Messages are enqueued.
-func NewQueue(in kafka.MessageSource) *Queue {
+func NewQueue(in broker.MessageSource) *Queue {
 	return &Queue{
 		source: in,
-		q:      kafka.StdPersistor.Load(),
-		out:    make(chan kafka.Message),
+		q:      broker.StdPersistor.Load(),
+		out:    make(chan broker.Message),
 		err:    make(chan error),
 	}
 }
@@ -28,7 +28,7 @@ func NewQueue(in kafka.MessageSource) *Queue {
 // Output returns a channel from which enqueued Messages can be received.
 // Messages sent on this channel are not automatically dequeued. The channel
 // closes when q's input closes.
-func (q *Queue) Output() <-chan kafka.Message {
+func (q *Queue) Output() <-chan broker.Message {
 	return q.out
 }
 
@@ -43,8 +43,12 @@ func (q *Queue) Err() chan<- error {
 // Serve activates q, causing it to receive and send Messages. Serve returns
 // when q shuts down.
 func (q *Queue) Serve() {
+	prevlen := len(q.q)
 	for state := q.initial; state != nil; state = state() {
-		log.Print("queued messages: ", len(q.q))
+		if len(q.q) != prevlen {
+			log.Print("queued messages: ", len(q.q))
+			prevlen = len(q.q)
+		}
 	}
 }
 
@@ -65,6 +69,7 @@ func (q *Queue) empty() serverState {
 	if !open {
 		// The queue's input has closed. We enter the final state,
 		// waiting for our client to shut us down.
+		close(q.out)
 		return q.final
 	}
 	q.push(m)
@@ -78,6 +83,7 @@ func (q *Queue) nonEmpty() serverState {
 		if !open {
 			// The queue's input has closed. Since the queue is not
 			// empty, we enter the final state.
+			close(q.out)
 			return q.final
 		}
 		q.push(m)
@@ -97,13 +103,13 @@ func (q *Queue) nonEmpty() serverState {
 // down. Our policy is to not send any more messages, even if the queue is not
 // empty.
 //
+// We have informed our client, by having closed q.out, that we won't be sending
+// any more values. We expect them to shut us down soon.
+//
 // We need to wait for our client to close q.err, which indicates that it will
 // not send any more dequeue requests. In the meantime, we handle incoming
 // dequeue requests.
 func (q *Queue) final() serverState {
-	// We inform our client that we won't be sending any more values. We
-	// expect them to shut us down soon.
-	close(q.out)
 	if _, open := <-q.err; !open {
 		// Our client has indicated that they have no more requests to
 		// send. We can shut down immediately.
@@ -120,11 +126,11 @@ func (q *Queue) final() serverState {
 	return q.final
 }
 
-func (q *Queue) push(m kafka.Message) {
+func (q *Queue) push(m broker.Message) {
 	q.q = append(q.q, m)
 }
 
-func (q *Queue) peek() kafka.Message {
+func (q *Queue) peek() broker.Message {
 	return q.q[0]
 }
 

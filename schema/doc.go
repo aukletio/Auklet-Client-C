@@ -1,3 +1,3 @@
-// Package schema implements JSON schemas expected by Kafka consumers.
-// Each schema type implements kafka.Message.
+// Package schema implements message schemas expected by broker consumers.
+// Each schema type implements broker.Message.
 package schema

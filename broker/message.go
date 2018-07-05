@@ -1,4 +1,4 @@
-package kafka
+package broker
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
-// This file defines interfaces for manipulating streams of Kafka
+// This file defines interfaces for manipulating streams of broker
 // messages, plus a message persistence layer.
 
 // Type encodes a Message type.
@@ -21,7 +21,7 @@ const (
 	Log
 )
 
-// Message represents a Kafka message.
+// Message represents a broker message.
 type Message struct {
 	Type  Type            `json:"type"`
 	Bytes json.RawMessage `json:"bytes"`

@@ -1,4 +1,4 @@
-// Command genschema prints an example of each client JSON schema to stdout.
+// Command genschema prints an example of each producer schema to stdout.
 package main
 
 import (
@@ -9,7 +9,7 @@ import (
 )
 
 func errorsig() {
-	libaukletjson := `[
+	agentdata := `[
 		{
 			"functionAddress": 0,
 			"callSiteAddress": 0
@@ -20,7 +20,7 @@ func errorsig() {
 		}
 	]`
 	b, err := json.MarshalIndent(schema.ErrorSig{
-		Trace: json.RawMessage(libaukletjson),
+		Trace: json.RawMessage(agentdata),
 	}, "", "\t")
 	if err != nil {
 		panic(err)

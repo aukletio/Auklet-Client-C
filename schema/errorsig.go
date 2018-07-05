@@ -10,11 +10,11 @@ import (
 	"github.com/satori/go.uuid"
 
 	"github.com/ESG-USA/Auklet-Client-C/app"
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/kafka"
 )
 
-// errorSig represents the exit of an app in which libauklet handled an "error
+// errorSig represents the exit of an app in which an agent handled an "error
 // signal" and produced a stacktrace.
 type errorSig struct {
 	AppID string `json:"application"`
@@ -36,19 +36,19 @@ type errorSig struct {
 	// App.Wait.
 	Status int `json:"exitStatus"`
 
-	// Signal is an integer value provided by libauklet. In JSON output, it
-	// is represented as a string.
+	// Signal is an integer value provided by an agent. As an output, it is
+	// encoded as a string.
 	Signal sig `json:"signal"`
 
-	// Trace is a stacktrace provided by libauklet.
+	// Trace is a stacktrace provided by an agent.
 	Trace   json.RawMessage `json:"stackTrace"`
 	MacHash string          `json:"macAddressHash"`
 	Metrics device.Metrics  `json:"systemMetrics"`
 }
 
-// NewErrorSig creates an ErrorSig for app out of JSON data. It assumes that
-// app.Wait() has returned.
-func NewErrorSig(data []byte, app *app.App) (m kafka.Message, err error) {
+// NewErrorSig creates an ErrorSig for app out of raw message data. It assumes
+// that app.Wait() has returned.
+func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
 	var e errorSig
 	err = json.Unmarshal(data, &e)
 	if err != nil {
@@ -66,7 +66,7 @@ func NewErrorSig(data []byte, app *app.App) (m kafka.Message, err error) {
 	if err != nil {
 		return
 	}
-	return kafka.StdPersistor.CreateMessage(b, kafka.Event)
+	return broker.StdPersistor.CreateMessage(b, broker.Event)
 }
 
 type sig syscall.Signal
