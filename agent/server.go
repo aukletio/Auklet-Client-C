@@ -111,7 +111,9 @@ func (s Server) requestProfiles(out io.Writer) {
 			}
 		case dur := <-s.conf:
 			emit.Stop()
-			emit = time.NewTicker(time.Duration(dur) * time.Second)
+			if dur > 0 {
+				emit = time.NewTicker(time.Duration(dur) * time.Second)
+			}
 		}
 	}
 }
