@@ -14,9 +14,9 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// errorSig represents the exit of an app in which an agent handled an "error
+// ErrorSig represents the exit of an app in which an agent handled an "error
 // signal" and produced a stacktrace.
-type errorSig struct {
+type ErrorSig struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -49,7 +49,7 @@ type errorSig struct {
 // NewErrorSig creates an ErrorSig for app out of raw message data. It assumes
 // that app.Wait() has returned.
 func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
-	var e errorSig
+	var e ErrorSig
 	err = json.Unmarshal(data, &e)
 	if err != nil {
 		return

@@ -11,10 +11,10 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// exit represents the exit of an app in which an agent did not handle a
+// Exit represents the exit of an app in which an agent did not handle a
 // signal. The app may or may not have been delivered a termination signal of
 // some kind, but not one handled by an agent. See man 7 signal for details.
-type exit struct {
+type Exit struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -40,7 +40,7 @@ type exit struct {
 
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
 func NewExit(app *app.App) (m broker.Message, err error) {
-	var e exit
+	var e Exit
 	e.AppID = app.ID
 	e.CheckSum = app.CheckSum
 	e.IP = device.CurrentIP()

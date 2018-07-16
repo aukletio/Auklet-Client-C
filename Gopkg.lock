@@ -62,6 +62,12 @@
   version = "v1.11.0"
 
 [[projects]]
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
@@ -121,9 +127,19 @@
   version = "v2.18.01"
 
 [[projects]]
+  name = "github.com/vmihailenco/msgpack"
+  packages = [
+    ".",
+    "codes"
+  ]
+  revision = "b5e691b1eb52a28c05e67ab9df303626c095c23b"
+  version = "v3.3.3"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = [
+    "context",
     "internal/socks",
     "proxy",
     "websocket"
@@ -139,9 +155,25 @@
   ]
   revision = "f6cff0780e542efa0c8e864dc8fa522808f6a598"
 
+[[projects]]
+  name = "google.golang.org/appengine"
+  packages = [
+    ".",
+    "datastore",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api"
+  ]
+  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
+  version = "v1.1.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "00b44f4f33c177f060599788dbb74e57e17febfb542e99544c579bbbf38d2562"
+  inputs-digest = "0db2d602a132b9be0c474d1d629878046e6614f9967c0d176215ac873726d9ec"
   solver-name = "gps-cdcl"
   solver-version = 1
