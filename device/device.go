@@ -82,21 +82,28 @@ func networkStat() { // inboundRate outBoundRate
 	}
 }
 
+// Metrics represents overall system metrics.
+type Metrics struct {
+	CPUPercent float64 `json:"cpuUsage"`
+	MemPercent float64 `json:"memoryUsage"`
+	Inbound    uint64  `json:"inboundNetwork"`
+	Outbound   uint64  `json:"outboundNetwork"`
+}
+
 // GetMetrics provides current system metrics.
-func GetMetrics() (m *Metrics) { // inboundRate outboundRate
-	m = &Metrics{}
+func GetMetrics() (m Metrics) { // inboundRate outboundRate
 	// System-wide cpu usage since the start of the child process
 	if tempCPU, err := cpu.Percent(0, false); err == nil {
-		m.CpuUsage = tempCPU[0]
+		m.CPUPercent = tempCPU[0]
 	}
 
 	// System-wide current virtual memory (ram) consumption
 	// percentage.
 	if tempMem, err := mem.VirtualMemory(); err == nil {
-		m.MemoryUsage = tempMem.UsedPercent
+		m.MemPercent = tempMem.UsedPercent
 	}
 
-	m.InboundNetwork = inboundRate
-	m.OutboundNetwork = outboundRate
+	m.Inbound = inboundRate
+	m.Outbound = outboundRate
 	return
 }
