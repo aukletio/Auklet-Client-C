@@ -18,12 +18,12 @@ import (
 )
 
 // CurrentIP returns the device's current public IP address.
-func CurrentIP() *string {
+func CurrentIP() (ip string) {
 	ip, err := ipify.GetIp()
 	if err != nil {
 		errorlog.Print(err)
 	}
-	return &ip
+	return
 }
 
 // MacHash is derived from the MAC addresses of all available network
@@ -87,16 +87,16 @@ func GetMetrics() (m *Metrics) { // inboundRate outboundRate
 	m = &Metrics{}
 	// System-wide cpu usage since the start of the child process
 	if tempCPU, err := cpu.Percent(0, false); err == nil {
-		m.CpuUsage = &tempCPU[0]
+		m.CpuUsage = tempCPU[0]
 	}
 
 	// System-wide current virtual memory (ram) consumption
 	// percentage.
 	if tempMem, err := mem.VirtualMemory(); err == nil {
-		m.MemoryUsage = &tempMem.UsedPercent
+		m.MemoryUsage = tempMem.UsedPercent
 	}
 
-	m.InboundNetwork = &inboundRate
-	m.OutboundNetwork = &outboundRate
+	m.InboundNetwork = inboundRate
+	m.OutboundNetwork = outboundRate
 	return
 }
