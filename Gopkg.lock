@@ -62,12 +62,6 @@
   version = "v1.11.0"
 
 [[projects]]
-  name = "github.com/golang/protobuf"
-  packages = ["proto"]
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
@@ -148,6 +142,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "34804f111a188d3ff8f623fa9a48dd4b5af09bcf183c0787262aa721b74cf22d"
+  inputs-digest = "00b44f4f33c177f060599788dbb74e57e17febfb542e99544c579bbbf38d2562"
   solver-name = "gps-cdcl"
   solver-version = 1
