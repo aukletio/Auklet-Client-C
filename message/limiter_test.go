@@ -1,10 +1,13 @@
 package message
 
 import (
+	"io/ioutil"
+	"log"
 	"testing"
 	"time"
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 type source struct {
@@ -55,6 +58,8 @@ func consume(s broker.MessageSource) (count int) {
 }
 
 func TestDataLimiter(t *testing.T) {
+	errorlog.SetOutput(ioutil.Discard)
+	log.SetOutput(ioutil.Discard)
 	s := newsource(15, 900)
 	l := newLimiter(s)
 	go s.Serve()
