@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"encoding/json"
 	"syscall"
 	"time"
 
@@ -12,10 +11,10 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// exit represents the exit of an app in which an agent did not handle a
+// Exit represents the exit of an app in which an agent did not handle a
 // signal. The app may or may not have been delivered a termination signal of
 // some kind, but not one handled by an agent. See man 7 signal for details.
-type exit struct {
+type Exit struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -34,14 +33,14 @@ type exit struct {
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
 	Status  int            `json:"exitStatus"`
-	Signal  sig            `json:"signal,omitempty"`
+	Signal  string         `json:"signal,omitempty"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
 func NewExit(app *app.App) (m broker.Message, err error) {
-	var e exit
+	var e Exit
 	e.AppID = app.ID
 	e.CheckSum = app.CheckSum
 	e.IP = device.CurrentIP()
@@ -50,13 +49,9 @@ func NewExit(app *app.App) (m broker.Message, err error) {
 	ws := app.ProcessState.Sys().(syscall.WaitStatus)
 	e.Status = ws.ExitStatus()
 	if ws.Signaled() {
-		e.Signal = sig(ws.Signal())
+		e.Signal = ws.Signal().String()
 	}
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
-	b, err := json.MarshalIndent(e, "", "\t")
-	if err != nil {
-		return
-	}
-	return broker.StdPersistor.CreateMessage(b, broker.Event)
+	return broker.StdPersistor.CreateMessage(e, broker.Event)
 }

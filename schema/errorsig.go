@@ -14,9 +14,9 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// errorSig represents the exit of an app in which an agent handled an "error
+// ErrorSig represents the exit of an app in which an agent handled an "error
 // signal" and produced a stacktrace.
-type errorSig struct {
+type ErrorSig struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -38,7 +38,7 @@ type errorSig struct {
 
 	// Signal is an integer value provided by an agent. As an output, it is
 	// encoded as a string.
-	Signal sig `json:"signal"`
+	Signal string `json:"signal"`
 
 	// Trace is a stacktrace provided by an agent.
 	Trace   json.RawMessage `json:"stackTrace"`
@@ -49,7 +49,7 @@ type errorSig struct {
 // NewErrorSig creates an ErrorSig for app out of raw message data. It assumes
 // that app.Wait() has returned.
 func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
-	var e errorSig
+	var e ErrorSig
 	err = json.Unmarshal(data, &e)
 	if err != nil {
 		return
@@ -62,21 +62,5 @@ func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
 	e.Status = app.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
-	b, err := json.MarshalIndent(e, "", "\t")
-	if err != nil {
-		return
-	}
-	return broker.StdPersistor.CreateMessage(b, broker.Event)
-}
-
-type sig syscall.Signal
-
-// String returns s represented as a human-readable string.
-func (s sig) String() string {
-	return syscall.Signal(s).String()
-}
-
-// MarshalText encodes sig as a human-readable string.
-func (s sig) MarshalText() ([]byte, error) {
-	return []byte(s.String()), nil
+	return broker.StdPersistor.CreateMessage(e, broker.Event)
 }

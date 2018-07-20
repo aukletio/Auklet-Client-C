@@ -15,38 +15,30 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
-// certs represents SSL certificates.
-type certs struct {
-	ca         []byte
-	cert       []byte
-	privatekey []byte
-}
-
-// TLSConfig converts c into a *tls.Config.
-func (c *certs) TLSConfig() (tc *tls.Config) {
+// TLSConfig converts ca into a *tls.Config.
+func TLSConfig(ca []byte) *tls.Config {
 	certpool := x509.NewCertPool()
-	if !certpool.AppendCertsFromPEM(c.ca) {
+	if !certpool.AppendCertsFromPEM(ca) {
 		errorlog.Print("warning: failed to parse CA")
-		return
+		return nil
 	}
-	tc = &tls.Config{
+	return &tls.Config{
 		RootCAs:            certpool,
 		ClientAuth:         tls.NoClientCert,
 		ClientCAs:          nil,
 		InsecureSkipVerify: false,
 	}
-	return
 }
 
-// Unpack reads certs from a zip-formatted stream and puts them into
-// a map. The process is not simple:
+// Unpack reads certs from a zip-formatted stream into a byte slice.
+// The process is not simple:
 //
 // ioutil.ReadAll  : io.Reader   -> []byte
 // bytes.NewReader : []byte      -> bytes.Reader (implements io.ReaderAt)
 // zip.NewReader   : io.ReaderAt -> zip.Reader (array of zip.File)
 // zip.Open        : zip.File    -> io.ReadCloser (implements io.Reader)
 // ioutil.ReadAll  : io.Reader   -> []byte
-func Unpack(r io.Reader) (c *certs, err error) {
+func Unpack(r io.Reader) (ca []byte, err error) {
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return
@@ -71,12 +63,7 @@ func Unpack(r io.Reader) (c *certs, err error) {
 	if err != nil {
 		return
 	}
-	c = &certs{
-		ca:         m["ck_ca"],
-		cert:       m["ck_cert"],
-		privatekey: m["ck_private_key"],
-	}
-	return
+	return m["ck_ca"], nil
 }
 
 // verify checks that the map produced by Unpack has the right

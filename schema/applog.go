@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"time"
 
 	"github.com/satori/go.uuid"
@@ -12,8 +10,8 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// appLog represents custom log data as expected by broker consumers.
-type appLog struct {
+// AppLog represents custom log data as expected by broker consumers.
+type AppLog struct {
 	// AppID is a long string uniquely associated with a particular app.
 	AppID string `json:"application"`
 
@@ -34,14 +32,14 @@ type appLog struct {
 	Time time.Time `json:"timestamp"`
 
 	// Message is the log message sent by the application.
-	Message string         `json:"message"`
+	Message []byte         `json:"message"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
 // NewAppLog converts msg into a custom log message.
 func NewAppLog(msg []byte, app *app.App) (m broker.Message, err error) {
-	var a appLog
+	var a AppLog
 	a.AppID = app.ID
 	a.CheckSum = app.CheckSum
 	a.IP = device.CurrentIP()
@@ -49,10 +47,6 @@ func NewAppLog(msg []byte, app *app.App) (m broker.Message, err error) {
 	a.Time = time.Now()
 	a.MacHash = device.MacHash
 	a.Metrics = device.GetMetrics()
-	a.Message = base64.StdEncoding.EncodeToString(msg)
-	b, err := json.MarshalIndent(a, "", "\t")
-	if err != nil {
-		return
-	}
-	return broker.StdPersistor.CreateMessage(b, broker.Log)
+	a.Message = msg
+	return broker.StdPersistor.CreateMessage(a, broker.Log)
 }
