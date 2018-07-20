@@ -27,7 +27,7 @@ func (s source) Serve() {
 	b := make([]byte, s.size)
 	defer close(s.out)
 	for i := 0; i < s.num; i++ {
-		s.out <- broker.Message{ Bytes: b }
+		s.out <- broker.Message{Bytes: b}
 		time.Sleep(time.Second)
 	}
 }

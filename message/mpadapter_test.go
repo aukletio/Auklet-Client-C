@@ -1,11 +1,11 @@
 package message
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 
-	"github.com/ESG-USA/Auklet-Client-C/schema"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
 // TestAdapt tests that the adapt function can process all of the schemas we
