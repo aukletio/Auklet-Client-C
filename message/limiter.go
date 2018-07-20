@@ -31,9 +31,14 @@ type DataLimiter struct {
 	PeriodEnd time.Time `json:"periodEnd"`
 }
 
+type Persistor interface {
+	Save(Encodable) error
+	Load(Decodable) error
+}
+
 // NewDataLimiter returns a DataLimiter for input whose state persists on
 // the filesystem.
-func NewDataLimiter(input broker.MessageSource, appID string) *DataLimiter {
+func NewDataLimiter(input broker.MessageSource, p Persistor) *DataLimiter {
 	l := &DataLimiter{
 		source: input,
 		out:    make(chan broker.Message),
@@ -55,34 +60,14 @@ func (l *DataLimiter) setBudget(megabytes *int) {
 	log.Printf("limiter: setting budget to %v B", *l.Budget)
 }
 
-func (l *DataLimiter) load() (err error) {
-	f, err := os.Open(l.path)
-	if err != nil {
-		// This err value is treated as informative, since on
-		// the first start of the client, there will be no state
-		// to load.
-		log.Println("limiter: could not load state:", err)
-		return
-	}
-	defer f.Close()
-	err = json.NewDecoder(f).Decode(l)
-	if err != nil {
-		errorlog.Println("limiter: failed to load state:", err)
-	}
-	return
+func (l *DataLimiter) Decode(r io.Reader) (err error) {
+	return json.NewDecoder(r).Decode(l)
 }
 
 // save saves the data limiter's state to disk. If there is an error, it's a
 // encoding error.
-func (l *DataLimiter) save() (err error) {
-	defer func() {
-		if err != nil {
-			errorlog.Printf("limiter: error saving state to %v: %v", l.path, err)
-		}
-	}()
-	f, err := os.Create(l.path)
-	defer f.Close()
-	return json.NewEncoder(f).Encode(l)
+func (l *DataLimiter) Encode(w io.Writer) (err error) {
+	return json.NewEncoder(w).Encode(l)
 }
 
 // newPeriod returns true if the current time is after the period end.
