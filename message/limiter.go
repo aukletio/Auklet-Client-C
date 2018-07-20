@@ -33,7 +33,7 @@ type DataLimiter struct {
 
 // NewDataLimiter returns a DataLimiter for input whose state persists on
 // the filesystem.
-func NewDataLimiter(input broker.MessageSource, appID string) *DataLimiter {
+func NewDataLimiter(input broker.MessageSource) *DataLimiter {
 	l := &DataLimiter{
 		source: input,
 		out:    make(chan broker.Message),

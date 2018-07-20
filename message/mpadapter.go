@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/vmihailenco/msgpack"
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"

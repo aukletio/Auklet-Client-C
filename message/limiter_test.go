@@ -24,10 +24,10 @@ func newsource(num, size int) source {
 
 // Serve causes s to generate one message per second.
 func (s source) Serve() {
-	m := make(msg, s.size)
+	b := make([]byte, s.size)
 	defer close(s.out)
 	for i := 0; i < s.num; i++ {
-		s.out <- m
+		s.out <- broker.Message{ Bytes: b }
 		time.Sleep(time.Second)
 	}
 }
@@ -37,31 +37,19 @@ func (s source) Output() <-chan broker.Message {
 	return s.out
 }
 
-type msg []byte
-
-// Topic provides the topic of m.
-func (m msg) Topic() (t broker.Topic) {
-	return
-}
-
-// Bytes generates the byte content of m.
-func (m msg) Bytes() ([]byte, error) {
-	return []byte(m), nil
-}
-
 // newLimiter creates a DataLimiter with a budget of 4kB whose current period
 // expires five seconds after its creation.
-func newLimiter(s Source) *DataLimiter {
-	l := NewDataLimiter(s, "limiter_test.json")
-	l.Budget = 4000
+func newLimiter(s broker.MessageSource) *DataLimiter {
+	l := NewDataLimiter(s)
+	l.Budget = new(int)
+	*l.Budget = 4000
 	l.PeriodEnd = time.Now().Add(5 * time.Second)
 	return l
 }
 
-func consume(s Source) (count int) {
+func consume(s broker.MessageSource) (count int) {
 	for m := range s.Output() {
-		b, _ := m.Bytes()
-		count += len(b)
+		count += len(m.Bytes)
 	}
 	return
 }
@@ -72,7 +60,7 @@ func TestDataLimiter(t *testing.T) {
 	go s.Serve()
 	go l.Serve()
 
-	if count := consume(l); count > l.Budget {
-		t.Errorf("expected <= %v, got %v", l.Budget, count)
+	if count := consume(l); count > *l.Budget {
+		t.Errorf("expected <= %v, got %v", *l.Budget, count)
 	}
 }

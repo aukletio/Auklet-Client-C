@@ -61,7 +61,7 @@ func (c *client) createPipeline() {
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
 	merger := message.NewMerger(logger, watcher, broker.StdPersistor)
-	limiter := message.NewDataLimiter(merger, c.app.ID)
+	limiter := message.NewDataLimiter(merger)
 	c.prod = broker.NewProducer(limiter)
 	//c.prod = broker.NewMQTTProducer(limiter)
 	pollConfig := func() {

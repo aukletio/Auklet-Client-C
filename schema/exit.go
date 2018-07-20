@@ -33,7 +33,7 @@ type Exit struct {
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
 	Status  int            `json:"exitStatus"`
-	Signal  sig            `json:"signal,omitempty"`
+	Signal  string         `json:"signal,omitempty"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }
@@ -49,7 +49,7 @@ func NewExit(app *app.App) (m broker.Message, err error) {
 	ws := app.ProcessState.Sys().(syscall.WaitStatus)
 	e.Status = ws.ExitStatus()
 	if ws.Signaled() {
-		e.Signal = sig(ws.Signal())
+		e.Signal = ws.Signal().String()
 	}
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()

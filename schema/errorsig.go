@@ -38,7 +38,7 @@ type ErrorSig struct {
 
 	// Signal is an integer value provided by an agent. As an output, it is
 	// encoded as a string.
-	Signal sig `json:"signal"`
+	Signal string `json:"signal"`
 
 	// Trace is a stacktrace provided by an agent.
 	Trace   json.RawMessage `json:"stackTrace"`
@@ -63,16 +63,4 @@ func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
 	return broker.StdPersistor.CreateMessage(e, broker.Event)
-}
-
-type sig syscall.Signal
-
-// String returns s represented as a human-readable string.
-func (s sig) String() string {
-	return syscall.Signal(s).String()
-}
-
-// MarshalText encodes sig as a human-readable string.
-func (s sig) MarshalText() ([]byte, error) {
-	return []byte(s.String()), nil
 }
