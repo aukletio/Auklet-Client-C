@@ -4,6 +4,7 @@ package broker
 import (
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/Shopify/sarama"
 
@@ -13,9 +14,9 @@ import (
 
 // Producer provides a simple broker producer.
 type Producer struct {
-	source MessageSourceError
+	source MessageSource
 	sarama.SyncProducer
-	topic map[Type]string
+	topic map[Topic]string
 }
 
 func verify(brokers []*sarama.Broker) bool {
@@ -36,7 +37,7 @@ func verify(brokers []*sarama.Broker) bool {
 }
 
 // NewProducer creates a broker producer.
-func NewProducer(input MessageSourceError) (p *Producer) {
+func NewProducer(input MessageSource) (p *Producer) {
 	kp := api.GetBrokerParams()
 	c := sarama.NewConfig()
 	c.ClientID = "ProfileTest"
@@ -60,7 +61,7 @@ func NewProducer(input MessageSourceError) (p *Producer) {
 	p = &Producer{
 		source:       input,
 		SyncProducer: sp,
-		topic: map[Type]string{
+		topic: map[Topic]string{
 			Profile: kp.ProfileTopic,
 			Event:   kp.EventTopic,
 			Log:     kp.LogTopic,
@@ -71,30 +72,29 @@ func NewProducer(input MessageSourceError) (p *Producer) {
 
 // Serve activates p, causing it to send and receive messages.
 func (p *Producer) Serve() {
-	defer close(p.source.Err())
 	defer p.Close()
 	for m := range p.source.Output() {
-		if err := p.send(m); err != nil {
-			errorlog.Println("producer:", err)
-			continue
-		}
-		p.source.Err() <- nil
+		p.send(m)
 	}
 }
 
-// send causes p to send m.
-func (p *Producer) send(m Message) (err error) {
+// send causes p to send m. If the message fails to be sent, it will be retried
+// at most ten times.
+func (p *Producer) send(m Message) {
 	if p == nil {
 		return
 	}
-	b := m.Bytes
-	log.Print("producer: sending message...")
-	_, _, err = p.SendMessage(&sarama.ProducerMessage{
-		Topic: p.topic[m.Type],
-		Value: sarama.ByteEncoder(b),
-	})
-	if err == nil {
-		log.Println("producer: message sent:", string(b))
+	for i := 0; i < 10; i++ {
+		_, _, err := p.SendMessage(&sarama.ProducerMessage{
+			Topic: p.topic[m.Topic],
+			Value: sarama.ByteEncoder(m.Bytes),
+		})
+		if err == nil {
+			log.Printf("producer: message sent: %+q", string(m.Bytes))
+			m.Remove()
+			return
+		}
+		errorlog.Printf("producer: send attempt %v: %v", i+1, err)
+		time.Sleep(time.Second)
 	}
-	return
 }

@@ -84,7 +84,7 @@ func Certificates() (c *tls.Config) {
 		errorlog.Print(err)
 		return
 	}
-	return cts.TLSConfig()
+	return certs.TLSConfig(cts)
 }
 
 // CreateOrGetDevice associates machash and appid in the backend.

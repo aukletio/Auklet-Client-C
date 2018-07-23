@@ -48,9 +48,5 @@ func NewProfile(data []byte, app *app.App) (m broker.Message, err error) {
 	p.Time = time.Now().UnixNano() / 1000000 // milliseconds
 	p.CheckSum = app.CheckSum
 	p.AppID = app.ID
-	b, err := json.MarshalIndent(p, "", "\t")
-	if err != nil {
-		return
-	}
-	return broker.StdPersistor.CreateMessage(b, broker.Profile)
+	return broker.StdPersistor.CreateMessage(p, broker.Profile)
 }

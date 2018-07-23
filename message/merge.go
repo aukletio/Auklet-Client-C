@@ -17,7 +17,7 @@ type Merger struct {
 func NewMerger(src ...broker.MessageSource) Merger {
 	return Merger{
 		src: src,
-		out: make(chan broker.Message),
+		out: make(chan broker.Message, 10),
 	}
 }
 

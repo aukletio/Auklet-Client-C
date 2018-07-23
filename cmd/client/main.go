@@ -21,9 +21,13 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
+type server interface {
+	Serve()
+}
+
 type client struct {
 	app  *app.App
-	prod *broker.Producer
+	prod server
 }
 
 func newclient(args []string) *client {
@@ -43,7 +47,7 @@ func newAgentServer(app *app.App) agent.Server {
 			return schema.NewErrorSig(data, app)
 		},
 		"log": func(data []byte) (broker.Message, error) {
-			return schema.NewLog(data)
+			return schema.NewAgentLog(data)
 		},
 	}
 	return agent.NewServer(handlers)
@@ -56,10 +60,9 @@ func (c *client) createPipeline() {
 	logger := agent.NewLogger(logHandler)
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
-	merger := message.NewMerger(logger, watcher)
+	merger := message.NewMerger(logger, watcher, broker.StdPersistor)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-	queue := message.NewQueue(limiter)
-	c.prod = broker.NewProducer(queue)
+	c.prod = broker.NewProducer(limiter)
 	pollConfig := func() {
 		poll := func() {
 			dl := api.GetDataLimit(c.app.ID).Config
@@ -77,7 +80,6 @@ func (c *client) createPipeline() {
 	go merger.Serve()
 	go watcher.Serve()
 	go limiter.Serve()
-	go queue.Serve()
 	go pollConfig()
 
 	c.app.ExtraFiles = append(c.app.ExtraFiles,
