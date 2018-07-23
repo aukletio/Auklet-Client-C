@@ -65,7 +65,7 @@ jobs:
             - run:
                 name: Run tests
                 command: |
-                  go test -coverprofile=c.out ./agent ./api ./app ./broker ./certs ./config ./device ./errorlog ./message ./schema
+                  go test ./agent ./api ./app ./broker ./certs ./config ./device ./errorlog ./message ./schema
             - run:
                 name: Run Whitesource
                 command: |
