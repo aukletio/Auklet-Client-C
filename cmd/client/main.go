@@ -57,7 +57,7 @@ func (c *client) createPipeline() {
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
 	merger := message.NewMerger(logger, watcher)
-	limiter := message.NewDataLimiter(merger, c.app.ID)
+	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 	queue := message.NewQueue(limiter)
 	c.prod = broker.NewProducer(queue)
 	pollConfig := func() {

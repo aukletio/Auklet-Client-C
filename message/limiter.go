@@ -3,12 +3,11 @@ package message
 import (
 	"encoding/json"
 	"log"
-	"os"
 	"time"
+	"io"
 
 	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // DataLimiter is a passthrough that limits the number of application-layer
@@ -17,7 +16,7 @@ type DataLimiter struct {
 	source broker.MessageSource
 	out    chan broker.Message
 	conf   chan api.CellularConfig
-	path   string
+	store  Persistor
 
 	// Budget is how many bytes can be transmitted per period. If nil, any
 	// number of bytes can be transmitted.
@@ -31,22 +30,17 @@ type DataLimiter struct {
 	PeriodEnd time.Time `json:"periodEnd"`
 }
 
-type Persistor interface {
-	Save(Encodable) error
-	Load(Decodable) error
-}
-
 // NewDataLimiter returns a DataLimiter for input whose state persists on
 // the filesystem.
-func NewDataLimiter(input broker.MessageSource, p Persistor) *DataLimiter {
+func NewDataLimiter(input broker.MessageSource, store Persistor) *DataLimiter {
 	l := &DataLimiter{
 		source: input,
 		out:    make(chan broker.Message),
 		conf:   make(chan api.CellularConfig),
-		path:   ".auklet/datalimit.json",
+		store:  store,
 	}
-	l.load()
-	// If load fails, there is no budget, so all messages will be sent.
+	l.store.Load(l)
+	// If Load fails, there is no budget, so all messages will be sent.
 	return l
 }
 
@@ -106,12 +100,12 @@ func toFutureDate(day int) time.Time {
 func (l *DataLimiter) startThisPeriod() {
 	l.advancePeriodEnd()
 	l.Count = 0
-	l.save()
+	l.store.Save(l)
 }
 
 func (l *DataLimiter) increment(n int) (err error) {
 	l.Count += n
-	return l.save()
+	return l.store.Save(l)
 }
 
 // Serve activates l, causing it to receive and send Messages.
@@ -209,4 +203,10 @@ func (l *DataLimiter) Output() <-chan broker.Message {
 // Configure returns a channel by which the configuration can be updated.
 func (l *DataLimiter) Configure() chan<- api.CellularConfig {
 	return l.conf
+}
+
+// Persistor can save and load an object to some kind of storage.
+type Persistor interface {
+	Save(Encodable) error
+	Load(Decodable) error
 }
