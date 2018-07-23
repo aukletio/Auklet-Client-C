@@ -1,8 +1,8 @@
 package message
 
 import (
-	"io"
 	"bytes"
+	"io"
 	"os"
 )
 

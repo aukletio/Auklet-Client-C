@@ -2,9 +2,9 @@ package message
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"time"
-	"io"
 
 	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
@@ -54,12 +54,12 @@ func (l *DataLimiter) setBudget(megabytes *int) {
 	log.Printf("limiter: setting budget to %v B", *l.Budget)
 }
 
+// Decode updates l's state by reading bytes from r.
 func (l *DataLimiter) Decode(r io.Reader) (err error) {
 	return json.NewDecoder(r).Decode(l)
 }
 
-// save saves the data limiter's state to disk. If there is an error, it's a
-// encoding error.
+// Encode writes the l's state to w.
 func (l *DataLimiter) Encode(w io.Writer) (err error) {
 	return json.NewEncoder(w).Encode(l)
 }
