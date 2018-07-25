@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/afero"
+
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
@@ -20,6 +22,8 @@ const (
 	Event
 	Log
 )
+
+var fs = afero.NewOsFs()
 
 // Message represents a broker message.
 type Message struct {
@@ -51,18 +55,9 @@ type Persistor struct {
 	out          chan Message
 }
 
-// StdPersistor is the standard Persistor.
-var StdPersistor = NewPersistor(".auklet/message")
-
-// CreateMessage creates a new Message under the standard Persistor. v is
-// assumed to be losslessly encodable via the encoding/json package.
-func CreateMessage(v interface{}, topic Topic) (m Message, err error) {
-	return StdPersistor.CreateMessage(v, topic)
-}
-
 // NewPersistor creates a new Persistor in dir.
 func NewPersistor(dir string) *Persistor {
-	if err := os.MkdirAll(dir, 0777); err != nil {
+	if err := fs.MkdirAll(dir, 0777); err != nil {
 		errorlog.Printf("persistor: unable to save unsent messages to %v: %v", dir, err)
 	}
 	p := &Persistor{
@@ -92,7 +87,7 @@ func (p *Persistor) Configure() chan<- *int64 {
 
 // filepaths returns a list of paths of persistent messages.
 func (p *Persistor) filepaths() (paths []string) {
-	d, err := os.Open(p.dir)
+	d, err := fs.Open(p.dir)
 	if err != nil {
 		errorlog.Printf("persistor: failed to open message directory: %v", err)
 		return
@@ -111,7 +106,7 @@ func (p *Persistor) filepaths() (paths []string) {
 
 func (p *Persistor) size() (n int64) {
 	for _, path := range p.filepaths() {
-		f, err := os.Stat(path)
+		f, err := fs.Stat(path)
 		if err != nil {
 			errorlog.Printf("persistor: failed to calculate storage size of message %v: %v", path, err)
 			continue
@@ -174,7 +169,7 @@ func (m *Message) load() (err error) {
 			errorlog.Printf("persistor: failed to load message %v: %v", m.path, err)
 		}
 	}()
-	f, err := os.Open(m.path)
+	f, err := fs.Open(m.path)
 	if err != nil {
 		return
 	}
@@ -189,7 +184,7 @@ func (m Message) save() (err error) {
 			errorlog.Printf("persistor: failed to save message %v: %v", m.path, err)
 		}
 	}()
-	f, err := os.OpenFile(m.path, os.O_WRONLY|os.O_CREATE, 0644)
+	f, err := fs.OpenFile(m.path, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return
 	}
@@ -200,7 +195,7 @@ func (m Message) save() (err error) {
 
 // Remove deletes m from the persistence layer.
 func (m Message) Remove() {
-	os.Remove(m.path)
+	fs.Remove(m.path)
 }
 
 // MessageSource is implemented by types that can generate a Message stream.

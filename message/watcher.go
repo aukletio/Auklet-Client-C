@@ -13,6 +13,7 @@ import (
 // This ensures that we generate Exit events in situations where the agent did
 // not generate a stacktrace.
 type ExitWatcher struct {
+	p          *broker.Persistor
 	app        Watchable
 	source     broker.MessageSource
 	out        chan broker.Message
@@ -27,8 +28,9 @@ type Watchable interface {
 }
 
 // NewExitWatcher returns a new ExitWatcher for the given input and app.
-func NewExitWatcher(in broker.MessageSource, app Watchable) *ExitWatcher {
+func NewExitWatcher(in broker.MessageSource, app Watchable, p *broker.Persistor) *ExitWatcher {
 	return &ExitWatcher{
+		p:      p,
 		app:    app,
 		source: in,
 		out:    make(chan broker.Message),
@@ -49,7 +51,7 @@ func (e *ExitWatcher) Serve() {
 		return
 	}
 	e.app.Wait()
-	m, err := broker.StdPersistor.CreateMessage(schema.NewExit(e.app), broker.Event)
+	m, err := e.p.CreateMessage(schema.NewExit(e.app), broker.Event)
 	if err != nil {
 		errorlog.Print(err)
 		return

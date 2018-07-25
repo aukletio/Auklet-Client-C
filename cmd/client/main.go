@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -30,6 +31,8 @@ type client struct {
 	prod server
 }
 
+var p = broker.NewPersistor(".auklet/message")
+
 func newclient(args []string) *client {
 	c := &client{app: app.New(args)}
 	go api.CreateOrGetDevice(device.MacHash, c.app.ID())
@@ -39,11 +42,11 @@ func newclient(args []string) *client {
 func newAgentServer(app *app.App) agent.Server {
 	handlers := map[string]agent.Handler{
 		"profile": func(data []byte) (broker.Message, error) {
-			p, err := schema.NewProfile(data, app)
+			prof, err := schema.NewProfile(data, app)
 			if err != nil {
 				return broker.Message{}, err
 			}
-			return broker.StdPersistor.CreateMessage(p, broker.Profile)
+			return p.CreateMessage(prof, broker.Profile)
 		},
 		"event": func(data []byte) (broker.Message, error) {
 			app.Cmd.Wait()
@@ -52,10 +55,10 @@ func newAgentServer(app *app.App) agent.Server {
 			if err != nil {
 				return broker.Message{}, err
 			}
-			return broker.StdPersistor.CreateMessage(e, broker.Event)
+			return p.CreateMessage(e, broker.Event)
 		},
 		"log": func(data []byte) (broker.Message, error) {
-			return schema.NewAgentLog(data)
+			return p.CreateMessage(json.RawMessage(data), broker.Log)
 		},
 	}
 	return agent.NewServer(handlers)
@@ -64,12 +67,12 @@ func newAgentServer(app *app.App) agent.Server {
 func (c *client) createPipeline() {
 	logHandler := func(msg []byte) (broker.Message, error) {
 		a := schema.NewAppLog(msg, c.app)
-		return broker.StdPersistor.CreateMessage(a, broker.Log)
+		return p.CreateMessage(a, broker.Log)
 	}
 	logger := agent.NewLogger(logHandler)
 	server := newAgentServer(c.app)
-	watcher := message.NewExitWatcher(server, c.app)
-	merger := message.NewMerger(logger, watcher, broker.StdPersistor)
+	watcher := message.NewExitWatcher(server, c.app, p)
+	merger := message.NewMerger(logger, watcher, p)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 	c.prod = broker.NewProducer(limiter)
 	pollConfig := func() {
