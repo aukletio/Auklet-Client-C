@@ -26,7 +26,7 @@ type App struct {
 	IsReleased bool
 }
 
-// Checksum is the SHA512/224 hash of the executable file (Cmd.Path)
+// CheckSum is the SHA512/224 hash of the executable file (Cmd.Path)
 // with which we identify a build.
 func (a *App) CheckSum() string { return a.checkSum }
 
