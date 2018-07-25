@@ -1,7 +1,6 @@
 package message
 
 import (
-	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
@@ -14,15 +13,21 @@ import (
 // This ensures that we generate Exit events in situations where the agent did
 // not generate a stacktrace.
 type ExitWatcher struct {
-	app        *app.App
+	app        Watchable
 	source     broker.MessageSource
 	out        chan broker.Message
 	errd       bool
 	eventTopic string
 }
 
+// Watchable is an app that we can wait on to exit.
+type Watchable interface {
+	schema.SignalExitApp
+	Wait()
+}
+
 // NewExitWatcher returns a new ExitWatcher for the given input and app.
-func NewExitWatcher(in broker.MessageSource, app *app.App) *ExitWatcher {
+func NewExitWatcher(in broker.MessageSource, app Watchable) *ExitWatcher {
 	return &ExitWatcher{
 		app:    app,
 		source: in,
@@ -44,7 +49,7 @@ func (e *ExitWatcher) Serve() {
 		return
 	}
 	e.app.Wait()
-	m, err := schema.NewExit(e.app)
+	m, err := broker.StdPersistor.CreateMessage(schema.NewExit(e.app), broker.Event)
 	if err != nil {
 		errorlog.Print(err)
 		return

@@ -5,7 +5,6 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
@@ -44,16 +43,16 @@ type SignalExitApp interface {
 }
 
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
-func NewExit(app SignalExitApp) (m broker.Message, err error) {
-	var e Exit
-	e.AppID = app.ID()
-	e.CheckSum = app.CheckSum()
-	e.IP = device.CurrentIP()
-	e.UUID = uuid.NewV4().String()
-	e.Time = time.Now()
-	e.Status = app.ExitStatus()
-	e.Signal = app.Signal()
-	e.MacHash = device.MacHash
-	e.Metrics = device.GetMetrics()
-	return broker.StdPersistor.CreateMessage(e, broker.Event)
+func NewExit(app SignalExitApp) Exit {
+	return Exit{
+		AppID: app.ID(),
+		CheckSum: app.CheckSum(),
+		IP: device.CurrentIP(),
+		UUID: uuid.NewV4().String(),
+		Time: time.Now(),
+		Status: app.ExitStatus(),
+		Signal: app.Signal(),
+		MacHash: device.MacHash,
+		Metrics: device.GetMetrics(),
+	}
 }

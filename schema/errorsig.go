@@ -6,7 +6,6 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
@@ -49,8 +48,7 @@ type ExitApp interface {
 
 // NewErrorSig creates an ErrorSig for app out of raw message data. It assumes
 // that app.Wait() has returned.
-func NewErrorSig(data []byte, app ExitApp) (m broker.Message, err error) {
-	var e ErrorSig
+func NewErrorSig(data []byte, app ExitApp) (e ErrorSig, err error) {
 	err = json.Unmarshal(data, &e)
 	if err != nil {
 		return
@@ -63,5 +61,5 @@ func NewErrorSig(data []byte, app ExitApp) (m broker.Message, err error) {
 	e.Status = app.ExitStatus()
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
-	return broker.StdPersistor.CreateMessage(e, broker.Event)
+	return
 }

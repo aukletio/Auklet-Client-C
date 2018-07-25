@@ -39,12 +39,20 @@ func newclient(args []string) *client {
 func newAgentServer(app *app.App) agent.Server {
 	handlers := map[string]agent.Handler{
 		"profile": func(data []byte) (broker.Message, error) {
-			return schema.NewProfile(data, app)
+			p, err :=  schema.NewProfile(data, app)
+			if err != nil {
+				return broker.Message{}, err
+			}
+			return broker.StdPersistor.CreateMessage(p, broker.Profile)
 		},
 		"event": func(data []byte) (broker.Message, error) {
 			app.Cmd.Wait()
 			log.Printf("app %v exited with error signal", app.Path)
-			return schema.NewErrorSig(data, app)
+			e, err := schema.NewErrorSig(data, app)
+			if err != nil {
+				return broker.Message{}, err
+			}
+			return broker.StdPersistor.CreateMessage(e, broker.Event)
 		},
 		"log": func(data []byte) (broker.Message, error) {
 			return schema.NewAgentLog(data)
@@ -55,7 +63,8 @@ func newAgentServer(app *app.App) agent.Server {
 
 func (c *client) createPipeline() {
 	logHandler := func(msg []byte) (broker.Message, error) {
-		return schema.NewAppLog(msg, c.app)
+		a := schema.NewAppLog(msg, c.app)
+		return broker.StdPersistor.CreateMessage(a, broker.Log)
 	}
 	logger := agent.NewLogger(logHandler)
 	server := newAgentServer(c.app)

@@ -5,7 +5,6 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
@@ -37,15 +36,15 @@ type AppLog struct {
 }
 
 // NewAppLog converts msg into a custom log message.
-func NewAppLog(msg []byte, app App) (m broker.Message, err error) {
-	var a AppLog
-	a.AppID = app.ID()
-	a.CheckSum = app.CheckSum()
-	a.IP = device.CurrentIP()
-	a.UUID = uuid.NewV4().String()
-	a.Time = time.Now()
-	a.MacHash = device.MacHash
-	a.Metrics = device.GetMetrics()
-	a.Message = msg
-	return broker.StdPersistor.CreateMessage(a, broker.Log)
+func NewAppLog(msg []byte, app App) AppLog {
+	return AppLog{
+		AppID:    app.ID(),
+		CheckSum: app.CheckSum(),
+		IP:       device.CurrentIP(),
+		UUID:     uuid.NewV4().String(),
+		Time:     time.Now(),
+		MacHash:  device.MacHash,
+		Metrics:  device.GetMetrics(),
+		Message:  msg,
+	}
 }
