@@ -32,7 +32,7 @@ type client struct {
 
 func newclient(args []string) *client {
 	c := &client{app: app.New(args)}
-	go api.CreateOrGetDevice(device.MacHash, c.app.ID)
+	go api.CreateOrGetDevice(device.MacHash, c.app.ID())
 	return c
 }
 
@@ -65,7 +65,7 @@ func (c *client) createPipeline() {
 	c.prod = broker.NewProducer(limiter)
 	pollConfig := func() {
 		poll := func() {
-			dl := api.GetDataLimit(c.app.ID).Config
+			dl := api.GetDataLimit(c.app.ID()).Config
 			go func() { server.Configure() <- dl.EmissionPeriod }()
 			go func() { limiter.Configure() <- dl.Cellular }()
 		}

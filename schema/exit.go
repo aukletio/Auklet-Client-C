@@ -1,12 +1,10 @@
 package schema
 
 import (
-	"syscall"
 	"time"
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
@@ -38,19 +36,22 @@ type Exit struct {
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
+type SignalExitApp interface {
+	App
+	Exiter
+	Signaller
+}
+
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
-func NewExit(app *app.App) (m broker.Message, err error) {
+func NewExit(app SignalExitApp) (m broker.Message, err error) {
 	var e Exit
-	e.AppID = app.ID
-	e.CheckSum = app.CheckSum
+	e.AppID = app.ID()
+	e.CheckSum = app.CheckSum()
 	e.IP = device.CurrentIP()
 	e.UUID = uuid.NewV4().String()
 	e.Time = time.Now()
-	ws := app.ProcessState.Sys().(syscall.WaitStatus)
-	e.Status = ws.ExitStatus()
-	if ws.Signaled() {
-		e.Signal = ws.Signal().String()
-	}
+	e.Status = app.ExitStatus()
+	e.Signal = app.Signal()
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
 	return broker.StdPersistor.CreateMessage(e, broker.Event)

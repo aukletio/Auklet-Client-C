@@ -6,7 +6,6 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
@@ -36,7 +35,7 @@ type Profile struct {
 }
 
 // NewProfile creates a Profile for app out of raw message data.
-func NewProfile(data []byte, app *app.App) (m broker.Message, err error) {
+func NewProfile(data []byte, app App) (m broker.Message, err error) {
 	var p Profile
 	err = json.Unmarshal(data, &p)
 	if err != nil {
@@ -46,7 +45,7 @@ func NewProfile(data []byte, app *app.App) (m broker.Message, err error) {
 	p.IP = device.CurrentIP()
 	p.UUID = uuid.NewV4().String()
 	p.Time = time.Now().UnixNano() / 1000000 // milliseconds
-	p.CheckSum = app.CheckSum
-	p.AppID = app.ID
+	p.CheckSum = app.CheckSum()
+	p.AppID = app.ID()
 	return broker.StdPersistor.CreateMessage(p, broker.Profile)
 }

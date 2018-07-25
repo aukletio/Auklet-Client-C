@@ -1,15 +1,11 @@
-// +build linux
-
 package schema
 
 import (
 	"encoding/json"
-	"syscall"
 	"time"
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
@@ -32,8 +28,7 @@ type ErrorSig struct {
 	// Time is the time at which the event was received.
 	Time time.Time `json:"timestamp"`
 
-	// Status is the exit status of the application as accessible through
-	// App.Wait.
+	// Status is the exit status of the application.
 	Status int `json:"exitStatus"`
 
 	// Signal is an integer value provided by an agent. As an output, it is
@@ -46,20 +41,25 @@ type ErrorSig struct {
 	Metrics device.Metrics  `json:"systemMetrics"`
 }
 
+type ExitApp interface {
+	App
+	Exiter
+}
+
 // NewErrorSig creates an ErrorSig for app out of raw message data. It assumes
 // that app.Wait() has returned.
-func NewErrorSig(data []byte, app *app.App) (m broker.Message, err error) {
+func NewErrorSig(data []byte, app ExitApp) (m broker.Message, err error) {
 	var e ErrorSig
 	err = json.Unmarshal(data, &e)
 	if err != nil {
 		return
 	}
-	e.AppID = app.ID
-	e.CheckSum = app.CheckSum
+	e.AppID = app.ID()
+	e.CheckSum = app.CheckSum()
 	e.IP = device.CurrentIP()
 	e.UUID = uuid.NewV4().String()
 	e.Time = time.Now()
-	e.Status = app.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
+	e.Status = app.ExitStatus()
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
 	return broker.StdPersistor.CreateMessage(e, broker.Event)

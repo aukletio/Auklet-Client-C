@@ -1,8 +1,11 @@
+// +build linux
+
 // Package app provides a model of applications using Auklet.
 package app
 
 import (
 	"crypto/sha512"
+	"syscall"
 	"fmt"
 	"io"
 	"log"
@@ -18,12 +21,24 @@ import (
 type App struct {
 	// Cmd is the command to be executed.
 	*exec.Cmd
-
-	// Checksum is the SHA512/224 hash of the executable file (Cmd.Path)
-	// with which we identify a build.
-	CheckSum   string
-	ID         string
+	checkSum   string
+	id         string
 	IsReleased bool
+}
+
+// Checksum is the SHA512/224 hash of the executable file (Cmd.Path)
+// with which we identify a build.
+func (a *App) CheckSum() string { return a.checkSum }
+func (a *App) ID() string       { return a.id }
+func (a *App) ExitStatus() int {
+	return a.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
+}
+func (a *App) Signal() string {
+	ws := a.ProcessState.Sys().(syscall.WaitStatus)
+	if ws.Signaled() {
+		return ws.Signal().String()
+	}
+	return ""
 }
 
 // New returns an App that would execute args.
@@ -35,8 +50,8 @@ func New(args []string) (app *App) {
 	s := sum(c.Path)
 	app = &App{
 		Cmd:        c,
-		CheckSum:   s,
-		ID:         config.AppID(),
+		checkSum:   s,
+		id:         config.AppID(),
 		IsReleased: api.Release(s),
 	}
 	return
