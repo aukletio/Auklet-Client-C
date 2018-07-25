@@ -36,6 +36,7 @@ type Exit struct {
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
+// SignalExitApp is an app with an exit status and signal description.
 type SignalExitApp interface {
 	App
 	Exiter

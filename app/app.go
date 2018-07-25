@@ -5,12 +5,12 @@ package app
 
 import (
 	"crypto/sha512"
-	"syscall"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/config"
@@ -29,10 +29,17 @@ type App struct {
 // Checksum is the SHA512/224 hash of the executable file (Cmd.Path)
 // with which we identify a build.
 func (a *App) CheckSum() string { return a.checkSum }
-func (a *App) ID() string       { return a.id }
+
+// ID returns the application ID.
+func (a *App) ID() string { return a.id }
+
+// ExitStatus returns the app's exit status.
 func (a *App) ExitStatus() int {
 	return a.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 }
+
+// Signal returns a non-empty string describing the signal that killed the app.
+// If no signal killed the app, an empty string is returned.
 func (a *App) Signal() string {
 	ws := a.ProcessState.Sys().(syscall.WaitStatus)
 	if ws.Signaled() {
@@ -58,17 +65,17 @@ func New(args []string) (app *App) {
 }
 
 // Start wraps the underlying call to Cmd.Start and logs any errors.
-func (app *App) Start() (err error) {
-	err = app.Cmd.Start()
+func (a *App) Start() (err error) {
+	err = a.Cmd.Start()
 	if err == nil {
-		log.Printf("app %v started", app.Path)
+		log.Printf("app %v started", a.Path)
 	} else {
 		errorlog.Print(err)
 	}
 	// We will not be using our copies of any file descriptors we
 	// passed on to the app. We close them to ensure that our
 	// servers receive EOF when the app's copies are closed.
-	for _, f := range app.ExtraFiles {
+	for _, f := range a.ExtraFiles {
 		log.Println("closing ", f.Name())
 		f.Close()
 	}
@@ -76,9 +83,9 @@ func (app *App) Start() (err error) {
 }
 
 // Wait wraps the underlying call to Cmd.Wait and logs the exit of app.
-func (app *App) Wait() {
-	app.Cmd.Wait()
-	log.Printf("app %v exited", app.Path)
+func (a *App) Wait() {
+	a.Cmd.Wait()
+	log.Printf("app %v exited", a.Path)
 }
 
 // sum calculates the SHA512/224 hash of the file located at path.

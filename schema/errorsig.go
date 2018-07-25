@@ -41,6 +41,7 @@ type ErrorSig struct {
 	Metrics device.Metrics  `json:"systemMetrics"`
 }
 
+// ExitApp is an App that has an exit status.
 type ExitApp interface {
 	App
 	Exiter
