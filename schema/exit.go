@@ -45,14 +45,14 @@ type SignalExitApp interface {
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
 func NewExit(app SignalExitApp) Exit {
 	return Exit{
-		AppID: app.ID(),
+		AppID:    app.ID(),
 		CheckSum: app.CheckSum(),
-		IP: device.CurrentIP(),
-		UUID: uuid.NewV4().String(),
-		Time: time.Now(),
-		Status: app.ExitStatus(),
-		Signal: app.Signal(),
-		MacHash: device.MacHash,
-		Metrics: device.GetMetrics(),
+		IP:       device.CurrentIP(),
+		UUID:     uuid.NewV4().String(),
+		Time:     time.Now(),
+		Status:   app.ExitStatus(),
+		Signal:   app.Signal(),
+		MacHash:  device.MacHash,
+		Metrics:  device.GetMetrics(),
 	}
 }

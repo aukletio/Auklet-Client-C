@@ -39,7 +39,7 @@ func newclient(args []string) *client {
 func newAgentServer(app *app.App) agent.Server {
 	handlers := map[string]agent.Handler{
 		"profile": func(data []byte) (broker.Message, error) {
-			p, err :=  schema.NewProfile(data, app)
+			p, err := schema.NewProfile(data, app)
 			if err != nil {
 				return broker.Message{}, err
 			}
