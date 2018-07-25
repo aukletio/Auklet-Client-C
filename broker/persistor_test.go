@@ -11,7 +11,7 @@ func init() {
 }
 
 func TestPersistor(t *testing.T) {
-	p := NewPersistor("")
+	p := NewPersistor(".auklet/message")
 	var limit int64 = 900
 	p.Configure() <- &limit
 	m := make([]byte, 500)
@@ -20,7 +20,7 @@ func TestPersistor(t *testing.T) {
 		t.Errorf("expected nil, got %v", err)
 	}
 	defer m1.Remove()
-	m2, err = p.CreateMessage(m, 0)
+	m2, err := p.CreateMessage(m, 0)
 	if _, is := err.(ErrStorageFull); !is {
 		t.Errorf("expected ErrStorageFull, got %v", err)
 	}
