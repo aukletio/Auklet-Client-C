@@ -73,7 +73,8 @@ func (c *client) createPipeline() {
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app, p)
 	merger := message.NewMerger(logger, watcher, p)
-	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
+	adapter := message.NewMPAdapter(merger)
+	limiter := message.NewDataLimiter(adapter, message.FilePersistor{".auklet/datalimit.json"})
 	c.prod = broker.NewProducer(limiter)
 	pollConfig := func() {
 		poll := func() {
@@ -91,6 +92,7 @@ func (c *client) createPipeline() {
 	go server.Serve()
 	go merger.Serve()
 	go watcher.Serve()
+	go adapter.Serve()
 	go limiter.Serve()
 	go pollConfig()
 
