@@ -1,6 +1,7 @@
 package message
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -19,6 +20,7 @@ func TestAdapt(t *testing.T) {
 		schema.ErrorSig{},
 		schema.Exit{},
 		schema.Profile{},
+		json.RawMessage(`{"hello":"world"}`),
 	} {
 		m, err := p.CreateMessage(v, 0)
 		if err != nil {

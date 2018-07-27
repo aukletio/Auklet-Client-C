@@ -41,9 +41,9 @@ type ErrorSig struct {
 	Signal string `json:"signal"`
 
 	// Trace is a stacktrace provided by an agent.
-	Trace   json.RawMessage `json:"stackTrace"`
-	MacHash string          `json:"macAddressHash"`
-	Metrics device.Metrics  `json:"systemMetrics"`
+	Trace   RawMessage     `json:"stackTrace"`
+	MacHash string         `json:"macAddressHash"`
+	Metrics device.Metrics `json:"systemMetrics"`
 }
 
 // NewErrorSig creates an ErrorSig for app out of raw message data. It assumes

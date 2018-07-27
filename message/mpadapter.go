@@ -1,6 +1,7 @@
 package message
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -48,6 +49,7 @@ func (a MPAdapter) Serve() {
 // persistent file (which is hidden from us).
 func adapt(msg *broker.Message) error {
 	v, in := map[string]interface{}{
+		"json.RawMessage": new(schema.RawMessage),
 		"[]uint8":         new([]byte),
 		"schema.AppLog":   new(schema.AppLog),
 		"schema.ErrorSig": new(schema.ErrorSig),
@@ -57,10 +59,10 @@ func adapt(msg *broker.Message) error {
 	if !in {
 		return fmt.Errorf("adapt: can't convert %q to MessagePack format", msg.Type)
 	}
-	if err := json.Unmarshal(msg.Bytes, v); err != nil {
+	if err := json.Unmarshal(msg.Bytes, &v); err != nil {
 		return err
 	}
-	b, err := msgpack.Marshal(v)
+	b, err := marshalMP(v)
 	if err != nil {
 		return err
 	}
@@ -68,4 +70,15 @@ func adapt(msg *broker.Message) error {
 	// persistor, but the producers don't care. They see it as []byte.
 	msg.Bytes = b
 	return nil
+}
+
+func marshalMP(v interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := msgpack.NewEncoder(&buf)
+	enc.UseJSONTag(true)
+	err := enc.Encode(v)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
