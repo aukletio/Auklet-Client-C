@@ -61,9 +61,9 @@ func (c *client) createPipeline() {
 	server := newAgentServer(c.app)
 	watcher := message.NewExitWatcher(server, c.app)
 	merger := message.NewMerger(logger, watcher, broker.StdPersistor)
-	limiter := message.NewDataLimiter(merger)
+	adapter := message.NewMPAdapter(merger)
+	limiter := message.NewDataLimiter(adapter)
 	c.prod = broker.NewProducer(limiter)
-	//c.prod = broker.NewMQTTProducer(limiter)
 	pollConfig := func() {
 		poll := func() {
 			dl := api.GetDataLimit(c.app.ID).Config
@@ -80,6 +80,7 @@ func (c *client) createPipeline() {
 	go server.Serve()
 	go merger.Serve()
 	go watcher.Serve()
+	go adapter.Serve()
 	go limiter.Serve()
 	go pollConfig()
 
