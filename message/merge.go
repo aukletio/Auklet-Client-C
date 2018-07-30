@@ -15,10 +15,12 @@ type Merger struct {
 
 // NewMerger returns a Merger that merges the streams of each element in src.
 func NewMerger(src ...broker.MessageSource) Merger {
-	return Merger{
+	m := Merger{
 		src: src,
 		out: make(chan broker.Message, 10),
 	}
+	go m.serve()
+	return m
 }
 
 // Output returns m's output channel. It closes when all input streams have
@@ -27,8 +29,8 @@ func (m Merger) Output() <-chan broker.Message {
 	return m.out
 }
 
-// Serve activates m, causing it to send and receive messages.
-func (m Merger) Serve() {
+// serve activates m, causing it to send and receive messages.
+func (m Merger) serve() {
 	var wg sync.WaitGroup
 	merge := func(s broker.MessageSource) {
 		defer wg.Done()

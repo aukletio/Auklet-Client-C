@@ -20,10 +20,12 @@ type MPAdapter struct {
 
 // NewMPAdapter returns an MPAdapter that translates messages from in.
 func NewMPAdapter(in broker.MessageSource) MPAdapter {
-	return MPAdapter{
+	a := MPAdapter{
 		in:  in,
 		out: make(chan broker.Message),
 	}
+	go a.serve()
+	return a
 }
 
 // Output returns the adapter's output channel. It closes when its source
@@ -32,9 +34,9 @@ func (a MPAdapter) Output() <-chan broker.Message {
 	return a.out
 }
 
-// Serve runs the adapter, causing it to send and receive messages. Serve
+// serve runs the adapter, causing it to send and receive messages. Serve
 // returns when the adapter's input closes.
-func (a MPAdapter) Serve() {
+func (a MPAdapter) serve() {
 	defer close(a.out)
 	for msg := range a.in.Output() {
 		if err := adapt(&msg); err != nil {

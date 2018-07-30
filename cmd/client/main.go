@@ -26,60 +26,63 @@ type server interface {
 	Serve()
 }
 
+var application *app.App
+
 type client struct {
-	app  *app.App
 	prod server
 }
 
-var p = broker.NewPersistor(".auklet/message")
+var persistor = broker.NewPersistor(".auklet/message")
 
-func newclient(args []string) *client {
-	c := &client{app: app.New(args)}
-	go api.CreateOrGetDevice(device.MacHash, c.app.ID())
+func newclient() *client {
+	c := &client{}
+	go api.CreateOrGetDevice(device.MacHash, application.ID())
 	return c
 }
 
-func newAgentServer(app *app.App) agent.Server {
+func newAgentServer() agent.Server {
 	handlers := map[string]agent.Handler{
 		"profile": func(data []byte) (broker.Message, error) {
-			prof, err := schema.NewProfile(data, app)
+			prof, err := schema.NewProfile(data, application)
 			if err != nil {
 				return broker.Message{}, err
 			}
-			return p.CreateMessage(prof, broker.Profile)
+			return persistor.CreateMessage(prof, broker.Profile)
 		},
 		"event": func(data []byte) (broker.Message, error) {
-			app.Cmd.Wait()
-			log.Printf("app %v exited with error signal", app.Path)
-			e, err := schema.NewErrorSig(data, app)
+			application.Wait()
+			log.Printf("%v exited with error signal", application)
+			e, err := schema.NewErrorSig(data, application)
 			if err != nil {
 				return broker.Message{}, err
 			}
-			return p.CreateMessage(e, broker.Event)
+			return persistor.CreateMessage(e, broker.Event)
 		},
 		"log": func(data []byte) (broker.Message, error) {
-			return p.CreateMessage(json.RawMessage(data), broker.Log)
+			return persistor.CreateMessage(json.RawMessage(data), broker.Log)
 		},
 	}
-	return agent.NewServer(handlers)
+	return agent.NewServer(application.Data(), handlers)
 }
 
 func (c *client) createPipeline() {
 	logHandler := func(msg []byte) (broker.Message, error) {
-		a := schema.NewAppLog(msg, c.app)
-		return p.CreateMessage(a, broker.Log)
+		a := schema.NewAppLog(msg, application)
+		return persistor.CreateMessage(a, broker.Log)
 	}
-	logger := agent.NewLogger(logHandler)
-	server := newAgentServer(c.app)
-	watcher := message.NewExitWatcher(server, c.app, p)
-	merger := message.NewMerger(logger, watcher, p)
+	logger := agent.NewLogger(application.Logs(), logHandler)
+	server := newAgentServer()
+	requester := agent.NewPeriodicRequester(application.Data())
+	watcher := message.NewExitWatcher(server, application, persistor)
+	merger := message.NewMerger(logger, watcher, persistor)
 	adapter := message.NewMPAdapter(merger)
 	limiter := message.NewDataLimiter(adapter, message.FilePersistor{".auklet/datalimit.json"})
 	c.prod = broker.NewProducer(limiter)
+
 	pollConfig := func() {
 		poll := func() {
-			dl := api.GetDataLimit(c.app.ID()).Config
-			go func() { server.Configure() <- dl.EmissionPeriod }()
+			dl := api.GetDataLimit(application.ID()).Config
+			go func() { requester.Configure() <- dl.EmissionPeriod }()
 			go func() { limiter.Configure() <- dl.Cellular }()
 		}
 		poll()
@@ -87,32 +90,20 @@ func (c *client) createPipeline() {
 			poll()
 		}
 	}
-
-	go logger.Serve()
-	go server.Serve()
-	go merger.Serve()
-	go watcher.Serve()
-	go adapter.Serve()
-	go limiter.Serve()
 	go pollConfig()
-
-	c.app.ExtraFiles = append(c.app.ExtraFiles,
-		logger.Remote(), // fd 3 - application use
-		server.Remote(), // fd 4 - agent use
-	)
 }
 
 func (c *client) run() {
-	if !c.app.IsReleased {
+	if !application.IsReleased() {
 		// not released. Start the app, but don't serve it.
-		if err := c.app.Start(); err == nil {
-			c.app.Wait()
+		if err := application.Start(); err == nil {
+			application.Wait()
 		}
 		os.Exit(0)
 	}
 
 	c.createPipeline()
-	err := c.app.Start()
+	err := application.Start()
 	if err != nil {
 		os.Exit(1)
 	}
@@ -170,5 +161,6 @@ func main() {
 	if !cfg.LogErrors {
 		errorlog.SetOutput(ioutil.Discard)
 	}
-	newclient(args).run()
+	application = app.New(args)
+	newclient().run()
 }

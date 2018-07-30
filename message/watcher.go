@@ -29,17 +29,19 @@ type Watchable interface {
 
 // NewExitWatcher returns a new ExitWatcher for the given input and app.
 func NewExitWatcher(in broker.MessageSource, app Watchable, p *broker.Persistor) *ExitWatcher {
-	return &ExitWatcher{
+	e := &ExitWatcher{
 		p:      p,
 		app:    app,
 		source: in,
 		out:    make(chan broker.Message),
 		errd:   false,
 	}
+	go e.serve()
+	return e
 }
 
-// Serve activates e, causing it to send and receive Messages.
-func (e *ExitWatcher) Serve() {
+// serve activates e, causing it to send and receive Messages.
+func (e *ExitWatcher) serve() {
 	defer close(e.out)
 	for m := range e.source.Output() {
 		if m.Topic == broker.Event {

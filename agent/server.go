@@ -6,8 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
-	"time"
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
@@ -23,11 +21,10 @@ type message struct {
 // Handler transforms a byte slice into a broker.Message.
 type Handler func(data []byte) (broker.Message, error)
 
-// Server provides a Unix domain socket listener for an Auklet agent.
+// Server provides a connection server for an Auklet agent.
 type Server struct {
-	// local is the Unix domain socket to be served.
-	local  *os.File
-	remote *os.File
+	// conn is the connection to be served.
+	conn io.Reader
 
 	// handlers is a collection of Handler functions keyed by message
 	// type. When a message is received, the corresponding Handler is looked
@@ -37,34 +34,27 @@ type Server struct {
 	// Server.
 	handlers map[string]Handler
 	out      chan broker.Message
-
-	conf chan int
 }
 
-// NewServer returns a new Server for an anonymous Unix domain socket. Incoming
-// messages are processed by the given handlers.
-func NewServer(handlers map[string]Handler) Server {
-	local, remote, err := socketpair("dataserver-")
-	if err != nil {
-		errorlog.Print(err)
-	}
-	return Server{
-		local:    local,
-		remote:   remote,
+// NewServer returns a new Server that reads from conn. Incoming messages are
+// processed by the given handlers.
+func NewServer(conn io.Reader, handlers map[string]Handler) Server {
+	s := Server{
+		conn:     conn,
 		out:      make(chan broker.Message),
 		handlers: handlers,
-		conf:     make(chan int),
 	}
+	go s.serve()
+	return s
 }
 
-// Serve causes s to accept an incoming connection, after which s can send and
+// serve causes s to accept an incoming connection, after which s can send and
 // receive messages.
-func (s Server) Serve() {
+func (s Server) serve() {
 	defer close(s.out)
-	log.Printf("accepted connection on %v", s.local.Name())
-	defer log.Printf("connection on %v closed", s.local.Name())
-	go s.requestProfiles(s.local)
-	dec := json.NewDecoder(s.local)
+	log.Print("Server: accepted connection")
+	defer log.Print("Server: connection closed")
+	dec := json.NewDecoder(s.conn)
 	for {
 		msg := &message{}
 		if err := dec.Decode(msg); err == io.EOF {
@@ -74,7 +64,7 @@ func (s Server) Serve() {
 			// message format.
 			buf, _ := ioutil.ReadAll(dec.Buffered())
 			errorlog.Print(err, string(buf))
-			dec = json.NewDecoder(s.local)
+			dec = json.NewDecoder(s.conn)
 			continue
 		}
 
@@ -95,35 +85,7 @@ func (s Server) Serve() {
 	}
 }
 
-// Configure returns a channel on which the emission period in seconds can be
-// set.
-func (s Server) Configure() chan<- int {
-	return s.conf
-}
-
-func (s Server) requestProfiles(out io.Writer) {
-	emit := time.NewTicker(time.Second)
-	for {
-		select {
-		case <-emit.C:
-			if _, err := out.Write([]byte{0}); err != nil {
-				errorlog.Println("requestProfiles:", err)
-			}
-		case dur := <-s.conf:
-			emit.Stop()
-			if dur > 0 {
-				emit = time.NewTicker(time.Duration(dur) * time.Second)
-			}
-		}
-	}
-}
-
 // Output returns s's output stream.
 func (s Server) Output() <-chan broker.Message {
 	return s.out
-}
-
-// Remote returns the socket to be inherited by the child process.
-func (s Server) Remote() *os.File {
-	return s.remote
 }

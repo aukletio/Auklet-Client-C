@@ -41,6 +41,7 @@ func NewDataLimiter(input broker.MessageSource, store Persistor) *DataLimiter {
 	}
 	l.store.Load(l)
 	// If Load fails, there is no budget, so all messages will be sent.
+	go l.serve()
 	return l
 }
 
@@ -108,8 +109,8 @@ func (l *DataLimiter) increment(n int) (err error) {
 	return l.store.Save(l)
 }
 
-// Serve activates l, causing it to receive and send Messages.
-func (l *DataLimiter) Serve() {
+// serve activates l, causing it to receive and send Messages.
+func (l *DataLimiter) serve() {
 	state := l.initial
 	for state != nil {
 		if l.newPeriod() {

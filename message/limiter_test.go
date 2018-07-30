@@ -15,15 +15,17 @@ type source struct {
 // newsource creates a source that generates num messages of the given size in
 // bytes.
 func newsource(num, size int) source {
-	return source{
+	s := source{
 		size: size,
 		num:  num,
 		out:  make(chan broker.Message),
 	}
+	go s.serve()
+	return s
 }
 
-// Serve causes s to generate one message per second.
-func (s source) Serve() {
+// serve causes s to generate one message per second.
+func (s source) serve() {
 	defer close(s.out)
 	for i := 0; i < s.num; i++ {
 		s.out <- broker.Message{
@@ -58,8 +60,6 @@ func consume(s broker.MessageSource) (count int) {
 func TestDataLimiter(t *testing.T) {
 	s := newsource(4, 1100)
 	l := newLimiter(s)
-	go s.Serve()
-	go l.Serve()
 
 	if count := consume(l); count > *l.Budget {
 		t.Errorf("expected <= %v, got %v", *l.Budget, count)
