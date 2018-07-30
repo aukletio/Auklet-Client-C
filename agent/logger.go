@@ -2,8 +2,8 @@ package agent
 
 import (
 	"bufio"
-	"log"
 	"io"
+	"log"
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"

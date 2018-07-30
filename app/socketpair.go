@@ -18,7 +18,7 @@ func socketpair(prefix string) (p pair, err error) {
 	if err != nil {
 		return
 	}
-	p = pair {
+	p = pair{
 		local:  os.NewFile(uintptr(fd[0]), prefix+"-local"),
 		remote: os.NewFile(uintptr(fd[1]), prefix+"-remote"),
 	}
