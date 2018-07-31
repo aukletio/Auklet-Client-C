@@ -3,22 +3,31 @@ package agent
 import (
 	"bytes"
 	"testing"
-
-	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
 func TestServer(t *testing.T) {
 	conn := bytes.NewBuffer([]byte(`{"type":"message","data":"hello, world"}`))
-	handlers := map[string]Handler{
-		"message": func(data []byte) (_ broker.Message, _ error) {
-			d := string(data)
-			exp := `"hello, world"`
-			if d != exp {
-				t.Errorf("handler: expected %v, got %v", exp, d)
-			}
-			return
-		},
+	s := NewServer(conn)
+	m := <-s.Output()
+	switch m.Type {
+	case "message":
+		d := string(m.Data)
+		exp := `"hello, world"`
+		if d != exp {
+			t.Errorf("expected %v, got %v", exp, d)
+		}
+	default:
+		t.Errorf(`expected "message", got %q`, m.Type)
 	}
-	for _ = range NewServer(conn, handlers).Output() {
+	// output channel ought to close now
+	select {
+	case _, open := <-s.Output():
+		if open {
+			t.Errorf("expected channel to close, but it's open and still has messages")
+		} else {
+			// success
+		}
+	default:
+		t.Errorf("expected channel to close immediately, but it's open and blocking")
 	}
 }

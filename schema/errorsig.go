@@ -39,7 +39,7 @@ type errorSig struct {
 	Trace   interface{}    `json:"stackTrace"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
-	Error   string         `json:"error"`
+	Error   string         `json:"error,omitempty"`
 }
 
 // ExitApp is an App that has an exit status.

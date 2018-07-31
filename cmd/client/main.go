@@ -39,39 +39,16 @@ func newclient() *client {
 	return c
 }
 
-func newAgentServer() agent.Server {
-	handlers := map[string]agent.Handler{
-		"profile": func(data []byte) (broker.Message, error) {
-			prof := schema.NewProfile(data, application)
-			return prof, persistor.CreateMessage(prof)
-		},
-		"event": func(data []byte) (broker.Message, error) {
-			application.Wait()
-			log.Printf("%v exited with error signal", application)
-			errsig := schema.NewErrorSig(data, application)
-			return errsig, persistor.CreateMessage(errsig)
-		},
-		"log": func(data []byte) (broker.Message, error) {
-			l := broker.Message{
-				Error: "",
-				Bytes: data,
-				Topic: broker.Log,
-			}
-			return l, persistor.CreateMessage(l)
-		},
-	}
-	return agent.NewServer(application.Data(), handlers)
-}
-
 func (c *client) createPipeline() {
 	logHandler := func(msg []byte) (broker.Message, error) {
 		a := schema.NewAppLog(msg, application)
 		return a, persistor.CreateMessage(a)
 	}
 	logger := agent.NewLogger(application.Logs(), logHandler)
-	server := newAgentServer()
+	server := agent.NewServer(application.Data())
+	converter := schema.NewConverter(server, persistor, application)
 	requester := agent.NewPeriodicRequester(application.Data())
-	watcher := message.NewExitWatcher(server, application, persistor)
+	watcher := message.NewExitWatcher(converter, application, persistor)
 	merger := message.NewMerger(logger, watcher, persistor)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 	c.prod = broker.NewProducer(limiter)

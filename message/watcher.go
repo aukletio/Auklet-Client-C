@@ -2,7 +2,6 @@ package message
 
 import (
 	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
@@ -54,9 +53,12 @@ func (e *ExitWatcher) serve() {
 	}
 	e.app.Wait()
 	m := schema.NewExit(e.app)
-	err := e.p.CreateMessage(m)
-	if err != nil {
-		errorlog.Print(err)
+	if err := e.p.CreateMessage(m); err != nil {
+		// Let the backend know we ran out of local storage.
+		e.out <- broker.Message{
+			Error: err.Error(),
+			Topic: broker.Log,
+		}
 		return
 	}
 	e.out <- m
