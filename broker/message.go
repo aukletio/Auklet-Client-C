@@ -27,8 +27,9 @@ var fs = afero.NewOsFs()
 
 // Message represents a broker message.
 type Message struct {
-	Topic Topic           `json:"topic"`
-	Bytes json.RawMessage `json:"bytes"`
+	Error string `json:"error"`
+	Topic Topic  `json:"topic"`
+	Bytes []byte `json:"bytes"`
 	path  string
 }
 
@@ -135,24 +136,15 @@ func (p *Persistor) Output() <-chan Message {
 }
 
 // CreateMessage creates a new Message under p.
-func (p *Persistor) CreateMessage(v interface{}, topic Topic) (m Message, err error) {
-	bytes, err := json.Marshal(v)
-	if err != nil {
-		return
-	}
+func (p *Persistor) CreateMessage(m Message) (err error) {
 	lim := <-p.currentLimit
-	if lim != nil && int64(len(bytes))+p.size() > 9**lim/10 {
-		err = ErrStorageFull{
+	if lim != nil && int64(len(m.Bytes))+p.size() > 9**lim/10 {
+		return ErrStorageFull{
 			limit: *lim,
 			count: p.count,
 		}
-		return
 	}
-	m = Message{
-		Topic: topic,
-		Bytes: bytes,
-		path:  fmt.Sprintf("%v/%v-%v", p.dir, os.Getpid(), p.count),
-	}
+	m.path = fmt.Sprintf("%v/%v-%v", p.dir, os.Getpid(), p.count)
 	p.count++
 	// Failing to save a message is a recoverable error that does not affect
 	// our caller's logic. Thus, we don't return save's error value.

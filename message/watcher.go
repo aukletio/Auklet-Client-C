@@ -53,7 +53,8 @@ func (e *ExitWatcher) serve() {
 		return
 	}
 	e.app.Wait()
-	m, err := e.p.CreateMessage(schema.NewExit(e.app), broker.Event)
+	m := schema.NewExit(e.app)
+	err := e.p.CreateMessage(m)
 	if err != nil {
 		errorlog.Print(err)
 		return

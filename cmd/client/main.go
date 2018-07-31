@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -43,23 +42,22 @@ func newclient() *client {
 func newAgentServer() agent.Server {
 	handlers := map[string]agent.Handler{
 		"profile": func(data []byte) (broker.Message, error) {
-			prof, err := schema.NewProfile(data, application)
-			if err != nil {
-				return broker.Message{}, err
-			}
-			return persistor.CreateMessage(prof, broker.Profile)
+			prof := schema.NewProfile(data, application)
+			return prof, persistor.CreateMessage(prof)
 		},
 		"event": func(data []byte) (broker.Message, error) {
 			application.Wait()
 			log.Printf("%v exited with error signal", application)
-			e, err := schema.NewErrorSig(data, application)
-			if err != nil {
-				return broker.Message{}, err
-			}
-			return persistor.CreateMessage(e, broker.Event)
+			errsig := schema.NewErrorSig(data, application)
+			return errsig, persistor.CreateMessage(errsig)
 		},
 		"log": func(data []byte) (broker.Message, error) {
-			return persistor.CreateMessage(json.RawMessage(data), broker.Log)
+			l := broker.Message{
+				Error: "",
+				Bytes: data,
+				Topic: broker.Log,
+			}
+			return l, persistor.CreateMessage(l)
 		},
 	}
 	return agent.NewServer(application.Data(), handlers)
@@ -68,15 +66,14 @@ func newAgentServer() agent.Server {
 func (c *client) createPipeline() {
 	logHandler := func(msg []byte) (broker.Message, error) {
 		a := schema.NewAppLog(msg, application)
-		return persistor.CreateMessage(a, broker.Log)
+		return a, persistor.CreateMessage(a)
 	}
 	logger := agent.NewLogger(application.Logs(), logHandler)
 	server := newAgentServer()
 	requester := agent.NewPeriodicRequester(application.Data())
 	watcher := message.NewExitWatcher(server, application, persistor)
 	merger := message.NewMerger(logger, watcher, persistor)
-	adapter := message.NewMPAdapter(merger)
-	limiter := message.NewDataLimiter(adapter, message.FilePersistor{".auklet/datalimit.json"})
+	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 	c.prod = broker.NewProducer(limiter)
 
 	pollConfig := func() {

@@ -6,12 +6,13 @@ import (
 
 	"github.com/satori/go.uuid"
 
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// ErrorSig represents the exit of an app in which an agent handled an "error
+// errorSig represents the exit of an app in which an agent handled an "error
 // signal" and produced a stacktrace.
-type ErrorSig struct {
+type errorSig struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -38,6 +39,7 @@ type ErrorSig struct {
 	Trace   interface{}    `json:"stackTrace"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
+	Error   string         `json:"error"`
 }
 
 // ExitApp is an App that has an exit status.
@@ -48,10 +50,11 @@ type ExitApp interface {
 
 // NewErrorSig creates an ErrorSig for app out of raw message data. It assumes
 // that app.Wait() has returned.
-func NewErrorSig(data []byte, app ExitApp) (e ErrorSig, err error) {
-	err = json.Unmarshal(data, &e)
+func NewErrorSig(data []byte, app ExitApp) broker.Message {
+	var e errorSig
+	err := json.Unmarshal(data, &e)
 	if err != nil {
-		return
+		e.Error = err.Error()
 	}
 	e.AppID = app.ID()
 	e.CheckSum = app.CheckSum()
@@ -61,5 +64,5 @@ func NewErrorSig(data []byte, app ExitApp) (e ErrorSig, err error) {
 	e.Status = app.ExitStatus()
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
-	return
+	return marshal(e, broker.Event)
 }

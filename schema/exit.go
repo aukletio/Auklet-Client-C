@@ -5,13 +5,14 @@ import (
 
 	"github.com/satori/go.uuid"
 
+	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// Exit represents the exit of an app in which an agent did not handle a
+// exit represents the exit of an app in which an agent did not handle a
 // signal. The app may or may not have been delivered a termination signal of
 // some kind, but not one handled by an agent. See man 7 signal for details.
-type Exit struct {
+type exit struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -43,8 +44,8 @@ type SignalExitApp interface {
 }
 
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
-func NewExit(app SignalExitApp) Exit {
-	return Exit{
+func NewExit(app SignalExitApp) broker.Message {
+	e := exit{
 		AppID:    app.ID(),
 		CheckSum: app.CheckSum(),
 		IP:       device.CurrentIP(),
@@ -55,4 +56,5 @@ func NewExit(app SignalExitApp) Exit {
 		MacHash:  device.MacHash,
 		Metrics:  device.GetMetrics(),
 	}
+	return marshal(e, broker.Event)
 }
