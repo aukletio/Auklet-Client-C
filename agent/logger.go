@@ -39,7 +39,6 @@ func (l Logger) serve() {
 	s := bufio.NewScanner(l.conn)
 	s.Split(bufio.ScanLines)
 	for s.Scan() {
-		log.Printf(`got log "%v"`, s.Text())
 		m, err := l.handler(s.Bytes())
 		if err != nil {
 			errorlog.Print(err)
