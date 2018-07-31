@@ -7,7 +7,7 @@ import (
 )
 
 // marshaler determines which transport encoding is used for messages.
-var marshaler  = msgpackMarshal
+var marshaler = msgpackMarshal
 
 // msgpackMarshal has the same signature as json.Marshal, so that the two
 // functions can be interchanged.
