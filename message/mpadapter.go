@@ -3,13 +3,11 @@ package message
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 
 	"github.com/vmihailenco/msgpack"
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
-	"github.com/ESG-USA/Auklet-Client-C/schema"
 )
 
 // MPAdapter translates messages from JSON to MessagePack.
@@ -50,17 +48,7 @@ func (a MPAdapter) serve() {
 // than create a new one in order to maintain its association with the
 // persistent file (which is hidden from us).
 func adapt(msg *broker.Message) error {
-	v, in := map[string]interface{}{
-		"json.RawMessage": new(schema.RawMessage),
-		"[]uint8":         new([]byte),
-		"schema.AppLog":   new(schema.AppLog),
-		"schema.ErrorSig": new(schema.ErrorSig),
-		"schema.Exit":     new(schema.Exit),
-		"schema.Profile":  new(schema.Profile),
-	}[msg.Type]
-	if !in {
-		return fmt.Errorf("adapt: can't convert %q to MessagePack format", msg.Type)
-	}
+	var v interface{}
 	if err := json.Unmarshal(msg.Bytes, &v); err != nil {
 		return err
 	}

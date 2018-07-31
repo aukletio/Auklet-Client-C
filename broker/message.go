@@ -27,8 +27,6 @@ var fs = afero.NewOsFs()
 
 // Message represents a broker message.
 type Message struct {
-	// Type encodes the concrete Go type, for use by adapters.
-	Type  string          `json:"type"`
 	Topic Topic           `json:"topic"`
 	Bytes json.RawMessage `json:"bytes"`
 	path  string
@@ -151,7 +149,6 @@ func (p *Persistor) CreateMessage(v interface{}, topic Topic) (m Message, err er
 		return
 	}
 	m = Message{
-		Type:  fmt.Sprintf("%T", v),
 		Topic: topic,
 		Bytes: bytes,
 		path:  fmt.Sprintf("%v/%v-%v", p.dir, os.Getpid(), p.count),

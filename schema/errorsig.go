@@ -35,7 +35,7 @@ type ErrorSig struct {
 	Signal string `json:"signal"`
 
 	// Trace is a stacktrace provided by an agent.
-	Trace   RawMessage     `json:"stackTrace"`
+	Trace   interface{}     `json:"stackTrace"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }
