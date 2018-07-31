@@ -1,13 +1,13 @@
 package agent
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"testing"
 )
 
 type testServerCase struct {
-	input []byte
+	input  []byte
 	expect Message
 }
 
@@ -16,11 +16,11 @@ func compare(a, b Message) bool {
 }
 
 func (m Message) String() string {
-	return fmt.Sprint(struct{
+	return fmt.Sprint(struct {
 		Type, Data, Error string
 	}{
-		Type: m.Type,
-		Data: string(m.Data),
+		Type:  m.Type,
+		Data:  string(m.Data),
 		Error: m.Error,
 	})
 }
@@ -30,8 +30,8 @@ func TestServer(t *testing.T) {
 		{
 			input: []byte(`{"type":"message","data":"hello, world"}`),
 			expect: Message{
-				Type: "message",
-				Data: []byte(`"hello, world"`),
+				Type:  "message",
+				Data:  []byte(`"hello, world"`),
 				Error: "",
 			},
 		}, {
