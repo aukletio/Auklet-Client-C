@@ -8,6 +8,7 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
+// Converter converts a stream of agent.Message to a stream of broker.Message.
 type Converter struct {
 	in        MessageSource
 	out       chan broker.Message
@@ -15,15 +16,19 @@ type Converter struct {
 	app       ExitWaitApp
 }
 
+// ExitWaitApp is an ExitApp for which we can wait to exit.
 type ExitWaitApp interface {
 	ExitApp
 	Wait()
 }
 
+// MessageSource is a source of agent messages.
 type MessageSource interface {
 	Output() <-chan agent.Message
 }
 
+// NewConverter returns a converter for the given input stream that uses the
+// given persistor and app.
 func NewConverter(in MessageSource, persistor *broker.Persistor, app ExitWaitApp) Converter {
 	c := Converter{
 		in:        in,
@@ -35,6 +40,7 @@ func NewConverter(in MessageSource, persistor *broker.Persistor, app ExitWaitApp
 	return c
 }
 
+// Output returns the converter's output stream.
 func (c Converter) Output() <-chan broker.Message {
 	return c.out
 }
