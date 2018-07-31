@@ -7,8 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-
-	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
 // Message represents messages that can be received by a Server, and thus,
@@ -18,9 +16,6 @@ type Message struct {
 	Data  json.RawMessage `json:"data"`
 	Error string
 }
-
-// Handler transforms a byte slice into a broker.Message.
-type Handler func(data []byte) (broker.Message, error)
 
 // Server provides a connection server for an Auklet agent.
 type Server struct {
@@ -55,7 +50,7 @@ func (s Server) serve() {
 			// message format.
 			buf, _ := ioutil.ReadAll(dec.Buffered())
 			s.out <- Message{
-				Error: fmt.Sprint(err.Error(), string(buf)),
+				Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 			}
 			dec = json.NewDecoder(s.in)
 			continue

@@ -9,6 +9,9 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
+// Handler converts data into a broker.Message.
+type Handler func(data []byte) (broker.Message, error)
+
 // Logger is a remote logging connection server.
 type Logger struct {
 	out     chan broker.Message
