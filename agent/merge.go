@@ -4,6 +4,7 @@ import (
 	"sync"
 )
 
+// MessageSource is a source of messages.
 type MessageSource interface {
 	Output() <-chan Message
 }
