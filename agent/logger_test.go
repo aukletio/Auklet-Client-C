@@ -37,7 +37,7 @@ world`
 	m = <-logger.Output()
 	exp = Message{
 		Error: "io error",
-		Type: "log",
+		Type:  "log",
 	}
 	if !compare(m, exp) {
 		t.Errorf("expected %v, got %v", exp, m.Data)
