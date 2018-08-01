@@ -4,28 +4,20 @@ import (
 	"bufio"
 	"io"
 	"log"
-
-	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
-
-// Handler converts data into a broker.Message.
-type Handler func(data []byte) (broker.Message, error)
 
 // Logger is a remote logging connection server.
 type Logger struct {
-	out     chan broker.Message
-	conn    io.Reader
-	handler Handler
+	line *bufio.Scanner
+	out  chan Message
 }
 
-// NewLogger returns a Logger that uses handler to convert data from conn into
+// NewLogger returns a Logger that uses handler to convert data from in into
 // broker Messages.
-func NewLogger(conn io.Reader, handler Handler) Logger {
+func NewLogger(in io.Reader) Logger {
 	l := Logger{
-		conn:    conn,
-		out:     make(chan broker.Message),
-		handler: handler,
+		line: bufio.NewScanner(in),
+		out:  make(chan Message),
 	}
 	go l.serve()
 	return l
@@ -36,19 +28,21 @@ func (l Logger) serve() {
 	defer close(l.out)
 	log.Printf("Logger: accepted connection")
 	defer log.Printf("Logger: connection closed")
-	s := bufio.NewScanner(l.conn)
-	s.Split(bufio.ScanLines)
-	for s.Scan() {
-		m, err := l.handler(s.Bytes())
-		if err != nil {
-			errorlog.Print(err)
-			continue
+	for l.line.Scan() {
+		l.out <- Message{
+			Type: "applog",
+			Data: l.line.Bytes(),
 		}
-		l.out <- m
+	}
+	if err := l.line.Err(); err != nil {
+		l.out <- Message{
+			Type:  "log",
+			Error: err.Error(),
+		}
 	}
 }
 
 // Output returns l's output channel.
-func (l Logger) Output() <-chan broker.Message {
+func (l Logger) Output() <-chan Message {
 	return l.out
 }

@@ -63,6 +63,8 @@ func (c Converter) serve() {
 
 func convert(m agent.Message, app ExitWaitApp) broker.Message {
 	switch m.Type {
+	case "applog":
+		return NewAppLog(m.Data, app)
 	case "profile":
 		return NewProfile(m.Data, app)
 	case "event":

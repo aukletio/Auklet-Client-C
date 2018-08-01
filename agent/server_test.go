@@ -37,7 +37,7 @@ func TestServer(t *testing.T) {
 		}, {
 			input: []byte(`{"malformed`),
 			expect: Message{
-				Type:  "",
+				Type:  "log",
 				Data:  []byte{},
 				Error: `unexpected EOF in {"malformed`,
 			},

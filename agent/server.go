@@ -50,6 +50,7 @@ func (s Server) serve() {
 			// message format.
 			buf, _ := ioutil.ReadAll(dec.Buffered())
 			s.out <- Message{
+				Type: "log",
 				Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 			}
 			dec = json.NewDecoder(s.in)

@@ -40,16 +40,13 @@ func newclient() *client {
 }
 
 func (c *client) createPipeline() {
-	logHandler := func(msg []byte) (broker.Message, error) {
-		a := schema.NewAppLog(msg, application)
-		return a, persistor.CreateMessage(a)
-	}
-	logger := agent.NewLogger(application.Logs(), logHandler)
+	logger := agent.NewLogger(application.Logs())
 	server := agent.NewServer(application.Data())
-	converter := schema.NewConverter(server, persistor, application)
+	agentMessages := agent.NewMerger(logger, server)
+	converter := schema.NewConverter(agentMessages, persistor, application)
 	requester := agent.NewPeriodicRequester(application.Data())
 	watcher := message.NewExitWatcher(converter, application, persistor)
-	merger := message.NewMerger(logger, watcher, persistor)
+	merger := message.NewMerger(watcher, persistor, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 	c.prod = broker.NewProducer(limiter)
 
