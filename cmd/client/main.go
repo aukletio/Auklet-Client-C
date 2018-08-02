@@ -31,7 +31,8 @@ type client struct {
 	prod server
 }
 
-var persistor = broker.NewPersistor(".auklet/message")
+var dir = ".auklet/message"
+var persistor = broker.NewPersistor(dir)
 
 func newclient() *client {
 	c := &client{}
@@ -40,13 +41,14 @@ func newclient() *client {
 }
 
 func (c *client) createPipeline() {
+	loader := broker.NewMessageLoader(dir)
 	logger := agent.NewLogger(application.Logs())
 	server := agent.NewServer(application.Data())
 	agentMessages := agent.NewMerger(logger, server)
 	converter := schema.NewConverter(agentMessages, persistor, application)
 	requester := agent.NewPeriodicRequester(application.Data())
 	watcher := message.NewExitWatcher(converter, application, persistor)
-	merger := message.NewMerger(watcher, persistor, requester)
+	merger := message.NewMerger(watcher, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 	c.prod = broker.NewProducer(limiter)
 
