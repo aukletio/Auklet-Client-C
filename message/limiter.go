@@ -2,13 +2,12 @@ package message
 
 import (
 	"encoding/json"
+	"io"
 	"log"
-	"os"
 	"time"
 
 	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // DataLimiter is a passthrough that limits the number of application-layer
@@ -17,7 +16,7 @@ type DataLimiter struct {
 	source broker.MessageSource
 	out    chan broker.Message
 	conf   chan api.CellularConfig
-	path   string
+	store  Persistor
 
 	// Budget is how many bytes can be transmitted per period. If nil, any
 	// number of bytes can be transmitted.
@@ -33,15 +32,16 @@ type DataLimiter struct {
 
 // NewDataLimiter returns a DataLimiter for input whose state persists on
 // the filesystem.
-func NewDataLimiter(input broker.MessageSource) *DataLimiter {
+func NewDataLimiter(input broker.MessageSource, store Persistor) *DataLimiter {
 	l := &DataLimiter{
 		source: input,
 		out:    make(chan broker.Message),
 		conf:   make(chan api.CellularConfig),
-		path:   ".auklet/datalimit.json",
+		store:  store,
 	}
-	l.load()
-	// If load fails, there is no budget, so all messages will be sent.
+	l.store.Load(l)
+	// If Load fails, there is no budget, so all messages will be sent.
+	go l.serve()
 	return l
 }
 
@@ -55,34 +55,14 @@ func (l *DataLimiter) setBudget(megabytes *int) {
 	log.Printf("limiter: setting budget to %v B", *l.Budget)
 }
 
-func (l *DataLimiter) load() (err error) {
-	f, err := os.Open(l.path)
-	if err != nil {
-		// This err value is treated as informative, since on
-		// the first start of the client, there will be no state
-		// to load.
-		log.Println("limiter: could not load state:", err)
-		return
-	}
-	defer f.Close()
-	err = json.NewDecoder(f).Decode(l)
-	if err != nil {
-		errorlog.Println("limiter: failed to load state:", err)
-	}
-	return
+// Decode updates l's state by reading bytes from r.
+func (l *DataLimiter) Decode(r io.Reader) (err error) {
+	return json.NewDecoder(r).Decode(l)
 }
 
-// save saves the data limiter's state to disk. If there is an error, it's a
-// encoding error.
-func (l *DataLimiter) save() (err error) {
-	defer func() {
-		if err != nil {
-			errorlog.Printf("limiter: error saving state to %v: %v", l.path, err)
-		}
-	}()
-	f, err := os.Create(l.path)
-	defer f.Close()
-	return json.NewEncoder(f).Encode(l)
+// Encode writes the l's state to w.
+func (l *DataLimiter) Encode(w io.Writer) (err error) {
+	return json.NewEncoder(w).Encode(l)
 }
 
 // newPeriod returns true if the current time is after the period end.
@@ -121,16 +101,16 @@ func toFutureDate(day int) time.Time {
 func (l *DataLimiter) startThisPeriod() {
 	l.advancePeriodEnd()
 	l.Count = 0
-	l.save()
+	l.store.Save(l)
 }
 
 func (l *DataLimiter) increment(n int) (err error) {
 	l.Count += n
-	return l.save()
+	return l.store.Save(l)
 }
 
-// Serve activates l, causing it to receive and send Messages.
-func (l *DataLimiter) Serve() {
+// serve activates l, causing it to receive and send Messages.
+func (l *DataLimiter) serve() {
 	state := l.initial
 	for state != nil {
 		if l.newPeriod() {
@@ -224,4 +204,10 @@ func (l *DataLimiter) Output() <-chan broker.Message {
 // Configure returns a channel by which the configuration can be updated.
 func (l *DataLimiter) Configure() chan<- api.CellularConfig {
 	return l.conf
+}
+
+// Persistor can save and load an object to some kind of storage.
+type Persistor interface {
+	Save(Encodable) error
+	Load(Decodable) error
 }

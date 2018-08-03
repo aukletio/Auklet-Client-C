@@ -1,20 +1,18 @@
 package schema
 
 import (
-	"syscall"
 	"time"
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-// Exit represents the exit of an app in which an agent did not handle a
+// exit represents the exit of an app in which an agent did not handle a
 // signal. The app may or may not have been delivered a termination signal of
 // some kind, but not one handled by an agent. See man 7 signal for details.
-type Exit struct {
+type exit struct {
 	AppID string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
@@ -38,20 +36,25 @@ type Exit struct {
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
+// SignalExitApp is an app with an exit status and signal description.
+type SignalExitApp interface {
+	App
+	Exiter
+	Signaller
+}
+
 // NewExit creates an exit for app. It assumes that app.Wait() has returned.
-func NewExit(app *app.App) (m broker.Message, err error) {
-	var e Exit
-	e.AppID = app.ID
-	e.CheckSum = app.CheckSum
-	e.IP = device.CurrentIP()
-	e.UUID = uuid.NewV4().String()
-	e.Time = time.Now()
-	ws := app.ProcessState.Sys().(syscall.WaitStatus)
-	e.Status = ws.ExitStatus()
-	if ws.Signaled() {
-		e.Signal = ws.Signal().String()
+func NewExit(app SignalExitApp) broker.Message {
+	e := exit{
+		AppID:    app.ID(),
+		CheckSum: app.CheckSum(),
+		IP:       device.CurrentIP(),
+		UUID:     uuid.NewV4().String(),
+		Time:     time.Now(),
+		Status:   app.ExitStatus(),
+		Signal:   app.Signal(),
+		MacHash:  device.MacHash,
+		Metrics:  device.GetMetrics(),
 	}
-	e.MacHash = device.MacHash
-	e.Metrics = device.GetMetrics()
-	return broker.StdPersistor.CreateMessage(e, broker.Event)
+	return marshal(e, broker.Event)
 }

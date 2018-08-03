@@ -127,6 +127,15 @@
   version = "v2.18.01"
 
 [[projects]]
+  name = "github.com/spf13/afero"
+  packages = [
+    ".",
+    "mem"
+  ]
+  revision = "787d034dfe70e44075ccc060d346146ef53270ad"
+  version = "v1.1.1"
+
+[[projects]]
   name = "github.com/vmihailenco/msgpack"
   packages = [
     ".",
@@ -156,6 +165,19 @@
   revision = "f6cff0780e542efa0c8e864dc8fa522808f6a598"
 
 [[projects]]
+  name = "golang.org/x/text"
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm"
+  ]
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
+
+[[projects]]
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -174,6 +196,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0db2d602a132b9be0c474d1d629878046e6614f9967c0d176215ac873726d9ec"
+  inputs-digest = "5a20167e48f4b516e431eea08b34b23b593122c506c62f0ccc6067d2dc96c6cb"
   solver-name = "gps-cdcl"
   solver-version = 1

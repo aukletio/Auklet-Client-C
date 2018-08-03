@@ -3,127 +3,64 @@ package agent
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
-	"time"
-
-	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
-// message represents messages that can be received by a Server, and thus,
+// Message represents messages that can be received by a Server, and thus,
 // would be sent by an agent.
-type message struct {
-	Type string          `json:"type"`
-	Data json.RawMessage `json:"data"`
+type Message struct {
+	Type  string          `json:"type"`
+	Data  json.RawMessage `json:"data"`
+	Error string
 }
 
-// Handler transforms a byte slice into a broker.Message.
-type Handler func(data []byte) (broker.Message, error)
-
-// Server provides a Unix domain socket listener for an Auklet agent.
+// Server provides a connection server for an Auklet agent.
 type Server struct {
-	// local is the Unix domain socket to be served.
-	local  *os.File
-	remote *os.File
-
-	// handlers is a collection of Handler functions keyed by message
-	// type. When a message is received, the corresponding Handler is looked
-	// up and called. The argument to the handler is the  message's
-	// data. The message returned by a handler is sent via out.
-	// Errors returned by a handler are logged, and do not shut down the
-	// Server.
-	handlers map[string]Handler
-	out      chan broker.Message
-
-	conf chan int
+	in  io.Reader
+	out chan Message
 }
 
-// NewServer returns a new Server for an anonymous Unix domain socket. Incoming
-// messages are processed by the given handlers.
-func NewServer(handlers map[string]Handler) Server {
-	local, remote, err := socketpair("dataserver-")
-	if err != nil {
-		errorlog.Print(err)
+// NewServer returns a new Server that reads from conn. Incoming messages are
+// processed by the given handlers.
+func NewServer(in io.Reader) Server {
+	s := Server{
+		in:  in,
+		out: make(chan Message),
 	}
-	return Server{
-		local:    local,
-		remote:   remote,
-		out:      make(chan broker.Message),
-		handlers: handlers,
-		conf:     make(chan int),
-	}
+	go s.serve()
+	return s
 }
 
-// Serve causes s to accept an incoming connection, after which s can send and
+// serve causes s to accept an incoming connection, after which s can send and
 // receive messages.
-func (s Server) Serve() {
+func (s Server) serve() {
 	defer close(s.out)
-	log.Printf("accepted connection on %v", s.local.Name())
-	defer log.Printf("connection on %v closed", s.local.Name())
-	go s.requestProfiles(s.local)
-	dec := json.NewDecoder(s.local)
+	log.Print("Server: accepted connection")
+	defer log.Print("Server: connection closed")
+	dec := json.NewDecoder(s.in)
 	for {
-		msg := &message{}
-		if err := dec.Decode(msg); err == io.EOF {
+		var msg Message
+		if err := dec.Decode(&msg); err == io.EOF {
 			return
 		} else if err != nil {
 			// There was a problem decoding the stream into
 			// message format.
 			buf, _ := ioutil.ReadAll(dec.Buffered())
-			errorlog.Print(err, string(buf))
-			dec = json.NewDecoder(s.local)
+			s.out <- Message{
+				Type:  "log",
+				Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
+			}
+			dec = json.NewDecoder(s.in)
 			continue
 		}
-
-		if handler, in := s.handlers[msg.Type]; in {
-			pm, err := handler(msg.Data)
-			switch err.(type) {
-			case broker.ErrStorageFull:
-				// Our persistent storage is full, so we drop
-				// messages. This isn't an error; it's desired
-				// behavior.
-				log.Print(err)
-				continue
-			}
-			s.out <- pm
-		} else {
-			log.Printf(`message of type "%v" not handled`, msg.Type)
-		}
-	}
-}
-
-// Configure returns a channel on which the emission period in seconds can be
-// set.
-func (s Server) Configure() chan<- int {
-	return s.conf
-}
-
-func (s Server) requestProfiles(out io.Writer) {
-	emit := time.NewTicker(time.Second)
-	for {
-		select {
-		case <-emit.C:
-			if _, err := out.Write([]byte{0}); err != nil {
-				errorlog.Println("requestProfiles:", err)
-			}
-		case dur := <-s.conf:
-			emit.Stop()
-			if dur > 0 {
-				emit = time.NewTicker(time.Duration(dur) * time.Second)
-			}
-		}
+		s.out <- msg
 	}
 }
 
 // Output returns s's output stream.
-func (s Server) Output() <-chan broker.Message {
+func (s Server) Output() <-chan Message {
 	return s.out
-}
-
-// Remote returns the socket to be inherited by the child process.
-func (s Server) Remote() *os.File {
-	return s.remote
 }

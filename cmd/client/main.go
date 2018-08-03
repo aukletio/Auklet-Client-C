@@ -25,49 +25,37 @@ type server interface {
 	Serve()
 }
 
+var application *app.App
+
 type client struct {
-	app  *app.App
 	prod server
 }
 
-func newclient(args []string) *client {
-	c := &client{app: app.New(args)}
-	go api.CreateOrGetDevice(device.MacHash, c.app.ID)
+var dir = ".auklet/message"
+var persistor = broker.NewPersistor(dir)
+
+func newclient() *client {
+	c := &client{}
+	go api.CreateOrGetDevice(device.MacHash, application.ID())
 	return c
 }
 
-func newAgentServer(app *app.App) agent.Server {
-	handlers := map[string]agent.Handler{
-		"profile": func(data []byte) (broker.Message, error) {
-			return schema.NewProfile(data, app)
-		},
-		"event": func(data []byte) (broker.Message, error) {
-			app.Cmd.Wait()
-			log.Printf("app %v exited with error signal", app.Path)
-			return schema.NewErrorSig(data, app)
-		},
-		"log": func(data []byte) (broker.Message, error) {
-			return schema.NewAgentLog(data)
-		},
-	}
-	return agent.NewServer(handlers)
-}
-
 func (c *client) createPipeline() {
-	logHandler := func(msg []byte) (broker.Message, error) {
-		return schema.NewAppLog(msg, c.app)
-	}
-	logger := agent.NewLogger(logHandler)
-	server := newAgentServer(c.app)
-	watcher := message.NewExitWatcher(server, c.app)
-	merger := message.NewMerger(logger, watcher, broker.StdPersistor)
-	adapter := message.NewMPAdapter(merger)
-	limiter := message.NewDataLimiter(adapter)
+	loader := broker.NewMessageLoader(dir)
+	logger := agent.NewLogger(application.Logs())
+	server := agent.NewServer(application.Data())
+	agentMessages := agent.NewMerger(logger, server)
+	converter := schema.NewConverter(agentMessages, persistor, application)
+	requester := agent.NewPeriodicRequester(application.Data())
+	watcher := message.NewExitWatcher(converter, application, persistor)
+	merger := message.NewMerger(watcher, loader, requester)
+	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 	c.prod = broker.NewProducer(limiter)
+
 	pollConfig := func() {
 		poll := func() {
-			dl := api.GetDataLimit(c.app.ID).Config
-			go func() { server.Configure() <- dl.EmissionPeriod }()
+			dl := api.GetDataLimit(application.ID()).Config
+			go func() { requester.Configure() <- dl.EmissionPeriod }()
 			go func() { limiter.Configure() <- dl.Cellular }()
 		}
 		poll()
@@ -75,32 +63,20 @@ func (c *client) createPipeline() {
 			poll()
 		}
 	}
-
-	go logger.Serve()
-	go server.Serve()
-	go merger.Serve()
-	go watcher.Serve()
-	go adapter.Serve()
-	go limiter.Serve()
 	go pollConfig()
-
-	c.app.ExtraFiles = append(c.app.ExtraFiles,
-		logger.Remote(), // fd 3 - application use
-		server.Remote(), // fd 4 - agent use
-	)
 }
 
 func (c *client) run() {
-	if !c.app.IsReleased {
+	if !application.IsReleased() {
 		// not released. Start the app, but don't serve it.
-		if err := c.app.Start(); err == nil {
-			c.app.Wait()
+		if err := application.Start(); err == nil {
+			application.Wait()
 		}
 		os.Exit(0)
 	}
 
 	c.createPipeline()
-	err := c.app.Start()
+	err := application.Start()
 	if err != nil {
 		os.Exit(1)
 	}
@@ -158,5 +134,6 @@ func main() {
 	if !cfg.LogErrors {
 		errorlog.SetOutput(ioutil.Discard)
 	}
-	newclient(args).run()
+	application = app.New(args)
+	newclient().run()
 }
