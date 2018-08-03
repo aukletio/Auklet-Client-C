@@ -51,7 +51,7 @@ func TestPersistorLoad(t *testing.T) {
 	}
 }
 
-var fsErr = errors.New("filesystem error")
+var errMockFs = errors.New("filesystem error")
 
 type mockFs struct {
 	mkdirAll func(string, os.FileMode) error
@@ -89,7 +89,7 @@ func (mockFs) Chtimes(string, time.Time, time.Time) error { panic(nil) }
 
 func TestSave(t *testing.T) {
 	fs = mockFs{
-		mkdirAll: func(string, os.FileMode) error { return fsErr },
+		mkdirAll: func(string, os.FileMode) error { return errMockFs },
 	}
 	err := Message{}.save()
 	exp := "save: unable to save message to .: filesystem error"
@@ -101,7 +101,7 @@ func TestSave(t *testing.T) {
 func TestOpenFile(t *testing.T) {
 	fs = mockFs{
 		mkdirAll: func(string, os.FileMode) error { return nil },
-		openFile: func(string, int, os.FileMode) (afero.File, error) { return nil, fsErr },
+		openFile: func(string, int, os.FileMode) (afero.File, error) { return nil, errMockFs },
 	}
 	err := Message{}.save()
 	exp := "filesystem error"
@@ -112,7 +112,7 @@ func TestOpenFile(t *testing.T) {
 
 func TestStat(t *testing.T) {
 	fs = mockFs{
-		stat: func(string) (os.FileInfo, error) { return nil, fsErr },
+		stat: func(string) (os.FileInfo, error) { return nil, errMockFs },
 	}
 	paths, err := filepaths(".auklet/messages")
 	if len(paths) != 0 || err != nil {
@@ -124,7 +124,7 @@ func TestOpen(t *testing.T) {
 	mmfs := afero.NewMemMapFs()
 	fs = mockFs{
 		stat: mmfs.Stat,
-		open: func(string) (afero.File, error) { return nil, fsErr },
+		open: func(string) (afero.File, error) { return nil, errMockFs },
 	}
 	paths, err := filepaths(".auklet/messages")
 	exp := "filepaths: failed to open message directory: filesystem error"
