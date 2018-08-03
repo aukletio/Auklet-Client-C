@@ -38,10 +38,15 @@ type errorSig struct {
 	Signal string `json:"signal"`
 
 	// Trace is a stacktrace provided by an agent.
-	Trace   interface{}    `json:"stackTrace"`
+	Trace   []frame        `json:"stackTrace"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 	Error   string         `json:"error,omitempty"`
+}
+
+type frame struct {
+	Fn int64 `json:"functionAddress"`
+	Cs int64 `json:"callSiteAddress"`
 }
 
 // ExitApp is an App that has an exit status.
