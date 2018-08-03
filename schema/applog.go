@@ -12,7 +12,8 @@ import (
 
 // appLog represents custom log data as expected by broker consumers.
 type appLog struct {
-	Version string `json:"clientVersion"`
+	Version      string `json:"clientVersion"`
+	AgentVersion string `json:"agentVersion"`
 	// AppID is a long string uniquely associated with a particular app.
 	AppID string `json:"application"`
 

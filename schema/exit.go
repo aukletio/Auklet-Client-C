@@ -14,8 +14,9 @@ import (
 // signal. The app may or may not have been delivered a termination signal of
 // some kind, but not one handled by an agent. See man 7 signal for details.
 type exit struct {
-	Version string `json:"clientVersion"`
-	AppID   string `json:"application"`
+	Version      string `json:"clientVersion"`
+	AgentVersion string `json:"agentVersion"`
+	AppID        string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
 	CheckSum string `json:"checksum"`

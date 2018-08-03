@@ -13,7 +13,8 @@ import (
 
 // profile represents profile data as expected by broker consumers.
 type profile struct {
-	Version string `json:"clientVersion"`
+	Version      string `json:"clientVersion"`
+	AgentVersion string `json:"agentVersion"`
 	// AppID is a long string uniquely associated with a particular app.
 	AppID string `json:"application"`
 

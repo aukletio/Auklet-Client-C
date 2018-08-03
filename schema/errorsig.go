@@ -14,8 +14,9 @@ import (
 // errorSig represents the exit of an app in which an agent handled an "error
 // signal" and produced a stacktrace.
 type errorSig struct {
-	Version string `json:"clientVersion"`
-	AppID   string `json:"application"`
+	Version      string `json:"clientVersion"`
+	AgentVersion string `json:"agentVersion"`
+	AppID        string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
 	CheckSum string `json:"checksum"`
