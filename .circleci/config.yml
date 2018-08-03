@@ -66,6 +66,7 @@ jobs:
                 name: Run tests
                 command: |
                   go test ./agent ./api ./app ./broker ./certs ./config ./device ./errorlog ./message ./schema
+                  bash .devops/test_and_coverage.sh
             - run:
                 name: Run Whitesource
                 command: |
