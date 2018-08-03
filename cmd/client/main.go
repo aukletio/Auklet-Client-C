@@ -19,6 +19,7 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/message"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
+	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
 type server interface {
@@ -105,7 +106,7 @@ func licenses() {
 }
 
 func getConfig() config.Config {
-	if Version == "local-build" {
+	if version.Version == "local-build" {
 		return config.LocalBuild()
 	}
 	return config.ReleaseBuild()
@@ -125,7 +126,7 @@ func main() {
 		licenses()
 		os.Exit(1)
 	}
-	log.Printf("Auklet Client version %s (%s)\n", Version, BuildDate)
+	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
 	cfg := getConfig()
 	api.BaseURL = cfg.BaseURL
 	if !cfg.LogInfo {

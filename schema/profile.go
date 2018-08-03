@@ -8,10 +8,12 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
+	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
 // profile represents profile data as expected by broker consumers.
 type profile struct {
+	Version string `json:"clientVersion"`
 	// AppID is a long string uniquely associated with a particular app.
 	AppID string `json:"application"`
 
@@ -42,6 +44,7 @@ func NewProfile(data []byte, app App) broker.Message {
 	if err != nil {
 		p.Error = err.Error()
 	}
+	p.Version = version.Version
 	p.IP = device.CurrentIP()
 	p.UUID = uuid.NewV4().String()
 	p.Time = time.Now().UnixNano() / 1000000 // milliseconds

@@ -8,12 +8,14 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
+	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
 // errorSig represents the exit of an app in which an agent handled an "error
 // signal" and produced a stacktrace.
 type errorSig struct {
-	AppID string `json:"application"`
+	Version string `json:"clientVersion"`
+	AppID   string `json:"application"`
 	// CheckSum is the SHA512/224 hash of the executable, used to associate
 	// event data with a particular release.
 	CheckSum string `json:"checksum"`
@@ -56,6 +58,7 @@ func NewErrorSig(data []byte, app ExitApp) broker.Message {
 	if err != nil {
 		e.Error = err.Error()
 	}
+	e.Version = version.Version
 	e.AppID = app.ID()
 	e.CheckSum = app.CheckSum()
 	e.IP = device.CurrentIP()

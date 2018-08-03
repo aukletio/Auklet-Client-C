@@ -7,10 +7,12 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
+	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
 // appLog represents custom log data as expected by broker consumers.
 type appLog struct {
+	Version string `json:"clientVersion"`
 	// AppID is a long string uniquely associated with a particular app.
 	AppID string `json:"application"`
 
@@ -39,6 +41,7 @@ type appLog struct {
 // NewAppLog converts msg into a custom log message.
 func NewAppLog(msg []byte, app App) broker.Message {
 	a := appLog{
+		Version:  version.Version,
 		AppID:    app.ID(),
 		CheckSum: app.CheckSum(),
 		IP:       device.CurrentIP(),
