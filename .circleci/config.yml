@@ -81,20 +81,6 @@ jobs:
                   else
                     echo 'This is a local build; skipping WhiteSource.'
                   fi
-            - run:
-                name: Test license gathering
-                command: |
-                  set -ou pipefail
-                  echo 'Gathering license files for dependencies...'
-                  REPO_DIR=$(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
-                  LICENSES_DIR="$REPO_DIR/cmd/client/licenses"
-                  cp LICENSE $LICENSES_DIR
-                  cd .devops
-                  npm install --no-spin follow-redirects@1.5.0 > /dev/null 2>&1
-                  node licenses.js "$REPO_DIR" "$LICENSES_DIR"
-                  rm -rf node_modules package-lock.json
-                  cd ..
-                  echo
 
             ##
             # SAVE CACHES
