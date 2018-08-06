@@ -21,7 +21,7 @@ go test -coverprofile=c.out ./agent ./api ./app ./broker ./certs ./config ./devi
 if [[ ! -f ~/.localCircleBuild ]]; then
   # Set -e is disabled momentarily to be able to output the error message to log.txt file.
   set +e
-  ./cc-test-reporter after-build -r $CC_TEST_REPORTER_ID --exit-code $? 2>&1 | tee exit_message.txt
+  ./cc-test-reporter after-build -r $CC_TEST_REPORTER_ID --coverage-input-type gocov --exit-code $? 2>&1 | tee exit_message.txt
   result=$?
   set -e
   # Then we check the third line and see if it contains the known error message
