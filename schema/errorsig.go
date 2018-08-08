@@ -47,11 +47,7 @@ func NewErrorSig(data []byte, app ExitApp) broker.Message {
 	if err != nil {
 		e.Error = err.Error()
 	}
-	e.Version = version.Version
-	e.AppID = app.ID()
-	e.CheckSum = app.CheckSum()
-	e.IP = device.CurrentIP()
-	e.UUID = uuid.NewV4().String()
+	e.metadata = newMetadata(app)
 	e.Time = time.Now()
 	e.Status = app.ExitStatus()
 	e.MacHash = device.MacHash
