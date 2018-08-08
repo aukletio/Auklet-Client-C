@@ -14,35 +14,18 @@ import (
 // errorSig represents the exit of an app in which an agent handled an "error
 // signal" and produced a stacktrace.
 type errorSig struct {
-	Version      string `json:"clientVersion"`
-	AgentVersion string `json:"agentVersion"`
-	AppID        string `json:"application"`
-	// CheckSum is the SHA512/224 hash of the executable, used to associate
-	// event data with a particular release.
-	CheckSum string `json:"checksum"`
-
-	// IP is the public IP address of the device on which we are running,
-	// used to associate event data with an estimated geographic location.
-	IP string `json:"publicIP"`
-
-	// UUID is a unique identifier for a particular event.
-	UUID string `json:"id"`
-
+	metadata
 	// Time is the time at which the event was received.
 	Time time.Time `json:"timestamp"`
-
 	// Status is the exit status of the application.
 	Status int `json:"exitStatus"`
-
 	// Signal is an integer value provided by an agent. As an output, it is
 	// encoded as a string.
 	Signal string `json:"signal"`
-
 	// Trace is a stacktrace provided by an agent.
 	Trace   []frame        `json:"stackTrace"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
-	Error   string         `json:"error,omitempty"`
 }
 
 type frame struct {
