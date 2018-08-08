@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/satori/go.uuid"
-
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
 // errorSig represents the exit of an app in which an agent handled an "error
