@@ -32,10 +32,19 @@ func TestConverter(t *testing.T) {
 		{
 			input: agent.Message{Type: "event"},
 			err:   "",
+		}, {
+			input: agent.Message{Type: "applog"},
+			err:   "",
+		}, {
+			input: agent.Message{Type: "profile"},
+			err:   "",
+		}, {
+			input: agent.Message{Type: "log"},
+			err:   "",
 		},
 	}
-	s := make(source)
 	for i, c := range cases {
+		s := make(source)
 		converter := NewConverter(s, persistor{}, app{})
 		s <- c.input
 		m := <-converter.Output()
