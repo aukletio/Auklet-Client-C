@@ -100,13 +100,15 @@ func (mockExec) checksum() string    { return "" }
 
 var errSocketPair = errors.New("socketpair failed")
 
+func notReleased(enviro, string) (*relProof, error) {
+	return nil, errNotReleased
+}
+
+func released(enviro, string) (*relProof, error) {
+	return &relProof{}, nil
+}
+
 func TestRelExec(t *testing.T) {
-	notReleased := func(enviro, string) (*relProof, error) {
-		return nil, errNotReleased
-	}
-	released := func(enviro, string) (*relProof, error) {
-		return &relProof{}, nil
-	}
 	cases := []struct {
 		socketpair func(string) (pair, error)
 		check      relChecker
@@ -116,20 +118,17 @@ func TestRelExec(t *testing.T) {
 			socketpair: socketpair,
 			check:      notReleased,
 			expect:     errNotReleased,
-		},
-		{
+		}, {
 			socketpair: socketpair,
 			check:      released,
 			expect:     nil,
-		},
-		{
+		}, {
 			socketpair: func(string) (pair, error) {
 				return pair{}, errSocketPair
 			},
 			check:  released,
 			expect: errBug{errSocketPair},
-		},
-		{
+		}, {
 			socketpair: func(name string) (pair, error) {
 				if name == "agentData" {
 					return pair{}, errSocketPair
