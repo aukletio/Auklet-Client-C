@@ -3,49 +3,55 @@ package app
 import (
 	"bytes"
 	"errors"
-	"os"
 	"testing"
 )
 
-func TestArgs(t *testing.T) {
-	cases := []struct {
-		given  []string
-		expect error
-	}{
-		{
-			given:  []string{},
-			expect: errNumArgs,
-		}, {
-			given:  []string{"ls"},
-			expect: nil,
-		},
+func TestMethods(t *testing.T) {
+	exec, err := newExec("testdata/ls")
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for i, c := range cases {
-		_, err := newOneOrMoreArgs(c.given)
-		if err != c.expect {
-			format := "case %v: expected %v, got %v"
-			t.Errorf(format, i, c.expect, err)
-		}
+	// check if it's released
+	if exec.CheckSum() == "" {
+		// If not released, don't add sockets. Just run it and wait.
+		exec.Start()
+		exec.Wait()
+		return
 	}
+
+	if err := exec.addSockets(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := exec.Start(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := exec.getAgentVersion(); err == nil {
+		t.Fatal(err)
+	}
+
+	exec.Logs()
+	exec.Data()
+	// wait for it to exit
+	exec.Wait()
+
+	// see if it crashed
+	exec.ExitStatus()
+	exec.Signal()
 }
 
 func TestExec(t *testing.T) {
 	cases := []struct {
-		given  oneOrMoreArgs
+		given  string
 		expect string
 	}{
 		{
-			given: oneOrMoreArgs{
-				first: "ls",
-				rest:  []string{},
-			},
+			given:  "ls",
 			expect: "open ls: no such file or directory",
 		}, {
-			given: oneOrMoreArgs{
-				first: "testdata/ls",
-				rest:  []string{},
-			},
+			given:  "testdata/ls",
 			expect: "",
 		},
 	}
@@ -59,75 +65,21 @@ func TestExec(t *testing.T) {
 	}
 }
 
-func TestEnviro(t *testing.T) {
-	cases := []struct {
-		given  func(string) string
-		expect error
-	}{
-		{
-			given:  func(string) string { return "" },
-			expect: errNoAppID,
-		}, {
-			given: func(key string) string {
-				if key == "APP_ID" {
-					return "something"
-				}
-				return ""
-			},
-			expect: errNoAPIKey,
-		}, {
-			given:  func(string) string { return "something" },
-			expect: nil,
-		},
-	}
-
-	for i, c := range cases {
-		_, err := newEnviro(c.given)
-		if err != c.expect {
-			format := "case %v: expected %v, got %v"
-			t.Errorf(format, i, c.expect, err)
-		}
-	}
-}
-
-var errNotReleased = errors.New("not released")
-
-type mockExec struct{}
-
-func (mockExec) start() error        { return nil }
-func (mockExec) inherit(...*os.File) {}
-func (mockExec) checksum() string    { return "" }
-
 var errSocketPair = errors.New("socketpair failed")
 
-func notReleased(enviro, string) (*relProof, error) {
-	return nil, errNotReleased
-}
-
-func released(enviro, string) (*relProof, error) {
-	return &relProof{}, nil
-}
-
-func TestRelExec(t *testing.T) {
+func TestAddSockets(t *testing.T) {
 	cases := []struct {
 		socketpair func(string) (pair, error)
-		check      relChecker
 		expect     error
 	}{
 		{
 			socketpair: socketpair,
-			check:      notReleased,
-			expect:     errNotReleased,
-		}, {
-			socketpair: socketpair,
-			check:      released,
 			expect:     nil,
 		}, {
 			socketpair: func(string) (pair, error) {
 				return pair{}, errSocketPair
 			},
-			check:  released,
-			expect: errBug{errSocketPair},
+			expect: errSocketPair,
 		}, {
 			socketpair: func(name string) (pair, error) {
 				if name == "agentData" {
@@ -135,14 +87,16 @@ func TestRelExec(t *testing.T) {
 				}
 				return pair{}, nil
 			},
-			check:  released,
-			expect: errBug{errSocketPair},
+			expect: errSocketPair,
 		},
 	}
-
+	must := func(exec *executable, err error) *executable {
+		if err != nil { panic(err) }
+		return exec
+	}
 	for i, c := range cases {
 		socketPair = c.socketpair
-		_, err := newRelExec(enviro{}, c.check, mockExec{})
+		err := must(newExec("testdata/ls")).addSockets()
 		if err != c.expect {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
@@ -151,22 +105,36 @@ func TestRelExec(t *testing.T) {
 	}
 }
 
-func TestRun(t *testing.T) {
+func TestGetAgentVersion(t *testing.T) {
 	cases := []struct {
-		rel    relExec
+		exec *executable
 		expect error
 	}{
 		{
-			rel: relExec{
-				exec:      mockExec{},
+			exec: &executable{
 				agentData: bytes.NewBufferString(`{"version":"something"}`),
 			},
 			expect: nil,
+		}, {
+			exec: &executable{
+				agentData: bytes.NewBufferString(`{"version":""}`),
+			},
+			expect: errNoVersion,
+		}, {
+			exec: &executable{
+				agentData: bytes.NewBufferString(` `),
+			},
+			expect: errEOF,
+		}, {
+			exec: &executable{
+				agentData: bytes.NewBufferString(`}`),
+			},
+			expect: errEncoding,
 		},
 	}
 
 	for i, c := range cases {
-		_, err := run(c.rel)
+		err := c.exec.getAgentVersion()
 		if err != c.expect {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
