@@ -91,7 +91,9 @@ func TestAddSockets(t *testing.T) {
 		},
 	}
 	must := func(exec *executable, err error) *executable {
-		if err != nil { panic(err) }
+		if err != nil {
+			panic(err)
+		}
 		return exec
 	}
 	for i, c := range cases {
@@ -107,7 +109,7 @@ func TestAddSockets(t *testing.T) {
 
 func TestGetAgentVersion(t *testing.T) {
 	cases := []struct {
-		exec *executable
+		exec   *executable
 		expect error
 	}{
 		{

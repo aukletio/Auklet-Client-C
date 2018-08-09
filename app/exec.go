@@ -121,7 +121,7 @@ func (exec *executable) getAgentVersion() error {
 	return nil
 }
 
-func (exec *executable) Wait() { exec.cmd.Wait() }
+func (exec *executable) Wait()            { exec.cmd.Wait() }
 func (exec *executable) CheckSum() string { return exec.hash }
 
 func (exec *executable) ExitStatus() int {
@@ -136,5 +136,5 @@ func (exec *executable) Signal() string {
 	return ""
 }
 
-func (exec *executable) Logs() io.Reader { return exec.appLogs }
+func (exec *executable) Logs() io.Reader     { return exec.appLogs }
 func (exec *executable) Data() io.ReadWriter { return exec.agentData }
