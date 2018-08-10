@@ -19,9 +19,9 @@ type Message struct {
 
 // Server provides a connection server for an Auklet agent.
 type Server struct {
-	in   io.Reader
-	dec  *json.Decoder
-	out  chan Message
+	in  io.Reader
+	dec *json.Decoder
+	out chan Message
 	// Done closes when the Server gets EOF.
 	Done chan struct{}
 }
