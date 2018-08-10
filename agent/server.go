@@ -19,20 +19,21 @@ type Message struct {
 
 // Server provides a connection server for an Auklet agent.
 type Server struct {
-	in  io.Reader
-	dec *json.Decoder
-	out chan Message
-	done chan struct{}
+	in   io.Reader
+	dec  *json.Decoder
+	out  chan Message
+	// Done closes when the Server gets EOF.
+	Done chan struct{}
 }
 
 // NewServer returns a new Server that reads from in. If dec is not nil, it is
 // used directly.
 func NewServer(in io.Reader, dec *json.Decoder) *Server {
 	s := &Server{
-		in:  in,
-		dec: dec,
-		out: make(chan Message),
-		done: make(chan struct{}),
+		in:   in,
+		dec:  dec,
+		out:  make(chan Message),
+		Done: make(chan struct{}),
 	}
 	go s.serve()
 	return s
@@ -41,7 +42,7 @@ func NewServer(in io.Reader, dec *json.Decoder) *Server {
 // serve causes s to accept an incoming connection, after which s can send and
 // receive messages.
 func (s *Server) serve() {
-	defer close(s.done)
+	defer close(s.Done)
 	defer close(s.out)
 	log.Print("Server: accepted connection")
 	defer log.Print("Server: connection closed")
@@ -70,9 +71,4 @@ func (s *Server) serve() {
 // Output returns s's output stream.
 func (s *Server) Output() <-chan Message {
 	return s.out
-}
-
-// Done closes when the Server gets EOF.
-func (s *Server) Done() <-chan struct{} {
-	return s.done
 }

@@ -42,7 +42,7 @@ func (c *client) runPipeline() {
 	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
 	agentMessages := agent.NewMerger(logger, server)
 	converter := schema.NewConverter(agentMessages, persistor, c.exec)
-	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done())
+	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done)
 	watcher := message.NewExitWatcher(converter, c.exec, persistor)
 	merger := message.NewMerger(watcher, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
