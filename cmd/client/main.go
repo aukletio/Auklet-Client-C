@@ -51,7 +51,7 @@ func (c *client) runPipeline() {
 	pollConfig := func() {
 		poll := func() {
 			dl := api.GetDataLimit().Config
-			go func() { requester.Configure() <- 1 }()
+			go func() { requester.Configure() <- dl.EmissionPeriod }()
 			go func() { limiter.Configure() <- dl.Cellular }()
 		}
 		poll()
