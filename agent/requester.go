@@ -12,15 +12,17 @@ type PeriodicRequester struct {
 	conf chan int  // provides the period in seconds
 	conn io.Writer // the connection on which to emit requests
 	out  chan broker.Message
+	done <-chan struct{} // cancellation requests
 }
 
-// NewPeriodicRequester creates a PeriodicRequester that sends rqeuests over
-// conn.
-func NewPeriodicRequester(conn io.Writer) PeriodicRequester {
+// NewPeriodicRequester creates a PeriodicRequester that sends requests over
+// conn. When done closes, the requester closes its output and terminates.
+func NewPeriodicRequester(conn io.Writer, done <-chan struct{}) PeriodicRequester {
 	r := PeriodicRequester{
 		conf: make(chan int),
 		conn: conn,
 		out:  make(chan broker.Message),
+		done: done,
 	}
 	go r.run()
 	return r
@@ -43,6 +45,8 @@ func (r PeriodicRequester) run() {
 	var prevErr error
 	for {
 		select {
+		case <-r.done:
+			return
 		case <-emit.C:
 			if _, err := r.conn.Write([]byte{0}); err != nil {
 				if prevErr != nil {
