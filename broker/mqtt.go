@@ -1,10 +1,12 @@
 package broker
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/eclipse/paho.mqtt.golang"
 
+	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
@@ -23,7 +25,8 @@ func wait(t mqtt.Token) error {
 // NewMQTTProducer returns a new producer for the given input.
 func NewMQTTProducer(in MessageSource) MQTTProducer {
 	opt := mqtt.NewClientOptions()
-	opt.AddBroker("tcp://:8080")
+	params := api.GetBrokerParams()
+	opt.AddBroker(fmt.Sprintf("ssl://%s:%s", params.Broker, params.Port))
 	opt.SetClientID("C")
 	c := mqtt.NewClient(opt)
 
@@ -46,8 +49,14 @@ func (p MQTTProducer) Serve() {
 		log.Print("producer: disconnected")
 	}()
 
+	topic := map[Topic]string{
+		Profile: "c/profiler/superfluous",
+		Event:   "c/events/superfluous",
+		Log:     "c/logs/superfluous",
+	}
+
 	for msg := range p.in.Output() {
-		if err := wait(p.c.Publish("test-topic", 1, false, []byte(msg.Bytes))); err != nil {
+		if err := wait(p.c.Publish(topic[msg.Topic], 1, false, []byte(msg.Bytes))); err != nil {
 			errorlog.Print("producer:", err)
 			continue
 		}

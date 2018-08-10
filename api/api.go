@@ -117,8 +117,9 @@ func CreateOrGetDevice() {
 
 // BrokerParams represents parameters affecting broker communication.
 type BrokerParams struct {
-	// Brokers is a list of broker addresses.
-	Brokers []string `json:"brokers"`
+	// Broker is a broker address.
+	Broker string `json:"brokers"`
+	Port   string `json:"port"`
 
 	// LogTopic, ProfileTopic, and EventTopic are topics to which we produce
 	// broker messages.

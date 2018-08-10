@@ -46,7 +46,7 @@ func (c *client) runPipeline() {
 	watcher := message.NewExitWatcher(converter, c.exec, persistor)
 	merger := message.NewMerger(watcher, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-	//producer := broker.NewProducer(limiter)
+	producer := broker.NewMQTTProducer(limiter)
 
 	pollConfig := func() {
 		poll := func() {
@@ -61,14 +61,7 @@ func (c *client) runPipeline() {
 	}
 	go pollConfig()
 
-	//producer.Serve()
-	for msg := range limiter.Output() {
-		fmt.Printf(`topic: %v
-bytes: %q
-error: %v
-
-`, msg.Topic, string(msg.Bytes), msg.Error)
-	}
+	producer.Serve()
 }
 
 func (c *client) run() {
