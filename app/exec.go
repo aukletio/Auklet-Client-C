@@ -130,10 +130,11 @@ func (exec *executable) ExitStatus() int {
 
 func (exec *executable) Signal() string {
 	ws := exec.cmd.ProcessState.Sys().(syscall.WaitStatus)
+	sig := ""
 	if ws.Signaled() {
-		return ws.Signal().String()
+		sig = ws.Signal().String()
 	}
-	return ""
+	return sig
 }
 
 func (exec *executable) Logs() io.Reader     { return exec.appLogs }
