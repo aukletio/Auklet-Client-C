@@ -33,6 +33,7 @@ func TestMethods(t *testing.T) {
 	}
 
 	exec.String()
+	exec.AgentVersion()
 	exec.Logs()
 	exec.Data()
 

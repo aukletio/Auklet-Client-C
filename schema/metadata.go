@@ -21,6 +21,7 @@ type metadata struct {
 func newMetadata(app App) metadata {
 	return metadata{
 		Version:  version.Version,
+		AgentVersion: app.AgentVersion(),
 		AppID:    config.AppID(),
 		CheckSum: app.CheckSum(),
 		IP:       device.CurrentIP(),

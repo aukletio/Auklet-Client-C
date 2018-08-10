@@ -2,8 +2,9 @@ package schema
 
 // This file defines interfaces needed by schema conversion functions.
 
-// App is anything that can return a checksum.
+// App is anything that can return a checksum and agent version.
 type App interface {
+	AgentVersion() string
 	CheckSum() string
 }
 

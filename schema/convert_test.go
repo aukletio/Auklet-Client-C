@@ -21,7 +21,7 @@ func (app) ID() string                  { return "app id" }
 func (app) CheckSum() string            { return "checksum" }
 func (app) Wait()                       {}
 func (app) ExitStatus() int             { return 42 }
-func (app) AgentVersion() <-chan string { return nil }
+func (app) AgentVersion() string { return "something" }
 
 func TestConverter(t *testing.T) {
 	type converterCase struct {

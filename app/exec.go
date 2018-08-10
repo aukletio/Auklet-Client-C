@@ -163,3 +163,9 @@ func (exec *Exec) Decoder() *json.Decoder { return exec.dec }
 func (exec *Exec) String() string {
 	return fmt.Sprintf("%s %s", exec.cmd.Path, exec.agentVersion)
 }
+
+// AgentVersion returns the agent version running in the process. It may be
+// called only after GetAgentVersion succeeds.
+func (exec *Exec) AgentVersion() string {
+	return exec.agentVersion
+}
