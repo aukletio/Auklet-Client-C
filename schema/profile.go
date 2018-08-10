@@ -19,10 +19,10 @@ type profile struct {
 
 type node struct {
 	Fn       int64  `json:"functionAddress"`
-	Cs       int64  `json:"callSiteAddress"`
-	Ncalls   int    `json:"nCalls"`
-	Nsamples int    `json:"nSamples"`
-	Callees  []node `json:"callees"`
+	Cs       int64  `json:"callSiteAddress,omitempty"`
+	Ncalls   int    `json:"nCalls,omitempty"`
+	Nsamples int    `json:"nSamples,omitempty"`
+	Callees  []node `json:"callees,omitempty"`
 }
 
 // NewProfile creates a Profile for app out of raw message data.

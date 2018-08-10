@@ -9,7 +9,7 @@ import (
 
 type persistor struct{}
 
-func (persistor) CreateMessage(broker.Message) error { return nil }
+func (persistor) CreateMessage(*broker.Message) error { return nil }
 
 type source chan agent.Message
 

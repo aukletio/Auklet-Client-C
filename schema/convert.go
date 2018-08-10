@@ -29,7 +29,7 @@ type MessageSource interface {
 
 // Persistor provides a persistor interface.
 type Persistor interface {
-	CreateMessage(broker.Message) error
+	CreateMessage(*broker.Message) error
 }
 
 // NewConverter returns a converter for the given input stream that uses the
@@ -54,7 +54,7 @@ func (c Converter) serve() {
 	defer close(c.out)
 	for agentMsg := range c.in.Output() {
 		brokerMsg := convert(agentMsg, c.app)
-		if err := c.persistor.CreateMessage(brokerMsg); err != nil {
+		if err := c.persistor.CreateMessage(&brokerMsg); err != nil {
 			// Let the backend know we ran out of local storage.
 			c.out <- broker.Message{
 				Error: err.Error(),

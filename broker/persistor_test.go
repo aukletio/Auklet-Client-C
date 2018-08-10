@@ -14,7 +14,7 @@ func TestPersistor(t *testing.T) {
 	p := NewPersistor(".auklet/message")
 	var limit int64 = 900
 	p.Configure() <- &limit
-	m := Message{
+	m := &Message{
 		Bytes: make([]byte, 500),
 	}
 	if err := p.CreateMessage(m); err != nil {
@@ -38,7 +38,7 @@ func TestPersistorLoad(t *testing.T) {
 	m := Message{
 		Bytes: make([]byte, 500),
 	}
-	if err := p.CreateMessage(m); err != nil {
+	if err := p.CreateMessage(&m); err != nil {
 		t.Errorf("expected nil, got %v", err)
 	}
 	loader := NewMessageLoader(p.dir)

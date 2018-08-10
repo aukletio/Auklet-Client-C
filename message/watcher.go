@@ -53,7 +53,7 @@ func (e *ExitWatcher) serve() {
 	}
 	e.app.Wait()
 	m := schema.NewExit(e.app)
-	if err := e.p.CreateMessage(m); err != nil {
+	if err := e.p.CreateMessage(&m); err != nil {
 		// Let the backend know we ran out of local storage.
 		e.out <- broker.Message{
 			Error: err.Error(),
