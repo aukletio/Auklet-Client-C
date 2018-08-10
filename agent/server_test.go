@@ -44,7 +44,7 @@ func TestServer(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		s := NewServer(bytes.NewBuffer(c.input))
+		s := NewServer(bytes.NewBuffer(c.input), nil)
 		got := <-s.Output()
 		if !compare(got, c.expect) {
 			t.Errorf("expected %v, got %v", c.expect, got)
@@ -53,7 +53,7 @@ func TestServer(t *testing.T) {
 }
 
 func TestServerEOF(t *testing.T) {
-	s := NewServer(bytes.NewBuffer([]byte("{}")))
+	s := NewServer(bytes.NewBuffer([]byte("{}")), nil)
 	<-s.Output()
 	// output channel ought to close now
 	select {

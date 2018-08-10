@@ -24,8 +24,8 @@ type Server struct {
 	out chan Message
 }
 
-// NewServer returns a new Server that reads from conn. Incoming messages are
-// processed by the given handlers.
+// NewServer returns a new Server that reads from in. If dec is not nil, it is
+// used directly.
 func NewServer(in io.Reader, dec *json.Decoder) *Server {
 	s := &Server{
 		in:  in,
@@ -42,6 +42,9 @@ func (s *Server) serve() {
 	defer close(s.out)
 	log.Print("Server: accepted connection")
 	defer log.Print("Server: connection closed")
+	if s.dec == nil {
+		s.dec = json.NewDecoder(s.in)
+	}
 	for {
 		var msg Message
 		if err := s.dec.Decode(&msg); err == io.EOF {
