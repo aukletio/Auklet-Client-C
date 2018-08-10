@@ -14,9 +14,8 @@ import (
 	"syscall"
 )
 
-// executable contains a command and a checksum identifying the associated
-// file.
-type executable struct {
+// Exec represents an executable.
+type Exec struct {
 	hash string
 	cmd  *exec.Cmd
 
@@ -29,8 +28,8 @@ type executable struct {
 	dec          *json.Decoder // reading from agentData
 }
 
-// newExec creates a new exectuable from one or more arguments.
-func newExec(name string, args ...string) (*executable, error) {
+// NewExec creates a new executable from one or more arguments.
+func NewExec(name string, args ...string) (*Exec, error) {
 	bytes, err := ioutil.ReadFile(name)
 	if err != nil {
 		return nil, err
@@ -41,7 +40,7 @@ func newExec(name string, args ...string) (*executable, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	return &executable{
+	return &Exec{
 		hash: fmt.Sprintf("%x", sha512.Sum512_224(bytes)),
 		cmd:  cmd,
 	}, nil
@@ -49,10 +48,11 @@ func newExec(name string, args ...string) (*executable, error) {
 
 var socketPair = socketpair
 
-// addSockets adds sockets to the executable so that we can communicate with it.
-// This must be called before starting the executable. Only call this if the
-// application is known to be released.
-func (exec *executable) addSockets() error {
+// AddSockets adds sockets to the executable so that we can communicate with
+// it. AddSockets must be called before starting the executable. 
+//
+// WARNING: Do not call this function on an unreleased executable!
+func (exec *Exec) AddSockets() error {
 	// If we fail to create sockets, we can't communicate with the running
 	// process. But we should try to send these errors to somebody.
 	appLogs, err := socketPair("appLogs")
@@ -79,7 +79,7 @@ func (exec *executable) addSockets() error {
 }
 
 // Start starts the OS process.
-func (exec *executable) Start() error {
+func (exec *Exec) Start() error {
 	// These files must be closed after the process is started. We do not
 	// use them, but if we fail to close them, our listeners might not
 	// terminate when the process closes its copies of them.
@@ -90,12 +90,16 @@ func (exec *executable) Start() error {
 }
 
 var (
-	errEncoding  = errors.New("JSON encoding error")
-	errEOF       = errors.New("expected version, got EOF")
-	errNoVersion = errors.New("empty agentVersion")
+	errEncoding  = errors.New("incorrect agent version syntax")
+	errEOF       = errors.New("expected agent version, got EOF")
+	errNoVersion = errors.New("empty agent version")
 )
 
-func (exec *executable) getAgentVersion() error {
+// GetAgentVersion reads from the agentData stream and reads the agentVersion.
+// This function must be called after starting the executable.
+//
+// WARNING: Do not call this function on an unreleased executable!
+func (exec *Exec) GetAgentVersion() error {
 	var msg struct {
 		Version string `json:"version"`
 	}
@@ -121,14 +125,14 @@ func (exec *executable) getAgentVersion() error {
 	return nil
 }
 
-func (exec *executable) Wait()            { exec.cmd.Wait() }
-func (exec *executable) CheckSum() string { return exec.hash }
+func (exec *Exec) Wait()            { exec.cmd.Wait() }
+func (exec *Exec) CheckSum() string { return exec.hash }
 
-func (exec *executable) ExitStatus() int {
+func (exec *Exec) ExitStatus() int {
 	return exec.cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 }
 
-func (exec *executable) Signal() string {
+func (exec *Exec) Signal() string {
 	ws := exec.cmd.ProcessState.Sys().(syscall.WaitStatus)
 	sig := ""
 	if ws.Signaled() {
@@ -137,5 +141,9 @@ func (exec *executable) Signal() string {
 	return sig
 }
 
-func (exec *executable) Logs() io.Reader     { return exec.appLogs }
-func (exec *executable) Data() io.ReadWriter { return exec.agentData }
+func (exec *Exec) Logs() io.Reader     { return exec.appLogs }
+func (exec *Exec) Data() io.ReadWriter { return exec.agentData }
+func (exec *Exec) Decoder() *json.Decoder { return exec.dec }
+func (exec *Exec) String() string {
+	return fmt.Sprintf("%s %s", exec.cmd.Path, exec.agentVersion)
+ }

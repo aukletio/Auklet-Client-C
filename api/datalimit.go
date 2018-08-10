@@ -38,8 +38,8 @@ type DataLimit struct {
 }
 
 // GetDataLimit returns a DataLimit from the dataLimit endpoint.
-func GetDataLimit(appID string) (l DataLimit) {
-	resp := get(fmt.Sprintf(dataLimitEP, appID), "application/json")
+func GetDataLimit() (l DataLimit) {
+	resp := get(fmt.Sprintf(dataLimitEP, config.AppID()), "application/json")
 	if resp == nil {
 		return
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/certs"
 	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
@@ -88,13 +89,13 @@ func Certificates() (c *tls.Config) {
 }
 
 // CreateOrGetDevice associates machash and appid in the backend.
-func CreateOrGetDevice(machash, appid string) {
+func CreateOrGetDevice() {
 	b, _ := json.Marshal(struct {
 		Mac   string `json:"mac_address_hash"`
 		AppID string `json:"application"`
 	}{
-		Mac:   machash,
-		AppID: appid,
+		Mac:   device.MacHash,
+		AppID: config.AppID(),
 	})
 	url := BaseURL + devicesEP
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))

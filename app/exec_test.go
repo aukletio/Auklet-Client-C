@@ -7,7 +7,7 @@ import (
 )
 
 func TestMethods(t *testing.T) {
-	exec, err := newExec("testdata/ls")
+	exec, err := NewExec("testdata/ls")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestMethods(t *testing.T) {
 		return
 	}
 
-	if err := exec.addSockets(); err != nil {
+	if err := exec.AddSockets(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -28,12 +28,14 @@ func TestMethods(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := exec.getAgentVersion(); err == nil {
+	if err := exec.GetAgentVersion(); err == nil {
 		t.Fatal(err)
 	}
 
+	exec.String()
 	exec.Logs()
 	exec.Data()
+
 	// wait for it to exit
 	exec.Wait()
 
@@ -57,7 +59,7 @@ func TestExec(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		_, err := newExec(c.given)
+		_, err := NewExec(c.given)
 		if (err != nil && err.Error() != c.expect) || (err == nil && c.expect != "") {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
@@ -90,7 +92,7 @@ func TestAddSockets(t *testing.T) {
 			expect: errSocketPair,
 		},
 	}
-	must := func(exec *executable, err error) *executable {
+	must := func(exec *Exec, err error) *Exec {
 		if err != nil {
 			panic(err)
 		}
@@ -98,7 +100,7 @@ func TestAddSockets(t *testing.T) {
 	}
 	for i, c := range cases {
 		socketPair = c.socketpair
-		err := must(newExec("testdata/ls")).addSockets()
+		err := must(NewExec("testdata/ls")).AddSockets()
 		if err != c.expect {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
@@ -109,26 +111,26 @@ func TestAddSockets(t *testing.T) {
 
 func TestGetAgentVersion(t *testing.T) {
 	cases := []struct {
-		exec   *executable
+		exec   *Exec
 		expect error
 	}{
 		{
-			exec: &executable{
+			exec: &Exec{
 				agentData: bytes.NewBufferString(`{"version":"something"}`),
 			},
 			expect: nil,
 		}, {
-			exec: &executable{
+			exec: &Exec{
 				agentData: bytes.NewBufferString(`{"version":""}`),
 			},
 			expect: errNoVersion,
 		}, {
-			exec: &executable{
+			exec: &Exec{
 				agentData: bytes.NewBufferString(` `),
 			},
 			expect: errEOF,
 		}, {
-			exec: &executable{
+			exec: &Exec{
 				agentData: bytes.NewBufferString(`}`),
 			},
 			expect: errEncoding,
@@ -136,7 +138,7 @@ func TestGetAgentVersion(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		err := c.exec.getAgentVersion()
+		err := c.exec.GetAgentVersion()
 		if err != c.expect {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)

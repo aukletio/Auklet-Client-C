@@ -3,6 +3,7 @@ package schema
 import (
 	"github.com/satori/go.uuid"
 
+	"github.com/ESG-USA/Auklet-Client-C/config"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
@@ -20,7 +21,7 @@ type metadata struct {
 func newMetadata(app App) metadata {
 	return metadata{
 		Version:  version.Version,
-		AppID:    app.ID(),
+		AppID:    config.AppID(),
 		CheckSum: app.CheckSum(),
 		IP:       device.CurrentIP(),
 		UUID:     uuid.NewV4().String(),
