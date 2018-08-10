@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ESG-USA/Auklet-Client-C/config"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
