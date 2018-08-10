@@ -17,10 +17,10 @@ func (s source) Output() <-chan agent.Message { return s }
 
 type app struct{}
 
-func (app) ID() string                  { return "app id" }
-func (app) CheckSum() string            { return "checksum" }
-func (app) Wait()                       {}
-func (app) ExitStatus() int             { return 42 }
+func (app) ID() string           { return "app id" }
+func (app) CheckSum() string     { return "checksum" }
+func (app) Wait()                {}
+func (app) ExitStatus() int      { return 42 }
 func (app) AgentVersion() string { return "something" }
 
 func TestConverter(t *testing.T) {
