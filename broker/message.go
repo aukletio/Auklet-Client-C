@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/afero"
+
+	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // This file defines interfaces for manipulating streams of broker
@@ -134,7 +136,7 @@ func loadMessage(path string) (m Message) {
 }
 
 // CreateMessage creates a new Message under p.
-func (p *Persistor) CreateMessage(m Message) (err error) {
+func (p *Persistor) CreateMessage(m *Message) (err error) {
 	lim := <-p.currentLimit
 	totalSize, err := size(p.dir)
 	if err != nil {
@@ -205,7 +207,9 @@ func (m Message) save() error {
 
 // Remove deletes m from the persistence layer.
 func (m Message) Remove() {
-	fs.Remove(m.path)
+	if err := fs.Remove(m.path); err != nil {
+		errorlog.Print(err)
+	}
 }
 
 // MessageSource is implemented by types that can generate a Message stream.

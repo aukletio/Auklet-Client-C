@@ -20,15 +20,20 @@ type Message struct {
 // Server provides a connection server for an Auklet agent.
 type Server struct {
 	in  io.Reader
+	dec *json.Decoder
 	out chan Message
+	// Done closes when the Server gets EOF.
+	Done chan struct{}
 }
 
-// NewServer returns a new Server that reads from conn. Incoming messages are
-// processed by the given handlers.
-func NewServer(in io.Reader) Server {
-	s := Server{
-		in:  in,
-		out: make(chan Message),
+// NewServer returns a new Server that reads from in. If dec is not nil, it is
+// used directly.
+func NewServer(in io.Reader, dec *json.Decoder) *Server {
+	s := &Server{
+		in:   in,
+		dec:  dec,
+		out:  make(chan Message),
+		Done: make(chan struct{}),
 	}
 	go s.serve()
 	return s
@@ -36,24 +41,27 @@ func NewServer(in io.Reader) Server {
 
 // serve causes s to accept an incoming connection, after which s can send and
 // receive messages.
-func (s Server) serve() {
+func (s *Server) serve() {
+	defer close(s.Done)
 	defer close(s.out)
 	log.Print("Server: accepted connection")
 	defer log.Print("Server: connection closed")
-	dec := json.NewDecoder(s.in)
+	if s.dec == nil {
+		s.dec = json.NewDecoder(s.in)
+	}
 	for {
 		var msg Message
-		if err := dec.Decode(&msg); err == io.EOF {
+		if err := s.dec.Decode(&msg); err == io.EOF {
 			return
 		} else if err != nil {
 			// There was a problem decoding the stream into
 			// message format.
-			buf, _ := ioutil.ReadAll(dec.Buffered())
+			buf, _ := ioutil.ReadAll(s.dec.Buffered())
 			s.out <- Message{
 				Type:  "log",
 				Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 			}
-			dec = json.NewDecoder(s.in)
+			s.dec = json.NewDecoder(s.in)
 			continue
 		}
 		s.out <- msg
@@ -61,6 +69,6 @@ func (s Server) serve() {
 }
 
 // Output returns s's output stream.
-func (s Server) Output() <-chan Message {
+func (s *Server) Output() <-chan Message {
 	return s.out
 }

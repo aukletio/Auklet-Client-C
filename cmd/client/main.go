@@ -15,46 +15,42 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/config"
-	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/message"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
+	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
-type server interface {
-	Serve()
-}
-
-var application *app.App
-
 type client struct {
-	prod server
+	exec *app.Exec
 }
 
 var dir = ".auklet/message"
 var persistor = broker.NewPersistor(dir)
 
-func newclient() *client {
-	c := &client{}
-	go api.CreateOrGetDevice(device.MacHash, application.ID())
+func newclient(exec *app.Exec) *client {
+	c := &client{
+		exec: exec,
+	}
+	go api.CreateOrGetDevice()
 	return c
 }
 
-func (c *client) createPipeline() {
+func (c *client) runPipeline() {
 	loader := broker.NewMessageLoader(dir)
-	logger := agent.NewLogger(application.Logs())
-	server := agent.NewServer(application.Data())
+	logger := agent.NewLogger(c.exec.Logs())
+	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
 	agentMessages := agent.NewMerger(logger, server)
-	converter := schema.NewConverter(agentMessages, persistor, application)
-	requester := agent.NewPeriodicRequester(application.Data())
-	watcher := message.NewExitWatcher(converter, application, persistor)
+	converter := schema.NewConverter(agentMessages, persistor, c.exec)
+	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done)
+	watcher := message.NewExitWatcher(converter, c.exec, persistor)
 	merger := message.NewMerger(watcher, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-	c.prod = broker.NewProducer(limiter)
+	producer := broker.NewMQTTProducer(limiter)
 
 	pollConfig := func() {
 		poll := func() {
-			dl := api.GetDataLimit(application.ID()).Config
+			dl := api.GetDataLimit().Config
 			go func() { requester.Configure() <- dl.EmissionPeriod }()
 			go func() { limiter.Configure() <- dl.Cellular }()
 		}
@@ -64,23 +60,33 @@ func (c *client) createPipeline() {
 		}
 	}
 	go pollConfig()
+
+	producer.Serve()
 }
 
 func (c *client) run() {
-	if !application.IsReleased() {
+	if !api.Release(c.exec.CheckSum()) {
 		// not released. Start the app, but don't serve it.
-		if err := application.Start(); err == nil {
-			application.Wait()
+		if err := c.exec.Start(); err != nil {
+			log.Fatal(err)
 		}
-		os.Exit(0)
+		c.exec.Wait()
+		return
 	}
 
-	c.createPipeline()
-	err := application.Start()
-	if err != nil {
-		os.Exit(1)
+	if err := c.exec.AddSockets(); err != nil {
+		log.Fatal(err)
 	}
-	c.prod.Serve()
+
+	if err := c.exec.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := c.exec.GetAgentVersion(); err != nil {
+		log.Fatal(err)
+	}
+
+	c.runPipeline()
 }
 
 func usage() {
@@ -105,7 +111,7 @@ func licenses() {
 }
 
 func getConfig() config.Config {
-	if Version == "local-build" {
+	if version.Version == "local-build" {
 		return config.LocalBuild()
 	}
 	return config.ReleaseBuild()
@@ -125,7 +131,7 @@ func main() {
 		licenses()
 		os.Exit(1)
 	}
-	log.Printf("Auklet Client version %s (%s)\n", Version, BuildDate)
+	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
 	cfg := getConfig()
 	api.BaseURL = cfg.BaseURL
 	if !cfg.LogInfo {
@@ -134,6 +140,9 @@ func main() {
 	if !cfg.LogErrors {
 		errorlog.SetOutput(ioutil.Discard)
 	}
-	application = app.New(args)
-	newclient().run()
+	exec, err := app.NewExec(args[0], args[1:]...)
+	if err != nil {
+		log.Fatal(err)
+	}
+	newclient(exec).run()
 }

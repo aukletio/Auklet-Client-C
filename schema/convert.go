@@ -12,7 +12,7 @@ import (
 type Converter struct {
 	in        MessageSource
 	out       chan broker.Message
-	persistor *broker.Persistor
+	persistor Persistor
 	app       ExitWaitApp
 }
 
@@ -27,9 +27,14 @@ type MessageSource interface {
 	Output() <-chan agent.Message
 }
 
+// Persistor provides a persistor interface.
+type Persistor interface {
+	CreateMessage(*broker.Message) error
+}
+
 // NewConverter returns a converter for the given input stream that uses the
 // given persistor and app.
-func NewConverter(in MessageSource, persistor *broker.Persistor, app ExitWaitApp) Converter {
+func NewConverter(in MessageSource, persistor Persistor, app ExitWaitApp) Converter {
 	c := Converter{
 		in:        in,
 		out:       make(chan broker.Message),
@@ -49,7 +54,7 @@ func (c Converter) serve() {
 	defer close(c.out)
 	for agentMsg := range c.in.Output() {
 		brokerMsg := convert(agentMsg, c.app)
-		if err := c.persistor.CreateMessage(brokerMsg); err != nil {
+		if err := c.persistor.CreateMessage(&brokerMsg); err != nil {
 			// Let the backend know we ran out of local storage.
 			c.out <- broker.Message{
 				Error: err.Error(),

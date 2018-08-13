@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"io"
 	"testing"
 	"time"
@@ -8,7 +9,7 @@ import (
 
 func TestRequester(t *testing.T) {
 	r, w := io.Pipe()
-	req := NewPeriodicRequester(w)
+	req := NewPeriodicRequester(w, nil)
 	req.Configure() <- 1
 	buf := make([]byte, 1)
 	n, err := r.Read(buf)
@@ -21,6 +22,17 @@ func TestRequester(t *testing.T) {
 	select {
 	case <-req.Output():
 	case <-timeout:
+		t.Fail()
+	}
+
+}
+
+func TestRequesterDone(t *testing.T) {
+	done := make(chan struct{})
+	req := NewPeriodicRequester(&bytes.Buffer{}, done)
+	// terminate the requester
+	close(done)
+	if _, open := <-req.Output(); open {
 		t.Fail()
 	}
 }
