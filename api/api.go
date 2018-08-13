@@ -4,12 +4,15 @@ package api
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 
-	"github.com/ESG-USA/Auklet-Client-C/certs"
 	"github.com/ESG-USA/Auklet-Client-C/config"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
@@ -70,6 +73,22 @@ func Release(checksum string) (ok bool) {
 	return
 }
 
+var errParseCA = errors.New("failed to parse CA")
+
+// tlsConfig converts ca into a *tls.Config.
+func tlsConfig(ca []byte) (*tls.Config, error) {
+	certpool := x509.NewCertPool()
+	if !certpool.AppendCertsFromPEM(ca) {
+		return nil, errParseCA
+	}
+	return &tls.Config{
+		RootCAs:            certpool,
+		ClientAuth:         tls.NoClientCert,
+		ClientCAs:          nil,
+		InsecureSkipVerify: false,
+	}, nil
+}
+
 // Certificates retrieves SSL certificates.
 func Certificates() (c *tls.Config) {
 	resp := get(certificatesEP, "")
@@ -80,12 +99,16 @@ func Certificates() (c *tls.Config) {
 		errorlog.Printf("api.Certificates: unexpected status %v", resp.Status)
 		return
 	}
-	cts, err := certs.Unpack(resp.Body)
+	ca, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		errorlog.Print(err)
 		return
 	}
-	return certs.TLSConfig(cts)
+	c, err = tlsConfig(ca)
+	if err != nil {
+		errorlog.Print(err)
+	}
+	return
 }
 
 // CreateOrGetDevice associates machash and appid in the backend.
@@ -115,33 +138,26 @@ func CreateOrGetDevice() {
 	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
 }
 
-// BrokerParams represents parameters affecting broker communication.
-type BrokerParams struct {
-	// Broker is a broker address.
-	Broker string `json:"brokers"`
-	Port   string `json:"port"`
-
-	// LogTopic, ProfileTopic, and EventTopic are topics to which we produce
-	// broker messages.
-	LogTopic     string `json:"log_topic"`
-	ProfileTopic string `json:"prof_topic"`
-	EventTopic   string `json:"event_topic"`
-}
-
-// GetBrokerParams returns broker parameters from the config endpoint.
-func GetBrokerParams() (k BrokerParams) {
+// GetBrokerAddr returns a broker from the config endpoint.
+func GetBrokerAddr() string {
 	resp := get(configEP, "application/json")
 	if resp == nil {
-		return
+		return ""
 	}
 	if resp.StatusCode != 200 {
 		errorlog.Printf("api.Config: unexpected status %v", resp.Status)
-		return
+		return ""
 	}
+
+	var k struct {
+		Broker string `json:"brokers"`
+		Port   string `json:"port"`
+	}
+
 	d := json.NewDecoder(resp.Body)
-	err := d.Decode(&k)
-	if err != nil && err != io.EOF {
+	if err := d.Decode(&k); err != nil && err != io.EOF {
 		errorlog.Print(err)
 	}
-	return
+
+	return fmt.Sprintf("ssl://%s:%s", k.Broker, k.Port)
 }

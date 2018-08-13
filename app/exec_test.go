@@ -34,6 +34,7 @@ func TestMethods(t *testing.T) {
 
 	exec.String()
 	exec.AgentVersion()
+	exec.Decoder()
 	exec.Logs()
 	exec.Data()
 

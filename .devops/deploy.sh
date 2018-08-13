@@ -34,7 +34,7 @@ echo
 
 echo 'Compiling client for target architectures...'
 echo
-GO_LDFLAGS="-X version.Version=$VERSION -X version.BuildDate=$TIMESTAMP -X github.com/ESG-USA/Auklet-Client-C/config.StaticBaseURL=$BASE_URL"
+GO_LDFLAGS="-X github.com/ESG-USA/AukletClient-C/version.Version=$VERSION -X github.com/ESG-USA/AukletClient-C/version.BuildDate=$TIMESTAMP -X github.com/ESG-USA/Auklet-Client-C/config.StaticBaseURL=$BASE_URL"
 PREFIX='auklet-client'
 S3_BUCKET='auklet'
 S3_PREFIX='client'

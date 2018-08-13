@@ -1,11 +1,13 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gobuffalo/packr"
@@ -22,7 +24,9 @@ import (
 )
 
 type client struct {
-	exec *app.Exec
+	certs *tls.Config
+	addr  string
+	exec  *app.Exec
 }
 
 var dir = ".auklet/message"
@@ -46,7 +50,7 @@ func (c *client) runPipeline() {
 	watcher := message.NewExitWatcher(converter, c.exec, persistor)
 	merger := message.NewMerger(watcher, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-	producer := broker.NewMQTTProducer(limiter)
+	producer := broker.NewMQTTProducer(limiter, c.addr, c.certs)
 
 	pollConfig := func() {
 		poll := func() {
@@ -62,6 +66,21 @@ func (c *client) runPipeline() {
 	go pollConfig()
 
 	producer.Serve()
+}
+
+func (c *client) prepare() bool {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		c.addr = api.GetBrokerAddr()
+	}()
+	go func() {
+		defer wg.Done()
+		c.certs = api.Certificates()
+	}()
+	wg.Wait()
+	return c.addr != "" && c.certs != nil
 }
 
 func (c *client) run() {
@@ -84,6 +103,10 @@ func (c *client) run() {
 
 	if err := c.exec.GetAgentVersion(); err != nil {
 		log.Fatal(err)
+	}
+
+	if !c.prepare() {
+		return
 	}
 
 	c.runPipeline()
