@@ -1,12 +1,11 @@
 package broker
 
 import (
-	"fmt"
+	"crypto/tls"
 	"log"
 
 	"github.com/eclipse/paho.mqtt.golang"
 
-	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
@@ -23,10 +22,10 @@ func wait(t mqtt.Token) error {
 }
 
 // NewMQTTProducer returns a new producer for the given input.
-func NewMQTTProducer(in MessageSource) MQTTProducer {
+func NewMQTTProducer(in MessageSource, addr string, t *tls.Config) MQTTProducer {
 	opt := mqtt.NewClientOptions()
-	params := api.GetBrokerParams()
-	opt.AddBroker(fmt.Sprintf("ssl://%s:%s", params.Broker, params.Port))
+	opt.AddBroker(addr)
+	opt.SetTLSConfig(t)
 	opt.SetClientID("C")
 	c := mqtt.NewClient(opt)
 
