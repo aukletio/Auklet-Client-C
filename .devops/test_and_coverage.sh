@@ -16,7 +16,7 @@ if [[ ! -f ~/.localCircleBuild ]]; then
   ./cc-test-reporter before-build
 fi
 
-go test -coverprofile=c.out ./agent ./api ./app ./broker ./certs ./config ./device ./errorlog ./message ./schema
+go test -coverprofile=c.out ./agent ./api ./app ./broker ./config ./device ./errorlog ./message ./schema
 
 if [[ ! -f ~/.localCircleBuild ]]; then
   # Set -e is disabled momentarily to be able to output the error message to log.txt file.
