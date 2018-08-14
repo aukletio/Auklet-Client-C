@@ -32,45 +32,45 @@ const (
 // should not assume any particular namespace.
 var BaseURL string
 
-func get(args, contenttype string) (resp *http.Response) {
+func get(args, contenttype string) (*http.Response, error) {
 	url := BaseURL + args
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		errorlog.Print(err)
-		return
+		return nil, err
 	}
+
 	req.Header.Add("Authorization", "JWT "+config.APIKey())
 	if contenttype != "" {
 		req.Header.Add("content-type", contenttype)
 	}
-	c := &http.Client{}
-	resp, err = c.Do(req)
-	if err != nil {
-		errorlog.Print(err)
-		return
-	}
-	if resp.StatusCode != 200 {
-		errorlog.Printf("api.get: got unexpected status %v from %v", resp.Status, url)
-	}
-	return
+
+	return http.DefaultClient.Do(req)
 }
 
-// Release returns true if checksum represents an app that has been released.
-func Release(checksum string) (ok bool) {
-	resp := get(releasesEP+checksum, "")
-	if resp == nil {
-		return
+type ErrNotReleased string
+
+func (err ErrNotReleased) Error() string {
+	return fmt.Sprintf("not released: %v", string(err))
+}
+
+// Release returns nil if checksum represents an app that has been released.
+//
+// There are two classes of errors:
+//
+// 1. The HTTP GET request failed.
+// 2. The response's status code is not 200.
+//
+func Release(checksum string) error {
+	resp, err := get(releasesEP+checksum, "")
+	if err != nil {
+		return err
 	}
-	switch resp.StatusCode {
-	case 200:
-		ok = true
-	case 404:
-		log.Printf("not released: %v", checksum)
-		ok = false
-	default:
-		errorlog.Printf("api.Release: got unexpected status %v", resp.Status)
+
+	if resp.StatusCode != 200 {
+		return ErrNotReleased(checksum)
 	}
-	return
+
+	return nil
 }
 
 var errParseCA = errors.New("failed to parse CA")
@@ -89,26 +89,29 @@ func tlsConfig(ca []byte) (*tls.Config, error) {
 	}, nil
 }
 
+type ErrStatus struct {
+	resp *http.Response
+}
+
+func (err ErrStatus) Error() string {
+	return fmt.Sprintf("unexpected status: %v from %v", err.resp.Status, err.resp.Request.URL)
+}
+
 // Certificates retrieves SSL certificates.
-func Certificates() (c *tls.Config) {
-	resp := get(certificatesEP, "")
-	if resp == nil {
-		return
+func Certificates() (*tls.Config, error) {
+	resp, err := get(certificatesEP, "")
+	if err != nil {
+		return nil, err
 	}
+
 	if resp.StatusCode != 200 {
-		errorlog.Printf("api.Certificates: unexpected status %v", resp.Status)
-		return
+		return nil, ErrStatus{resp}
 	}
-	ca, err := ioutil.ReadAll(resp.Body)
+	ca, _ := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errorlog.Print(err)
-		return
+		return nil, err
 	}
-	c, err = tlsConfig(ca)
-	if err != nil {
-		errorlog.Print(err)
-	}
-	return
+	return tlsConfig(ca)
 }
 
 // CreateOrGetDevice associates machash and appid in the backend.
@@ -129,8 +132,7 @@ func CreateOrGetDevice() {
 	req.Header.Add("content-type", "application/json")
 	req.Header.Add("Authorization", "JWT "+config.APIKey())
 
-	c := &http.Client{}
-	resp, err := c.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		errorlog.Print(err)
 		return
@@ -138,15 +140,24 @@ func CreateOrGetDevice() {
 	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
 }
 
+type ErrEncoding struct {
+	Err error
+	What string
+}
+
+func (err ErrEncoding) Error() string {
+	return fmt.Sprintf("encoding error: %v in %v", err.Err, err.What)
+}
+
 // GetBrokerAddr returns a broker from the config endpoint.
-func GetBrokerAddr() string {
-	resp := get(configEP, "application/json")
-	if resp == nil {
-		return ""
+func GetBrokerAddr() (string, error) {
+	resp, err := get(configEP, "application/json")
+	if err != nil {
+		return "", err
 	}
+
 	if resp.StatusCode != 200 {
-		errorlog.Printf("api.Config: unexpected status %v", resp.Status)
-		return ""
+		return "", ErrStatus{resp}
 	}
 
 	var k struct {
@@ -156,8 +167,12 @@ func GetBrokerAddr() string {
 
 	d := json.NewDecoder(resp.Body)
 	if err := d.Decode(&k); err != nil && err != io.EOF {
-		errorlog.Print(err)
+		b, _ := ioutil.ReadAll(d.Buffered())
+		return "", ErrEncoding{
+			Err: err,
+			What: string(b),
+		}
 	}
 
-	return fmt.Sprintf("ssl://%s:%s", k.Broker, k.Port)
+	return fmt.Sprintf("ssl://%s:%s", k.Broker, k.Port), nil
 }

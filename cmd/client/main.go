@@ -54,7 +54,12 @@ func (c *client) runPipeline() {
 
 	pollConfig := func() {
 		poll := func() {
-			dl := api.GetDataLimit().Config
+			dl, err := api.GetDataLimit()
+			if err != nil {
+				// TODO: send this over MQTT
+				errorlog.Print(err)
+				return
+			}
 			go func() { requester.Configure() <- dl.EmissionPeriod }()
 			go func() { limiter.Configure() <- dl.Cellular }()
 		}
@@ -73,18 +78,29 @@ func (c *client) prepare() bool {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		c.addr = api.GetBrokerAddr()
+		addr, err := api.GetBrokerAddr()
+		if err != nil {
+			// TODO: send this over MQTT
+			errorlog.Print(err)
+		}
+		c.addr = addr
 	}()
 	go func() {
 		defer wg.Done()
-		c.certs = api.Certificates()
+		certs, err := api.Certificates()
+		if err != nil {
+			// TODO: send this over MQTT
+			errorlog.Print(err)
+		}
+		c.certs = certs
 	}()
 	wg.Wait()
 	return c.addr != "" && c.certs != nil
 }
 
 func (c *client) run() {
-	if !api.Release(c.exec.CheckSum()) {
+	if err := api.Release(c.exec.CheckSum()); err != nil {
+		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
 		if err := c.exec.Start(); err != nil {
 			log.Fatal(err)
