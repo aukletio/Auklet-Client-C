@@ -12,14 +12,25 @@ import (
 
 // MQTTProducer wraps an MQTT client.
 type MQTTProducer struct {
-	c       mqtt.Client
+	c       client
 	org, id string
 }
 
 // wait turns Paho's async API into a sync API.
-func wait(t mqtt.Token) error {
+var wait = func(t mqtt.Token) error {
 	t.Wait()
 	return t.Error()
+}
+
+type client interface {
+	Connect() mqtt.Token
+	Publish(string, byte, bool, interface{}) mqtt.Token
+	Disconnect(uint)
+}
+
+// newClient allows us to mock the MQTT client in tests.
+var newClient = func(o *mqtt.ClientOptions) client {
+	return mqtt.NewClient(o)
 }
 
 // NewMQTTProducer returns a new producer for the given input.
@@ -28,8 +39,10 @@ func NewMQTTProducer(addr string, t *tls.Config, username, password, org string)
 	opt.AddBroker(addr)
 	opt.SetTLSConfig(t)
 	opt.SetClientID(username)
-	opt.SetCredentialsProvider(func() (string, string) { return username, password })
-	c := mqtt.NewClient(opt)
+	opt.SetCredentialsProvider(func() (string, string) {
+		return username, password
+	})
+	c := newClient(opt)
 
 	if err := wait(c.Connect()); err != nil {
 		return nil, err
