@@ -74,12 +74,12 @@ func (c channel) Output() <-chan Message {
 func TestPublish(t *testing.T) {
 	errPublish := errors.New("publish error")
 	cases := []struct {
-		wait   func(mqtt.Token) error
-	} {
+		wait func(mqtt.Token) error
+	}{
 		{
-			wait:   func(mqtt.Token) error { return nil },
+			wait: func(mqtt.Token) error { return nil },
 		}, {
-			wait:   func(mqtt.Token) error { return errPublish },
+			wait: func(mqtt.Token) error { return errPublish },
 		},
 	}
 
