@@ -3,11 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 
 	"github.com/ESG-USA/Auklet-Client-C/config"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // CellularConfig defines a limit and date for devices that use a cellular
@@ -43,19 +41,19 @@ func GetDataLimit() (*DataLimit, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if resp.StatusCode != 200 {
-		errorlog.Printf("api.DataLimit: unexpected status %v", resp.Status)
+		return nil, ErrStatus{resp}
 	}
+
 	var l struct {
 		DataLimit `json:"config"`
 	}
-	d := json.NewDecoder(resp.Body)
-	if err := d.Decode(&l); err != nil && err != io.EOF {
-		b, _ := ioutil.ReadAll(d.Buffered())
-		return nil, ErrEncoding{
-			Err:  err,
-			What: string(b),
-		}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	if err := json.Unmarshal(body, &l); err != nil {
+		return nil, ErrEncoding{err, string(body), "GetDataLimit"}
 	}
+
 	return &l.DataLimit, nil
 }

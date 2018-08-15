@@ -2,6 +2,7 @@ package broker
 
 import (
 	"crypto/tls"
+	"fmt"
 	"log"
 
 	"github.com/eclipse/paho.mqtt.golang"
@@ -11,7 +12,8 @@ import (
 
 // MQTTProducer wraps an MQTT client.
 type MQTTProducer struct {
-	c  mqtt.Client
+	c       mqtt.Client
+	org, id string
 }
 
 // wait turns Paho's async API into a sync API.
@@ -21,12 +23,12 @@ func wait(t mqtt.Token) error {
 }
 
 // NewMQTTProducer returns a new producer for the given input.
-func NewMQTTProducer(addr string, t *tls.Config, creds func() (string, string)) (*MQTTProducer, error) {
+func NewMQTTProducer(addr string, t *tls.Config, username, password, org string) (*MQTTProducer, error) {
 	opt := mqtt.NewClientOptions()
 	opt.AddBroker(addr)
 	opt.SetTLSConfig(t)
-	opt.SetClientID("C")
-	opt.SetCredentialsProvider(creds)
+	opt.SetClientID(username)
+	opt.SetCredentialsProvider(func() (string, string) { return username, password })
 	c := mqtt.NewClient(opt)
 
 	if err := wait(c.Connect()); err != nil {
@@ -35,7 +37,9 @@ func NewMQTTProducer(addr string, t *tls.Config, creds func() (string, string)) 
 	log.Print("producer: connected")
 
 	return &MQTTProducer{
-		c:  c,
+		c:   c,
+		org: org,
+		id:  username,
 	}, nil
 }
 
@@ -47,9 +51,12 @@ func (p MQTTProducer) Serve(in MessageSource) {
 	}()
 
 	topic := map[Topic]string{
-		Profile: "c/profiler/superfluous",
-		Event:   "c/events/superfluous",
-		Log:     "c/logs/superfluous",
+		Profile: "profiler",
+		Event:   "events",
+		Log:     "logs",
+	}
+	for k, v := range topic {
+		topic[k] = fmt.Sprintf("c/%v/%v/%v", v, p.org, p.id)
 	}
 
 	for msg := range in.Output() {

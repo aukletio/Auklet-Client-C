@@ -105,15 +105,47 @@ func Certificates() (*tls.Config, error) {
 	if resp.StatusCode != 200 {
 		return nil, ErrStatus{resp}
 	}
+
 	ca, _ := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
 	return tlsConfig(ca)
 }
 
-// CreateOrGetDevice associates machash and appid in the backend.
-func CreateOrGetDevice() (func() (string, string), error) {
+type Credentials struct {
+	Username string `json:"id"`
+	Password string `json:"client_password"`
+	Org      string `json:"organization"`
+}
+
+// GetCredentials retrieves credentials from the filesystem or API, whichever is
+// available.
+func GetCredentials() (*Credentials, error) {
+	path := ".auklet/identification"
+	// If path exists, decrypt it using API Key, unmarshal
+	// it, and return the Credentials. Otherwise, hit the API to register
+	// device.
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		creds, err := createOrGetDevice()
+		if err != nil {
+			return nil, err
+		}
+		b, _ := json.Marshal(creds)
+		// encrypt here
+		if err := ioutil.WriteFile(path, b, 0666); err != nil {
+			return nil, err
+		}
+		return creds, nil
+	}
+	// decrypt here
+	var creds Credentials
+	if err := json.Unmarshal(b, &creds); err != nil {
+		return nil, ErrEncoding{err, string(b), "GetCredentials"}
+	}
+	return &creds, nil
+}
+
+// createOrGetDevice associates machash and appid in the backend.
+func createOrGetDevice() (*Credentials, error) {
 	b, _ := json.Marshal(struct {
 		Mac   string `json:"mac_address_hash"`
 		AppID string `json:"application"`
@@ -140,28 +172,26 @@ func CreateOrGetDevice() (func() (string, string), error) {
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
-	var v struct {
-		Username string `json:"id"`
-		Password string `json:"client_password"`
+	var creds Credentials
+	if err := json.Unmarshal(body, &creds); err != nil {
+		return nil, ErrEncoding{err, string(body), "createOrGetDevice"}
+	}
+	if creds.Password == "" {
+		return nil, errors.New("empty password")
 	}
 
-	if err := json.Unmarshal(body, &v); err != nil {
-		return nil, ErrEncoding{err, string(body)}
-	}
-
-	fmt.Printf("%#v\n", v)
-	return func() (string, string) {
-		return v.Username, v.Password
-	}, nil
+	fmt.Printf("%#v\n", creds)
+	return &creds, nil
 }
 
 type ErrEncoding struct {
 	Err  error
 	What string
+	Op   string
 }
 
 func (err ErrEncoding) Error() string {
-	return fmt.Sprintf("encoding error: %v in %v", err.Err, err.What)
+	return fmt.Sprintf("encoding error during %v: %v in %v", err.Op, err.Err, err.What)
 }
 
 // GetBrokerAddr returns a broker from the config endpoint.
@@ -183,10 +213,7 @@ func GetBrokerAddr() (string, error) {
 	d := json.NewDecoder(resp.Body)
 	if err := d.Decode(&k); err != nil && err != io.EOF {
 		b, _ := ioutil.ReadAll(d.Buffered())
-		return "", ErrEncoding{
-			Err:  err,
-			What: string(b),
-		}
+		return "", ErrEncoding{err, string(b), "GetBrokerAddr"}
 	}
 
 	return fmt.Sprintf("ssl://%s:%s", k.Broker, k.Port), nil

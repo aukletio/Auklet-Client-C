@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	snet "net"
+	"os"
 	"time"
 
 	"github.com/rdegges/go-ipify"
@@ -29,6 +30,19 @@ func CurrentIP() (ip string) {
 // MacHash is derived from the MAC addresses of all available network
 // interfaces. It serves as a unique device identifier.
 var MacHash = ifacehash()
+
+func randid() string {
+	f, err := os.Open("/dev/urandom")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	b := make([]byte, 6)
+	if _, err := f.Read(b); err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%x", string(b))
+}
 
 // ifacehash generates a unique device identifier based on the MAC addresses of
 // hardware interfaces.

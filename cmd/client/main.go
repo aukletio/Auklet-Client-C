@@ -24,7 +24,7 @@ import (
 )
 
 type client struct {
-	creds func() (string, string)
+	creds *api.Credentials
 	certs *tls.Config
 	addr  string
 	exec  *app.Exec
@@ -41,7 +41,7 @@ func newclient(exec *app.Exec) *client {
 }
 
 func (c *client) runPipeline() {
-	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds)
+	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds.Username, c.creds.Password, c.creds.Org)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func (c *client) prepare() bool {
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		creds, err := api.CreateOrGetDevice()
+		creds, err := api.GetCredentials()
 		if err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
