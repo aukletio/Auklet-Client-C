@@ -11,7 +11,6 @@ import (
 
 // MQTTProducer wraps an MQTT client.
 type MQTTProducer struct {
-	in MessageSource
 	c  mqtt.Client
 }
 
@@ -22,27 +21,26 @@ func wait(t mqtt.Token) error {
 }
 
 // NewMQTTProducer returns a new producer for the given input.
-func NewMQTTProducer(in MessageSource, addr string, t *tls.Config) MQTTProducer {
+func NewMQTTProducer(addr string, t *tls.Config, creds func() (string, string)) (*MQTTProducer, error) {
 	opt := mqtt.NewClientOptions()
 	opt.AddBroker(addr)
 	opt.SetTLSConfig(t)
 	opt.SetClientID("C")
+	opt.SetCredentialsProvider(creds)
 	c := mqtt.NewClient(opt)
 
 	if err := wait(c.Connect()); err != nil {
-		errorlog.Print("producer:", err)
-		return MQTTProducer{}
+		return nil, err
 	}
 	log.Print("producer: connected")
 
-	return MQTTProducer{
-		in: in,
+	return &MQTTProducer{
 		c:  c,
-	}
+	}, nil
 }
 
 // Serve launches p, enabling it to send and receive messages.
-func (p MQTTProducer) Serve() {
+func (p MQTTProducer) Serve(in MessageSource) {
 	defer func() {
 		p.c.Disconnect(0)
 		log.Print("producer: disconnected")
@@ -54,7 +52,7 @@ func (p MQTTProducer) Serve() {
 		Log:     "c/logs/superfluous",
 	}
 
-	for msg := range p.in.Output() {
+	for msg := range in.Output() {
 		if err := wait(p.c.Publish(topic[msg.Topic], 1, false, []byte(msg.Bytes))); err != nil {
 			errorlog.Print("producer:", err)
 			continue

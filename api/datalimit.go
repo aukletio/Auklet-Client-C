@@ -53,7 +53,7 @@ func GetDataLimit() (*DataLimit, error) {
 	if err := d.Decode(&l); err != nil && err != io.EOF {
 		b, _ := ioutil.ReadAll(d.Buffered())
 		return nil, ErrEncoding{
-			Err: err,
+			Err:  err,
 			What: string(b),
 		}
 	}

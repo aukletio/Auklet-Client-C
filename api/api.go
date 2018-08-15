@@ -10,12 +10,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/ESG-USA/Auklet-Client-C/config"
 	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
@@ -115,7 +113,7 @@ func Certificates() (*tls.Config, error) {
 }
 
 // CreateOrGetDevice associates machash and appid in the backend.
-func CreateOrGetDevice() {
+func CreateOrGetDevice() (func() (string, string), error) {
 	b, _ := json.Marshal(struct {
 		Mac   string `json:"mac_address_hash"`
 		AppID string `json:"application"`
@@ -123,25 +121,42 @@ func CreateOrGetDevice() {
 		Mac:   device.MacHash,
 		AppID: config.AppID(),
 	})
+
 	url := BaseURL + devicesEP
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
-		errorlog.Print(err)
-		return
+		return nil, err
 	}
 	req.Header.Add("content-type", "application/json")
 	req.Header.Add("Authorization", "JWT "+config.APIKey())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		errorlog.Print(err)
-		return
+		return nil, err
 	}
-	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
+
+	if resp.StatusCode != 201 {
+		return nil, ErrStatus{resp}
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	var v struct {
+		Username string `json:"id"`
+		Password string `json:"client_password"`
+	}
+
+	if err := json.Unmarshal(body, &v); err != nil {
+		return nil, ErrEncoding{err, string(body)}
+	}
+
+	fmt.Printf("%#v\n", v)
+	return func() (string, string) {
+		return v.Username, v.Password
+	}, nil
 }
 
 type ErrEncoding struct {
-	Err error
+	Err  error
 	What string
 }
 
@@ -169,7 +184,7 @@ func GetBrokerAddr() (string, error) {
 	if err := d.Decode(&k); err != nil && err != io.EOF {
 		b, _ := ioutil.ReadAll(d.Buffered())
 		return "", ErrEncoding{
-			Err: err,
+			Err:  err,
 			What: string(b),
 		}
 	}

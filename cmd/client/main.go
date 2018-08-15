@@ -24,6 +24,7 @@ import (
 )
 
 type client struct {
+	creds func() (string, string)
 	certs *tls.Config
 	addr  string
 	exec  *app.Exec
@@ -36,11 +37,14 @@ func newclient(exec *app.Exec) *client {
 	c := &client{
 		exec: exec,
 	}
-	go api.CreateOrGetDevice()
 	return c
 }
 
 func (c *client) runPipeline() {
+	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds)
+	if err != nil {
+		log.Fatal(err)
+	}
 	loader := broker.NewMessageLoader(dir)
 	logger := agent.NewLogger(c.exec.Logs())
 	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
@@ -50,7 +54,6 @@ func (c *client) runPipeline() {
 	watcher := message.NewExitWatcher(converter, c.exec, persistor)
 	merger := message.NewMerger(watcher, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-	producer := broker.NewMQTTProducer(limiter, c.addr, c.certs)
 
 	pollConfig := func() {
 		poll := func() {
@@ -70,12 +73,21 @@ func (c *client) runPipeline() {
 	}
 	go pollConfig()
 
-	producer.Serve()
+	producer.Serve(limiter)
 }
 
 func (c *client) prepare() bool {
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		creds, err := api.CreateOrGetDevice()
+		if err != nil {
+			// TODO: send this over MQTT
+			errorlog.Print(err)
+		}
+		c.creds = creds
+	}()
 	go func() {
 		defer wg.Done()
 		addr, err := api.GetBrokerAddr()
@@ -95,7 +107,7 @@ func (c *client) prepare() bool {
 		c.certs = certs
 	}()
 	wg.Wait()
-	return c.addr != "" && c.certs != nil
+	return c.addr != "" && c.certs != nil && c.creds != nil
 }
 
 func (c *client) run() {
