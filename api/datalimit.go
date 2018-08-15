@@ -43,7 +43,7 @@ func GetDataLimit() (*DataLimit, error) {
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, ErrStatus{resp}
+		return nil, errStatus{resp}
 	}
 
 	var l struct {
