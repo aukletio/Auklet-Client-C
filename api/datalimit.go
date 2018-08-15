@@ -52,7 +52,7 @@ func GetDataLimit() (*DataLimit, error) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &l); err != nil {
-		return nil, ErrEncoding{err, string(body), "GetDataLimit"}
+		return nil, errEncoding{err, string(body), "GetDataLimit"}
 	}
 
 	return &l.DataLimit, nil
