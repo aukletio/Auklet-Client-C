@@ -2,7 +2,6 @@ package schema
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
@@ -13,7 +12,7 @@ import (
 type errorSig struct {
 	metadata
 	// Time is the time at which the event was received.
-	Time time.Time `json:"timestamp"`
+	Time int64 `json:"timestamp"`
 	// Status is the exit status of the application.
 	Status int `json:"exitStatus"`
 	// Signal is an integer value provided by an agent. As an output, it is
@@ -45,7 +44,7 @@ func NewErrorSig(data []byte, app ExitApp) broker.Message {
 		e.Error = err.Error()
 	}
 	e.metadata = newMetadata(app)
-	e.Time = time.Now()
+	e.Time = nowMilli()
 	e.Status = app.ExitStatus()
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()

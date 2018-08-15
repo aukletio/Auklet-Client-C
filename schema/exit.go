@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
@@ -13,7 +11,7 @@ import (
 type exit struct {
 	metadata
 	// Time is the time at which the event was received.
-	Time time.Time `json:"timestamp"`
+	Time int64 `json:"timestamp"`
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
 	Status  int            `json:"exitStatus"`
@@ -33,7 +31,7 @@ type SignalExitApp interface {
 func NewExit(app SignalExitApp) broker.Message {
 	e := exit{
 		metadata: newMetadata(app),
-		Time:     time.Now(),
+		Time:     nowMilli(),
 		Status:   app.ExitStatus(),
 		Signal:   app.Signal(),
 		MacHash:  device.MacHash,

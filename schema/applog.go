@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"time"
-
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
@@ -12,7 +10,7 @@ type appLog struct {
 	metadata
 	// Time is the Unix epoch time (in milliseconds) at which the
 	// message was received.
-	Time time.Time `json:"timestamp"`
+	Time int64 `json:"timestamp"`
 	// Message is the log message sent by the application.
 	Message []byte         `json:"message"`
 	MacHash string         `json:"macAddressHash"`
@@ -23,7 +21,7 @@ type appLog struct {
 func NewAppLog(msg []byte, app App) broker.Message {
 	a := appLog{
 		metadata: newMetadata(app),
-		Time:     time.Now(),
+		Time:     nowMilli(),
 		MacHash:  device.MacHash,
 		Metrics:  device.GetMetrics(),
 		Message:  msg,

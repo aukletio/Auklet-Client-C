@@ -25,6 +25,10 @@ type node struct {
 	Callees  []node `json:"callees,omitempty"`
 }
 
+func nowMilli() int64 {
+	return time.Now().UnixNano() / 1000000 // milliseconds
+}
+
 // NewProfile creates a Profile for app out of raw message data.
 func NewProfile(data []byte, app App) broker.Message {
 	var p profile
@@ -33,6 +37,6 @@ func NewProfile(data []byte, app App) broker.Message {
 		p.Error = err.Error()
 	}
 	p.metadata = newMetadata(app)
-	p.Time = time.Now().UnixNano() / 1000000 // milliseconds
+	p.Time = nowMilli()
 	return marshal(p, broker.Profile)
 }
