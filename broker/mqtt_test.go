@@ -58,10 +58,38 @@ func TestConnect(t *testing.T) {
 
 	conf := new(tls.Config)
 	for i, c := range cases {
-		// assign the client constructor
 		wait = c.wait
 		if _, err := NewMQTTProducer("", conf, "", "", ""); err != c.expect {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, err)
 		}
+	}
+}
+
+type channel chan Message
+
+func (c channel) Output() <-chan Message {
+	return c
+}
+
+func TestPublish(t *testing.T) {
+	errPublish := errors.New("publish error")
+	cases := []struct {
+		wait   func(mqtt.Token) error
+	} {
+		{
+			wait:   func(mqtt.Token) error { return nil },
+		}, {
+			wait:   func(mqtt.Token) error { return errPublish },
+		},
+	}
+
+	for _, c := range cases {
+		wait = c.wait
+		source := make(channel)
+		go func() {
+			defer close(source)
+			source <- Message{}
+		}()
+		MQTTProducer{c: klient{}}.Serve(source)
 	}
 }
