@@ -130,7 +130,7 @@ func monitorRates() <-chan Rates {
 func GetMetrics() Metrics {
 	c, _ := cpu.Percent(0, false)
 	m, _ := mem.VirtualMemory()
-	return Metrics {
+	return Metrics{
 		Rates:      <-rates,
 		CPUPercent: c[0],
 		MemPercent: m.UsedPercent,
