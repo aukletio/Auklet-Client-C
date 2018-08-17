@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	snet "net"
-	"os"
 	"time"
 
 	"github.com/rdegges/go-ipify"
