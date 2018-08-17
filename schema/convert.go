@@ -69,21 +69,22 @@ func (c Converter) serve() {
 func convert(m agent.Message, app ExitWaitApp) broker.Message {
 	switch m.Type {
 	case "applog":
-		return NewAppLog(m.Data, app)
+		return marshal(newAppLog(m.Data, app), broker.Event)
 	case "profile":
-		return NewProfile(m.Data, app)
+		return marshal(newProfile(m.Data, app), broker.Profile)
 	case "event":
 		app.Wait()
 		log.Printf("%v exited with error signal", app)
-		return NewErrorSig(m.Data, app)
+		return marshal(newErrorSig(m.Data, app), broker.Event)
 	case "log":
 		return broker.Message{
 			Bytes: m.Data,
 			Topic: broker.Log,
 		}
-	}
-	return broker.Message{
-		Error: fmt.Sprintf("message of type %q not handled", m.Type),
-		Topic: broker.Log,
+	default:
+		return broker.Message{
+			Error: fmt.Sprintf("message of type %q not handled", m.Type),
+			Topic: broker.Log,
+		}
 	}
 }

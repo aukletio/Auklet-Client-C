@@ -7,6 +7,7 @@ import (
 
 	"github.com/eclipse/paho.mqtt.golang"
 
+	"github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
@@ -34,13 +35,13 @@ var newClient = func(o *mqtt.ClientOptions) client {
 }
 
 // NewMQTTProducer returns a new producer for the given input.
-func NewMQTTProducer(addr string, t *tls.Config, username, password, org string) (*MQTTProducer, error) {
+func NewMQTTProducer(addr string, t *tls.Config, creds *api.Credentials) (*MQTTProducer, error) {
 	opt := mqtt.NewClientOptions()
 	opt.AddBroker(addr)
 	opt.SetTLSConfig(t)
-	opt.SetClientID(username)
+	opt.SetClientID(creds.Username)
 	opt.SetCredentialsProvider(func() (string, string) {
-		return username, password
+		return creds.Username, creds.Password
 	})
 	c := newClient(opt)
 
@@ -51,8 +52,8 @@ func NewMQTTProducer(addr string, t *tls.Config, username, password, org string)
 
 	return &MQTTProducer{
 		c:   c,
-		org: org,
-		id:  username,
+		org: creds.Org,
+		id:  creds.Username,
 	}, nil
 }
 

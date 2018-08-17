@@ -10,8 +10,6 @@ import (
 // some kind, but not one handled by an agent. See man 7 signal for details.
 type exit struct {
 	metadata
-	// Time is the time at which the event was received.
-	Time int64 `json:"timestamp"`
 	// Status is the exit status of the application as accessible through
 	// App.Wait.
 	Status  int            `json:"exitStatus"`
@@ -31,7 +29,6 @@ type SignalExitApp interface {
 func NewExit(app SignalExitApp) broker.Message {
 	e := exit{
 		metadata: newMetadata(app),
-		Time:     nowMilli(),
 		Status:   app.ExitStatus(),
 		Signal:   app.Signal(),
 		MacHash:  device.MacHash,

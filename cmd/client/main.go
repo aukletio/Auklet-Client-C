@@ -41,7 +41,7 @@ func newclient(exec *app.Exec) *client {
 }
 
 func (c *client) runPipeline() {
-	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds.Username, c.creds.Password, c.creds.Org)
+	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds)
 	if err != nil {
 		log.Fatal(err)
 	}

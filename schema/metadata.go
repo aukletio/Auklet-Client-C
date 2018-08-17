@@ -15,6 +15,7 @@ type metadata struct {
 	CheckSum     string `json:"checksum"` // SHA512/224 hash of the executable
 	IP           string `json:"publicIP"` // current public IP address
 	UUID         string `json:"id"`       // identifier for this message
+	Time int64 `json:"timestamp"` // Unix milliseconds
 	Error        string `json:"error,omitempty"`
 }
 
@@ -26,5 +27,6 @@ func newMetadata(app App) metadata {
 		CheckSum:     app.CheckSum(),
 		IP:           device.CurrentIP(),
 		UUID:         uuid.NewV4().String(),
+		Time : nowMilli(),
 	}
 }
