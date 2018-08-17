@@ -54,9 +54,7 @@ func ifacehash() string {
 	return fmt.Sprintf("%x", string(sum))
 }
 
-var rates = monitorRates()
-
-var inboundRate, outboundRate uint64
+var ioRates = monitorRates()
 
 func init() {
 	cpu.Percent(0, false)
@@ -66,18 +64,18 @@ func init() {
 type Metrics struct {
 	CPUPercent float64 `json:"cpuUsage"`
 	MemPercent float64 `json:"memoryUsage"`
-	Rates
+	rates
 }
 
-// Rates contains the number of bytes per second of network traffic over all
+// rates contains the number of bytes per second of network traffic over all
 // interfaces.
-type Rates struct {
+type rates struct {
 	In  uint64 `json:"inboundNetwork"`
 	Out uint64 `json:"outboundNetwork"`
 }
 
-func diff(cur, prev Rates) Rates {
-	return Rates{
+func diff(cur, prev rates) rates {
+	return rates{
 		In:  cur.In - prev.In,
 		Out: cur.Out - prev.Out,
 	}
@@ -86,10 +84,10 @@ func diff(cur, prev Rates) Rates {
 // monitorRates returns a stream of network I/O rate values. The values sent on
 // the stream are updated once per second; consuming at a higher rate than this
 // will not increase resolution.
-func monitorRates() <-chan Rates {
-	r := make(chan Rates)
+func monitorRates() <-chan rates {
+	r := make(chan rates)
 	go func() {
-		var prev, cur Rates
+		var prev, cur rates
 		update := func() {
 			stats, err := net.IOCounters(false)
 			if err != nil || len(stats) != 1 {
@@ -98,7 +96,7 @@ func monitorRates() <-chan Rates {
 			}
 			stat := stats[0]
 			prev = cur
-			cur = Rates{In: stat.BytesRecv, Out: stat.BytesSent}
+			cur = rates{In: stat.BytesRecv, Out: stat.BytesSent}
 		}
 		tick := time.Tick(time.Second)
 		for {
@@ -117,7 +115,7 @@ func GetMetrics() Metrics {
 	c, _ := cpu.Percent(0, false)
 	m, _ := mem.VirtualMemory()
 	return Metrics{
-		Rates:      <-rates,
+		rates:      <-ioRates,
 		CPUPercent: c[0],
 		MemPercent: m.UsedPercent,
 	}
