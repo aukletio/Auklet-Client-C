@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/eclipse/paho.mqtt.golang"
+
+	"github.com/ESG-USA/Auklet-Client-C/api"
 )
 
 // The testing strategy is to mock mqtt.Client. This is done with the
@@ -57,9 +59,10 @@ func TestConnect(t *testing.T) {
 	}
 
 	conf := new(tls.Config)
+	creds := new(api.Credentials)
 	for i, c := range cases {
 		wait = c.wait
-		if _, err := NewMQTTProducer("", conf, "", "", ""); err != c.expect {
+		if _, err := NewMQTTProducer("", conf, creds); err != c.expect {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, err)
 		}
 	}
