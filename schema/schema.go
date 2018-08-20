@@ -22,18 +22,16 @@ type metadata struct {
 	Error        string `json:"error,omitempty"`
 }
 
-// App is anything that can return a checksum and agent version.
-type App interface {
-	AgentVersion() string
-	CheckSum() string
+func nowMilli() int64 {
+	return time.Now().UnixNano() / 1000000 // milliseconds
 }
 
-func newMetadata(app App) metadata {
+func (c Converter) metadata() metadata {
 	return metadata{
 		Version:      version.Version,
-		AgentVersion: app.AgentVersion(),
+		AgentVersion: c.app.AgentVersion(),
 		AppID:        config.AppID(),
-		CheckSum:     app.CheckSum(),
+		CheckSum:     c.app.CheckSum(),
 		IP:           device.CurrentIP(),
 		UUID:         uuid.NewV4().String(),
 		Time:         nowMilli(),
@@ -49,10 +47,9 @@ type appLog struct {
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
-// newAppLog converts msg into a custom log message.
-func newAppLog(msg []byte, app App) appLog {
+func (c Converter) appLog(msg []byte) appLog {
 	return appLog{
-		metadata: newMetadata(app),
+		metadata: c.metadata(),
 		MacHash:  device.MacHash,
 		Metrics:  device.GetMetrics(),
 		Message:  msg,
@@ -74,18 +71,13 @@ type node struct {
 	Callees  []node `json:"callees,omitempty"`
 }
 
-func nowMilli() int64 {
-	return time.Now().UnixNano() / 1000000 // milliseconds
-}
-
-// newProfile creates a Profile for app out of raw message data.
-func newProfile(data []byte, app App) profile {
+func (c Converter) profile(data []byte) profile {
 	var p profile
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		p.Error = err.Error()
 	}
-	p.metadata = newMetadata(app)
+	p.metadata = c.metadata()
 	return p
 }
 
@@ -93,12 +85,8 @@ func newProfile(data []byte, app App) profile {
 // signal" and produced a stacktrace.
 type errorSig struct {
 	metadata
-	// Status is the exit status of the application.
-	Status int `json:"exitStatus"`
-	// Signal is an integer value provided by an agent. As an output, it is
-	// encoded as a string.
-	Signal string `json:"signal"`
-	// Trace is a stacktrace provided by an agent.
+	Status  int            `json:"exitStatus"`
+	Signal  string         `json:"signal"`
 	Trace   []frame        `json:"stackTrace"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
@@ -109,15 +97,14 @@ type frame struct {
 	Cs int64 `json:"callSiteAddress"`
 }
 
-// newErrorSig creates an ErrorSig for app out of raw message data.
-func newErrorSig(data []byte, app App, exitStatus int) errorSig {
+func (c Converter) errorSig(data []byte) errorSig {
 	var e errorSig
 	err := json.Unmarshal(data, &e)
 	if err != nil {
 		e.Error = err.Error()
 	}
-	e.metadata = newMetadata(app)
-	e.Status = exitStatus
+	e.metadata = c.metadata()
+	e.Status = c.app.ExitStatus()
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
 	return e
@@ -128,20 +115,17 @@ func newErrorSig(data []byte, app App, exitStatus int) errorSig {
 // some kind, but not one handled by an agent. See man 7 signal for details.
 type exit struct {
 	metadata
-	// Status is the exit status of the application as accessible through
-	// App.Wait.
 	Status  int            `json:"exitStatus"`
 	Signal  string         `json:"signal,omitempty"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
-// newExit creates an exit for app.
-func newExit(app App, signal string, exitStatus int) exit {
+func (c Converter) exit() exit {
 	return exit{
-		metadata: newMetadata(app),
-		Status:   exitStatus,
-		Signal:   signal,
+		metadata: c.metadata(),
+		Status:   c.app.ExitStatus(),
+		Signal:   c.app.Signal(),
 		MacHash:  device.MacHash,
 		Metrics:  device.GetMetrics(),
 	}
