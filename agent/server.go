@@ -49,10 +49,11 @@ func (s *Server) serve() {
 	if s.dec == nil {
 		s.dec = json.NewDecoder(s.in)
 	}
+	errd := false
 	for {
 		var msg Message
 		if err := s.dec.Decode(&msg); err == io.EOF {
-			return
+			break
 		} else if err != nil {
 			// There was a problem decoding the stream into
 			// message format.
@@ -64,7 +65,13 @@ func (s *Server) serve() {
 			s.dec = json.NewDecoder(s.in)
 			continue
 		}
+		if msg.Type == "event" {
+			errd = true
+		}
 		s.out <- msg
+	}
+	if !errd {
+		s.out <- Message{Type: "cleanExit"}
 	}
 }
 

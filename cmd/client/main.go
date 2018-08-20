@@ -169,9 +169,8 @@ func (c *client) runPipeline() {
 	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
 	agentMessages := agent.NewMerger(logger, server)
 	converter := schema.NewConverter(agentMessages, persistor, c.exec)
-	watcher := message.NewExitWatcher(converter, c.exec, persistor)
 	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done)
-	merger := message.NewMerger(watcher, loader, requester)
+	merger := message.NewMerger(converter, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 
 	pollConfig := func() {

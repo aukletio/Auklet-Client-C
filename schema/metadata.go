@@ -19,6 +19,12 @@ type metadata struct {
 	Error        string `json:"error,omitempty"`
 }
 
+// App is anything that can return a checksum and agent version.
+type App interface {
+	AgentVersion() string
+	CheckSum() string
+}
+
 func newMetadata(app App) metadata {
 	return metadata{
 		Version:      version.Version,

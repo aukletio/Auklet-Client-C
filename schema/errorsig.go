@@ -26,22 +26,15 @@ type frame struct {
 	Cs int64 `json:"callSiteAddress"`
 }
 
-// ExitApp is an App that has an exit status.
-type ExitApp interface {
-	App
-	Exiter
-}
-
-// newErrorSig creates an ErrorSig for app out of raw message data. It assumes
-// that app.Wait() has returned.
-func newErrorSig(data []byte, app ExitApp) errorSig {
+// newErrorSig creates an ErrorSig for app out of raw message data.
+func newErrorSig(data []byte, app App, exitStatus int) errorSig {
 	var e errorSig
 	err := json.Unmarshal(data, &e)
 	if err != nil {
 		e.Error = err.Error()
 	}
 	e.metadata = newMetadata(app)
-	e.Status = app.ExitStatus()
+	e.Status = exitStatus
 	e.MacHash = device.MacHash
 	e.Metrics = device.GetMetrics()
 	return e

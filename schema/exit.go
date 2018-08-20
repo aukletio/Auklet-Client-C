@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
@@ -18,21 +17,13 @@ type exit struct {
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
-// SignalExitApp is an app with an exit status and signal description.
-type SignalExitApp interface {
-	App
-	Exiter
-	Signaller
-}
-
-// NewExit creates an exit for app. It assumes that app.Wait() has returned.
-func NewExit(app SignalExitApp) broker.Message {
-	e := exit{
+// newExit creates an exit for app.
+func newExit(app App, signal string, exitStatus int) exit {
+	return exit{
 		metadata: newMetadata(app),
-		Status:   app.ExitStatus(),
-		Signal:   app.Signal(),
+		Status:   exitStatus,
+		Signal:   signal,
 		MacHash:  device.MacHash,
 		Metrics:  device.GetMetrics(),
 	}
-	return marshal(e, broker.Event)
 }
