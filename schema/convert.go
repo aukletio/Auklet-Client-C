@@ -16,7 +16,7 @@ type Converter struct {
 	app       ExitWaitSignalApp
 }
 
-// ExitWaitApp is an ExitApp for which we can wait to exit.
+// ExitWaitSignalApp is an ExitApp for which we can wait to exit.
 type ExitWaitSignalApp interface {
 	App
 	ExitStatus() int

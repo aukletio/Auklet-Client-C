@@ -21,6 +21,7 @@ func (app) ID() string           { return "app id" }
 func (app) CheckSum() string     { return "checksum" }
 func (app) Wait()                {}
 func (app) ExitStatus() int      { return 42 }
+func (app) Signal() string       { return "something" }
 func (app) AgentVersion() string { return "something" }
 
 func TestConverter(t *testing.T) {
