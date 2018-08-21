@@ -34,9 +34,6 @@ func TestMethods(t *testing.T) {
 
 	exec.String()
 	exec.AgentVersion()
-	exec.Decoder()
-	exec.Logs()
-	exec.Data()
 
 	// wait for it to exit
 	exec.Wait()
@@ -118,22 +115,22 @@ func TestGetAgentVersion(t *testing.T) {
 	}{
 		{
 			exec: &Exec{
-				agentData: bytes.NewBufferString(`{"version":"something"}`),
+				AgentData: bytes.NewBufferString(`{"version":"something"}`),
 			},
 			expect: nil,
 		}, {
 			exec: &Exec{
-				agentData: bytes.NewBufferString(`{"version":""}`),
+				AgentData: bytes.NewBufferString(`{"version":""}`),
 			},
 			expect: errNoVersion,
 		}, {
 			exec: &Exec{
-				agentData: bytes.NewBufferString(` `),
+				AgentData: bytes.NewBufferString(` `),
 			},
 			expect: errEOF,
 		}, {
 			exec: &Exec{
-				agentData: bytes.NewBufferString(`}`),
+				AgentData: bytes.NewBufferString(`}`),
 			},
 			expect: errEncoding,
 		},
