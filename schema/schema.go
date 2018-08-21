@@ -66,7 +66,7 @@ type profile struct {
 }
 
 type node struct {
-	Fn       *int64  `json:"functionAddress"`
+	Fn       *int64 `json:"functionAddress"`
 	Cs       int64  `json:"callSiteAddress"`
 	Ncalls   int    `json:"nCalls"`
 	Nsamples int    `json:"nSamples"`
@@ -96,7 +96,7 @@ type errorSig struct {
 
 type frame struct {
 	Fn *int64 `json:"functionAddress"`
-	Cs int64 `json:"callSiteAddress"`
+	Cs int64  `json:"callSiteAddress"`
 }
 
 func (c Converter) errorSig(data []byte) errorSig {
