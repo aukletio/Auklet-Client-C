@@ -34,13 +34,7 @@ func TestConverter(t *testing.T) {
 			input: agent.Message{Type: "event"},
 			err:   "",
 		}, {
-			input: agent.Message{Type: "applog"},
-			err:   "",
-		}, {
 			input: agent.Message{Type: "profile"},
-			err:   "",
-		}, {
-			input: agent.Message{Type: "log"},
 			err:   "",
 		},
 	}
