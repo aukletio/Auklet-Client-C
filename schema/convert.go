@@ -41,11 +41,11 @@ type Persistor interface {
 
 // NewConverter returns a converter for the given input stream that uses the
 // given persistor and app.
-func NewConverter(in MessageSource, dir string, app ExitWaitSignalApp, username string) Converter {
+func NewConverter(in MessageSource, persistor Persistor, app ExitWaitSignalApp, username string) Converter {
 	c := Converter{
 		in:        in,
 		out:       make(chan broker.Message),
-		persistor: broker.NewPersistor(dir),
+		persistor: persistor,
 		app:       app,
 		username:  username,
 	}

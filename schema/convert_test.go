@@ -46,7 +46,7 @@ func TestConverter(t *testing.T) {
 	}
 	for i, c := range cases {
 		s := make(source)
-		converter := NewConverter(s, persistor{}, app{})
+		converter := NewConverter(s, persistor{}, app{}, "username")
 		s <- c.input
 		m := <-converter.Output()
 		if m.Error != c.err {
