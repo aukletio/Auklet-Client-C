@@ -12,6 +12,7 @@ import (
 )
 
 type metadata struct {
+	Username     string `json:"device"`
 	Version      string `json:"clientVersion"`
 	AgentVersion string `json:"agentVersion"`
 	AppID        string `json:"application"`
@@ -28,6 +29,7 @@ func nowMilli() int64 {
 
 func (c Converter) metadata() metadata {
 	return metadata{
+		Username:     c.username,
 		Version:      version.Version,
 		AgentVersion: c.app.AgentVersion(),
 		AppID:        config.AppID(),
@@ -64,11 +66,11 @@ type profile struct {
 }
 
 type node struct {
-	Fn       int64  `json:"functionAddress"`
-	Cs       int64  `json:"callSiteAddress,omitempty"`
-	Ncalls   int    `json:"nCalls,omitempty"`
-	Nsamples int    `json:"nSamples,omitempty"`
-	Callees  []node `json:"callees,omitempty"`
+	Fn       *int64  `json:"functionAddress"`
+	Cs       int64  `json:"callSiteAddress"`
+	Ncalls   int    `json:"nCalls"`
+	Nsamples int    `json:"nSamples"`
+	Callees  []node `json:"callees"`
 }
 
 func (c Converter) profile(data []byte) profile {
@@ -93,7 +95,7 @@ type errorSig struct {
 }
 
 type frame struct {
-	Fn int64 `json:"functionAddress"`
+	Fn *int64 `json:"functionAddress"`
 	Cs int64 `json:"callSiteAddress"`
 }
 
@@ -116,7 +118,7 @@ func (c Converter) errorSig(data []byte) errorSig {
 type exit struct {
 	metadata
 	Status  int            `json:"exitStatus"`
-	Signal  string         `json:"signal,omitempty"`
+	Signal  string         `json:"signal"`
 	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }

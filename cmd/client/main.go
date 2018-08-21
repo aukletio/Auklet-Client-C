@@ -163,12 +163,11 @@ func (c *client) runPipeline() {
 		log.Fatal(err)
 	}
 
-	persistor := broker.NewPersistor(dir)
 	loader := broker.NewMessageLoader(dir)
 	logger := agent.NewLogger(c.exec.Logs())
 	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
 	agentMessages := agent.NewMerger(logger, server)
-	converter := schema.NewConverter(agentMessages, persistor, c.exec)
+	converter := schema.NewConverter(agentMessages, dir, c.exec, c.creds.Username)
 	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done)
 	merger := message.NewMerger(converter, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
@@ -181,7 +180,7 @@ func (c *client) runPipeline() {
 				errorlog.Print(err)
 				return
 			}
-			go func() { requester.Configure() <- dl.EmissionPeriod }()
+			go func() { requester.Configure() <- 1 }()
 			go func() { limiter.Configure() <- dl.Cellular }()
 		}
 		poll()

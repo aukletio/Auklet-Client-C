@@ -17,6 +17,7 @@ type Converter struct {
 	out       chan broker.Message
 	persistor Persistor
 	app       ExitWaitSignalApp
+	username  string
 }
 
 // ExitWaitSignalApp is an ExitApp for which we can wait to exit.
@@ -40,12 +41,13 @@ type Persistor interface {
 
 // NewConverter returns a converter for the given input stream that uses the
 // given persistor and app.
-func NewConverter(in MessageSource, persistor Persistor, app ExitWaitSignalApp) Converter {
+func NewConverter(in MessageSource, dir string, app ExitWaitSignalApp, username string) Converter {
 	c := Converter{
 		in:        in,
 		out:       make(chan broker.Message),
-		persistor: persistor,
+		persistor: broker.NewPersistor(dir),
 		app:       app,
+		username:  username,
 	}
 	go c.serve()
 	return c
