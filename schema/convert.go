@@ -61,6 +61,12 @@ func (c Converter) Output() <-chan broker.Message {
 func (c Converter) serve() {
 	defer close(c.out)
 	for agentMsg := range c.in.Output() {
+		switch agentMsg.Type {
+		case "applog", "log":
+			// Drop these messages for now, because consumers do not handle them.
+			continue
+		}
+
 		brokerMsg := c.convert(agentMsg)
 		if err := c.persistor.CreateMessage(&brokerMsg); err != nil {
 			// Let the backend know we ran out of local storage.
@@ -70,6 +76,7 @@ func (c Converter) serve() {
 			}
 			continue
 		}
+
 		c.out <- brokerMsg
 	}
 }
