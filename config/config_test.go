@@ -5,18 +5,16 @@ import (
 	"testing"
 )
 
+func empty(key string) string { return "" }
+
 func TestLocalBuild(t *testing.T) {
-	cases := []struct{
+	cases := []struct {
 		getenv func(string) string
 		expect Config
-	} {
+	}{
 		{
-			getenv: func(key string) string { return "" },
-			expect: Config{
-				BaseURL:   Production,
-				LogErrors: false,
-				LogInfo:   false,
-			},
+			getenv: empty,
+			expect: Config{BaseURL: Production},
 		},
 		{
 			getenv: func(key string) string {
@@ -25,11 +23,7 @@ func TestLocalBuild(t *testing.T) {
 				}
 				return ""
 			},
-			expect: Config{
-				BaseURL:   "something",
-				LogErrors: false,
-				LogInfo:   false,
-			},
+			expect: Config{BaseURL: "something"},
 		},
 		{
 			getenv: func(key string) string {
@@ -38,11 +32,7 @@ func TestLocalBuild(t *testing.T) {
 				}
 				return ""
 			},
-			expect: Config{
-				BaseURL:   Production,
-				LogErrors: true,
-				LogInfo:   false,
-			},
+			expect: Config{BaseURL: Production, LogErrors: true},
 		},
 		{
 			getenv: func(key string) string {
@@ -51,11 +41,7 @@ func TestLocalBuild(t *testing.T) {
 				}
 				return ""
 			},
-			expect: Config{
-				BaseURL:   Production,
-				LogErrors: false,
-				LogInfo:   true,
-			},
+			expect: Config{BaseURL: Production, LogInfo: true},
 		},
 	}
 
@@ -72,17 +58,15 @@ func TestReleaseBuild(t *testing.T) {
 	cases := []struct {
 		getenv func(string) string
 		expect Config
-	} {
+	}{
 		{
-			getenv: func(key string) string { return "" },
+			getenv: empty,
 			expect: Config{
 				BaseURL: StaticBaseURL,
-				LogErrors: false,
-				LogInfo: false,
 			},
 		},
 	}
-	
+
 	for i, c := range cases {
 		getenv = c.getenv
 		if got := ReleaseBuild(); got != c.expect {
