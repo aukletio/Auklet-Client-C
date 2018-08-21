@@ -36,6 +36,12 @@ func TestConverter(t *testing.T) {
 		}, {
 			input: agent.Message{Type: "profile"},
 			err:   "",
+		}, {
+			input: agent.Message{Type: "cleanExit"},
+			err:   "",
+		}, {
+			input: agent.Message{Type: "unknown"},
+			err:   `message of type "unknown" not handled`,
 		},
 	}
 	for i, c := range cases {
