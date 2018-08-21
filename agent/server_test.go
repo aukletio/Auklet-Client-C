@@ -51,19 +51,3 @@ func TestServer(t *testing.T) {
 		}
 	}
 }
-
-func TestServerEOF(t *testing.T) {
-	s := NewServer(bytes.NewBuffer([]byte("{}")), nil)
-	<-s.Output()
-	// output channel ought to close now
-	select {
-	case _, open := <-s.Output():
-		if open {
-			t.Errorf("expected channel to close, but it's open and still has messages")
-		} else {
-			// success
-		}
-	default:
-		t.Errorf("expected channel to close immediately, but it's open and blocking")
-	}
-}

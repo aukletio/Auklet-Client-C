@@ -54,56 +54,69 @@ func ifacehash() string {
 	return fmt.Sprintf("%x", string(sum))
 }
 
-var inboundRate, outboundRate uint64
+var ioRates = monitorRates()
 
 func init() {
 	cpu.Percent(0, false)
-	go networkStat()
-}
-
-// networkStat updates inbound and outbound network traffic figures
-// periodically.
-func networkStat() { // inboundRate outBoundRate
-	// Total network I/O bytes recieved and sent per second from the system
-	// since the start of the system.
-
-	var inbound, outbound, inboundPrev, outboundPrev uint64
-	for {
-		if tempNet, err := net.IOCounters(false); err == nil {
-			inbound = tempNet[0].BytesRecv
-			outbound = tempNet[0].BytesSent
-			inboundRate = inbound - inboundPrev
-			outboundRate = outbound - outboundPrev
-			inboundPrev = inbound
-			outboundPrev = outbound
-		}
-
-		time.Sleep(time.Second)
-	}
 }
 
 // Metrics represents overall system metrics.
 type Metrics struct {
 	CPUPercent float64 `json:"cpuUsage"`
 	MemPercent float64 `json:"memoryUsage"`
-	Inbound    uint64  `json:"inboundNetwork"`
-	Outbound   uint64  `json:"outboundNetwork"`
+	rates
+}
+
+// rates contains the number of bytes per second of network traffic over all
+// interfaces.
+type rates struct {
+	In  uint64 `json:"inboundNetwork"`
+	Out uint64 `json:"outboundNetwork"`
+}
+
+func diff(cur, prev rates) rates {
+	return rates{
+		In:  cur.In - prev.In,
+		Out: cur.Out - prev.Out,
+	}
+}
+
+// monitorRates returns a stream of network I/O rate values. The values sent on
+// the stream are updated once per second; consuming at a higher rate than this
+// will not increase resolution.
+func monitorRates() <-chan rates {
+	r := make(chan rates)
+	go func() {
+		var prev, cur rates
+		update := func() {
+			stats, err := net.IOCounters(false)
+			if err != nil || len(stats) != 1 {
+				// something isn't right
+				return
+			}
+			stat := stats[0]
+			prev = cur
+			cur = rates{In: stat.BytesRecv, Out: stat.BytesSent}
+		}
+		tick := time.Tick(time.Second)
+		for {
+			select {
+			case <-tick:
+				update()
+			case r <- diff(cur, prev):
+			}
+		}
+	}()
+	return r
 }
 
 // GetMetrics provides current system metrics.
-func GetMetrics() (m Metrics) { // inboundRate outboundRate
-	// System-wide cpu usage since the start of the child process
-	if tempCPU, err := cpu.Percent(0, false); err == nil {
-		m.CPUPercent = tempCPU[0]
+func GetMetrics() Metrics {
+	c, _ := cpu.Percent(0, false)
+	m, _ := mem.VirtualMemory()
+	return Metrics{
+		rates:      <-ioRates,
+		CPUPercent: c[0],
+		MemPercent: m.UsedPercent,
 	}
-
-	// System-wide current virtual memory (ram) consumption
-	// percentage.
-	if tempMem, err := mem.VirtualMemory(); err == nil {
-		m.MemPercent = tempMem.UsedPercent
-	}
-
-	m.Inbound = inboundRate
-	m.Outbound = outboundRate
-	return
 }

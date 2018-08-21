@@ -23,93 +23,37 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
-type client struct {
-	certs *tls.Config
-	addr  string
-	exec  *app.Exec
+func init() {
+	log.SetFlags(log.Lmicroseconds)
 }
 
-var dir = ".auklet/message"
-var persistor = broker.NewPersistor(dir)
-
-func newclient(exec *app.Exec) *client {
+func main() {
+	args := os.Args[1:]
+	if len(args) == 0 {
+		usage()
+		os.Exit(1)
+	}
+	if args[0] == "--licenses" {
+		licenses()
+		os.Exit(1)
+	}
+	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
+	cfg := getConfig()
+	api.BaseURL = cfg.BaseURL
+	if !cfg.LogInfo {
+		log.SetOutput(ioutil.Discard)
+	}
+	if !cfg.LogErrors {
+		errorlog.SetOutput(ioutil.Discard)
+	}
+	exec, err := app.NewExec(args[0], args[1:]...)
+	if err != nil {
+		log.Fatal(err)
+	}
 	c := &client{
 		exec: exec,
 	}
-	go api.CreateOrGetDevice()
-	return c
-}
-
-func (c *client) runPipeline() {
-	loader := broker.NewMessageLoader(dir)
-	logger := agent.NewLogger(c.exec.Logs())
-	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
-	agentMessages := agent.NewMerger(logger, server)
-	converter := schema.NewConverter(agentMessages, persistor, c.exec)
-	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done)
-	watcher := message.NewExitWatcher(converter, c.exec, persistor)
-	merger := message.NewMerger(watcher, loader, requester)
-	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-	producer := broker.NewMQTTProducer(limiter, c.addr, c.certs)
-
-	pollConfig := func() {
-		poll := func() {
-			dl := api.GetDataLimit().Config
-			go func() { requester.Configure() <- dl.EmissionPeriod }()
-			go func() { limiter.Configure() <- dl.Cellular }()
-		}
-		poll()
-		for _ = range time.Tick(time.Hour) {
-			poll()
-		}
-	}
-	go pollConfig()
-
-	producer.Serve()
-}
-
-func (c *client) prepare() bool {
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		c.addr = api.GetBrokerAddr()
-	}()
-	go func() {
-		defer wg.Done()
-		c.certs = api.Certificates()
-	}()
-	wg.Wait()
-	return c.addr != "" && c.certs != nil
-}
-
-func (c *client) run() {
-	if !api.Release(c.exec.CheckSum()) {
-		// not released. Start the app, but don't serve it.
-		if err := c.exec.Start(); err != nil {
-			log.Fatal(err)
-		}
-		c.exec.Wait()
-		return
-	}
-
-	if err := c.exec.AddSockets(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := c.exec.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := c.exec.GetAgentVersion(); err != nil {
-		log.Fatal(err)
-	}
-
-	if !c.prepare() {
-		return
-	}
-
-	c.runPipeline()
+	c.run()
 }
 
 func usage() {
@@ -140,32 +84,112 @@ func getConfig() config.Config {
 	return config.ReleaseBuild()
 }
 
-func init() {
-	log.SetFlags(log.Lmicroseconds)
+type client struct {
+	creds *api.Credentials
+	certs *tls.Config
+	addr  string
+	exec  *app.Exec
 }
 
-func main() {
-	args := os.Args[1:]
-	if len(args) == 0 {
-		usage()
-		os.Exit(1)
+func (c *client) run() {
+	if err := api.Release(c.exec.CheckSum()); err != nil {
+		errorlog.Print(err)
+		// not released. Start the app, but don't serve it.
+		if err := c.exec.Start(); err != nil {
+			log.Fatal(err)
+		}
+		c.exec.Wait()
+		return
 	}
-	if args[0] == "--licenses" {
-		licenses()
-		os.Exit(1)
+
+	if err := c.exec.AddSockets(); err != nil {
+		log.Fatal(err)
 	}
-	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
-	cfg := getConfig()
-	api.BaseURL = cfg.BaseURL
-	if !cfg.LogInfo {
-		log.SetOutput(ioutil.Discard)
+
+	if err := c.exec.Start(); err != nil {
+		log.Fatal(err)
 	}
-	if !cfg.LogErrors {
-		errorlog.SetOutput(ioutil.Discard)
+
+	if err := c.exec.GetAgentVersion(); err != nil {
+		log.Fatal(err)
 	}
-	exec, err := app.NewExec(args[0], args[1:]...)
+
+	if !c.prepare() {
+		return
+	}
+
+	c.runPipeline()
+}
+
+func (c *client) prepare() bool {
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		creds, err := api.GetCredentials()
+		if err != nil {
+			// TODO: send this over MQTT
+			errorlog.Print(err)
+		}
+		c.creds = creds
+	}()
+	go func() {
+		defer wg.Done()
+		addr, err := api.GetBrokerAddr()
+		if err != nil {
+			// TODO: send this over MQTT
+			errorlog.Print(err)
+		}
+		c.addr = addr
+	}()
+	go func() {
+		defer wg.Done()
+		certs, err := api.Certificates()
+		if err != nil {
+			// TODO: send this over MQTT
+			errorlog.Print(err)
+		}
+		c.certs = certs
+	}()
+	wg.Wait()
+	return c.addr != "" && c.certs != nil && c.creds != nil
+}
+
+func (c *client) runPipeline() {
+	dir := ".auklet/message"
+
+	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds)
 	if err != nil {
 		log.Fatal(err)
 	}
-	newclient(exec).run()
+
+	persistor := broker.NewPersistor(dir)
+	loader := broker.NewMessageLoader(dir)
+	logger := agent.NewLogger(c.exec.Logs())
+	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
+	agentMessages := agent.NewMerger(logger, server)
+	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username)
+	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done)
+	merger := message.NewMerger(converter, loader, requester)
+	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
+
+	pollConfig := func() {
+		poll := func() {
+			dl, err := api.GetDataLimit()
+			if err != nil {
+				// TODO: send this over MQTT
+				errorlog.Print(err)
+				return
+			}
+			go func() { requester.Configure() <- 1 }()
+			go func() { limiter.Configure() <- dl.Cellular }()
+		}
+		poll()
+		for _ = range time.Tick(time.Hour) {
+			poll()
+		}
+	}
+	go pollConfig()
+
+	producer.Serve(limiter)
 }

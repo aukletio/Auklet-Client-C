@@ -21,6 +21,7 @@ func (app) ID() string           { return "app id" }
 func (app) CheckSum() string     { return "checksum" }
 func (app) Wait()                {}
 func (app) ExitStatus() int      { return 42 }
+func (app) Signal() string       { return "something" }
 func (app) AgentVersion() string { return "something" }
 
 func TestConverter(t *testing.T) {
@@ -33,19 +34,19 @@ func TestConverter(t *testing.T) {
 			input: agent.Message{Type: "event"},
 			err:   "",
 		}, {
-			input: agent.Message{Type: "applog"},
-			err:   "",
-		}, {
 			input: agent.Message{Type: "profile"},
 			err:   "",
 		}, {
-			input: agent.Message{Type: "log"},
+			input: agent.Message{Type: "cleanExit"},
 			err:   "",
+		}, {
+			input: agent.Message{Type: "unknown"},
+			err:   `message of type "unknown" not handled`,
 		},
 	}
 	for i, c := range cases {
 		s := make(source)
-		converter := NewConverter(s, persistor{}, app{})
+		converter := NewConverter(s, persistor{}, app{}, "username")
 		s <- c.input
 		m := <-converter.Output()
 		if m.Error != c.err {
