@@ -7,6 +7,27 @@ import (
 
 func empty(key string) string { return "" }
 
+func baseDefined(key string) string {
+	if key == "AUKLET_BASE_URL" {
+		return "something"
+	}
+	return ""
+}
+
+func errorsDefined(key string) string {
+	if key == "AUKLET_LOG_ERRORS" {
+		return "true"
+	}
+	return ""
+}
+
+func infoDefined(key string) string {
+	if key == "AUKLET_LOG_INFO" {
+		return "true"
+	}
+	return ""
+}
+
 func TestLocalBuild(t *testing.T) {
 	cases := []struct {
 		getenv func(string) string
@@ -17,30 +38,15 @@ func TestLocalBuild(t *testing.T) {
 			expect: Config{BaseURL: Production},
 		},
 		{
-			getenv: func(key string) string {
-				if key == "AUKLET_BASE_URL" {
-					return "something"
-				}
-				return ""
-			},
+			getenv: baseDefined,
 			expect: Config{BaseURL: "something"},
 		},
 		{
-			getenv: func(key string) string {
-				if key == "AUKLET_LOG_ERRORS" {
-					return "true"
-				}
-				return ""
-			},
+			getenv: errorsDefined,
 			expect: Config{BaseURL: Production, LogErrors: true},
 		},
 		{
-			getenv: func(key string) string {
-				if key == "AUKLET_LOG_INFO" {
-					return "true"
-				}
-				return ""
-			},
+			getenv: infoDefined,
 			expect: Config{BaseURL: Production, LogInfo: true},
 		},
 	}
