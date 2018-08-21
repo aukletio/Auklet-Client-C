@@ -81,3 +81,23 @@ func TestReleaseBuild(t *testing.T) {
 		getenv = os.Getenv
 	}
 }
+
+func TestAPIKey(t *testing.T) {
+	getenv = func(string) string {
+		return "api key"
+	}
+
+	if got := APIKey(); got != "api key" {
+		t.Fail()
+	}
+}
+
+func TestAppID(t *testing.T) {
+	getenv = func(string) string {
+		return "app ID"
+	}
+
+	if got := AppID(); got != "app ID" {
+		t.Fail()
+	}
+}
