@@ -1,5 +1,28 @@
 # Changelog
 
+## Merged But Unreleased
+
+**Implemented enhancements:**
+
+- APM-1508  Transition MQTT Client ID From Device ID to Client ID [#66](https://github.com/ESG-USA/Auklet-Client-C/pull/66) ([kdsch](https://github.com/kdsch))
+- APM-1483  C/C++ Client Device Registration [#64](https://github.com/ESG-USA/Auklet-Client-C/pull/64) ([kdsch](https://github.com/kdsch))
+- APM-1415  C/C++ Client ASIL B Compliance [#62](https://github.com/ESG-USA/Auklet-Client-C/pull/62) ([kdsch](https://github.com/kdsch))
+- APM-1432 C/C++ Package Version Information [#59](https://github.com/ESG-USA/Auklet-Client-C/pull/59) ([kdsch](https://github.com/kdsch))
+- Use MessagePack Encoding for Transport [#58](https://github.com/ESG-USA/Auklet-Client-C/pull/58) ([kdsch](https://github.com/kdsch))
+- APM-1415  C/C++ Client ASIL B Compliance [#57](https://github.com/ESG-USA/Auklet-Client-C/pull/57) ([kdsch](https://github.com/kdsch))
+- APM-1359 Data Transmission Optimizations in C/C++ Client [#51](https://github.com/ESG-USA/Auklet-Client-C/pull/51) ([kdsch](https://github.com/kdsch))
+
+**Fixed bugs:**
+
+- .devops: fix incorrect package path [#63](https://github.com/ESG-USA/Auklet-Client-C/pull/63) ([kdsch](https://github.com/kdsch))
+- schema: convert agent logs to raw messages [#56](https://github.com/ESG-USA/Auklet-Client-C/pull/56) ([kdsch](https://github.com/kdsch))
+
+**DevOps changes:**
+
+- Generalize gathering of core Golang licenses [#61](https://github.com/ESG-USA/Auklet-Client-C/pull/61) ([rjenkinsjr](https://github.com/rjenkinsjr))
+- APM-1415  C/C++ Client ASIL B Compliance (Use Code Climate reporter) [#60](https://github.com/ESG-USA/Auklet-Client-C/pull/60) ([kdsch](https://github.com/kdsch))
+- Fix some missing license texts [#55](https://github.com/ESG-USA/Auklet-Client-C/pull/55) ([rjenkinsjr](https://github.com/rjenkinsjr))
+
 ## [0.10.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.10.0)
 
 **Implemented enhancements:**
