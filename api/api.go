@@ -4,14 +4,16 @@ package api
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
-	"log"
+	"io/ioutil"
 	"net/http"
 
-	"github.com/ESG-USA/Auklet-Client-C/certs"
 	"github.com/ESG-USA/Auklet-Client-C/config"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
@@ -28,118 +30,207 @@ const (
 // should not assume any particular namespace.
 var BaseURL string
 
-func get(args, contenttype string) (resp *http.Response) {
+func get(args, contenttype string) (*http.Response, error) {
 	url := BaseURL + args
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		errorlog.Print(err)
-		return
+		return nil, err
 	}
+
 	req.Header.Add("Authorization", "JWT "+config.APIKey())
 	if contenttype != "" {
 		req.Header.Add("content-type", contenttype)
 	}
-	c := &http.Client{}
-	resp, err = c.Do(req)
-	if err != nil {
-		errorlog.Print(err)
-		return
-	}
-	if resp.StatusCode != 200 {
-		errorlog.Printf("api.get: got unexpected status %v from %v", resp.Status, url)
-	}
-	return
+
+	return http.DefaultClient.Do(req)
 }
 
-// Release returns true if checksum represents an app that has been released.
-func Release(checksum string) (ok bool) {
-	resp := get(releasesEP+checksum, "")
-	if resp == nil {
-		return
+type errNotReleased string
+
+func (err errNotReleased) Error() string {
+	return fmt.Sprintf("not released: %v", string(err))
+}
+
+// Release returns nil if checksum represents an app that has been released.
+//
+// There are two classes of errors:
+//
+// 1. The HTTP GET request failed.
+// 2. The response's status code is not 200.
+//
+func Release(checksum string) error {
+	resp, err := get(releasesEP+checksum, "")
+	if err != nil {
+		return err
 	}
-	switch resp.StatusCode {
-	case 200:
-		ok = true
-	case 404:
-		log.Printf("not released: %v", checksum)
-		ok = false
-	default:
-		errorlog.Printf("api.Release: got unexpected status %v", resp.Status)
+
+	if resp.StatusCode != 200 {
+		return errNotReleased(checksum)
 	}
-	return
+
+	return nil
+}
+
+var errParseCA = errors.New("failed to parse CA")
+
+// tlsConfig converts ca into a *tls.Config.
+func tlsConfig(ca []byte) (*tls.Config, error) {
+	certpool := x509.NewCertPool()
+	if !certpool.AppendCertsFromPEM(ca) {
+		return nil, errParseCA
+	}
+	return &tls.Config{
+		RootCAs:            certpool,
+		ClientAuth:         tls.NoClientCert,
+		ClientCAs:          nil,
+		InsecureSkipVerify: false,
+	}, nil
+}
+
+type errStatus struct {
+	resp *http.Response
+}
+
+func (err errStatus) Error() string {
+	return fmt.Sprintf("unexpected status: %v from %v", err.resp.Status, err.resp.Request.URL)
 }
 
 // Certificates retrieves SSL certificates.
-func Certificates() (c *tls.Config) {
-	resp := get(certificatesEP, "")
-	if resp == nil {
-		return
-	}
-	if resp.StatusCode != 200 {
-		errorlog.Printf("api.Certificates: unexpected status %v", resp.Status)
-		return
-	}
-	cts, err := certs.Unpack(resp.Body)
+func Certificates() (*tls.Config, error) {
+	resp, err := get(certificatesEP, "")
 	if err != nil {
-		errorlog.Print(err)
-		return
+		return nil, err
 	}
-	return cts.TLSConfig()
+
+	if resp.StatusCode != 200 {
+		return nil, errStatus{resp}
+	}
+
+	ca, _ := ioutil.ReadAll(resp.Body)
+	return tlsConfig(ca)
 }
 
-// CreateOrGetDevice associates machash and appid in the backend.
-func CreateOrGetDevice(machash, appid string) {
+// Credentials represents credentials required for sending broker messages.
+type Credentials struct {
+	Username string `json:"id"`
+	Password string `json:"client_password"`
+	Org      string `json:"organization"`
+	ClientID string `json:"client_id"`
+}
+
+// GetCredentials retrieves credentials from the filesystem or API, whichever is
+// available.
+func GetCredentials() (*Credentials, error) {
+	path := ".auklet/identification"
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		// file doesn't exist; ask the API for credentials
+		return getAndSaveCredentials(path)
+	}
+	// decrypt here
+	var creds Credentials
+	if err := json.Unmarshal(b, &creds); err != nil {
+		return nil, errEncoding{err, string(b), "GetCredentials"}
+	}
+	return &creds, nil
+}
+
+// getAndSaveCredentials requests credentials from the API. If it receives them,
+// it writes them to the given path.
+func getAndSaveCredentials(path string) (*Credentials, error) {
+	creds, err := createOrGetDevice()
+	if err != nil {
+		return nil, err
+	}
+	b, _ := json.Marshal(creds)
+	// encrypt here
+	if err := ioutil.WriteFile(path, b, 0666); err != nil {
+		return nil, err
+	}
+	return creds, nil
+}
+
+// createOrGetDevice requests credentials for this device from the API.
+func createOrGetDevice() (*Credentials, error) {
 	b, _ := json.Marshal(struct {
 		Mac   string `json:"mac_address_hash"`
 		AppID string `json:"application"`
 	}{
-		Mac:   machash,
-		AppID: appid,
+		// device info
+		Mac:   device.MacHash,
+		AppID: config.AppID(),
 	})
+
 	url := BaseURL + devicesEP
 	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	if err != nil {
-		errorlog.Print(err)
-		return
+		return nil, err
 	}
 	req.Header.Add("content-type", "application/json")
 	req.Header.Add("Authorization", "JWT "+config.APIKey())
 
-	c := &http.Client{}
-	resp, err := c.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		errorlog.Print(err)
-		return
+		return nil, err
 	}
-	log.Printf("api.CreateOrGetDevice: got response status %v", resp.Status)
+
+	if resp.StatusCode != 201 {
+		return nil, errStatus{resp}
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	return decodeCredentials(body)
 }
 
-// BrokerParams represents parameters affecting broker communication.
-type BrokerParams struct {
-	// Brokers is a list of broker addresses.
-	Brokers []string `json:"brokers"`
+// decodeCredentials unmarshals data into Credentials. If the password is empty,
+// it returns an error.
+//
+// The API returns an empty password if a device's credentials have been
+// requested more than once.
+func decodeCredentials(data []byte) (*Credentials, error) {
+	var creds Credentials
+	if err := json.Unmarshal(data, &creds); err != nil {
+		return nil, errEncoding{err, string(data), "decodeCredentials"}
+	}
 
-	// LogTopic, ProfileTopic, and EventTopic are topics to which we produce
-	// broker messages.
-	LogTopic     string `json:"log_topic"`
-	ProfileTopic string `json:"prof_topic"`
-	EventTopic   string `json:"event_topic"`
+	if creds.Password == "" {
+		return nil, errors.New("empty password")
+	}
+
+	return &creds, nil
 }
 
-// GetBrokerParams returns broker parameters from the config endpoint.
-func GetBrokerParams() (k BrokerParams) {
-	resp := get(configEP, "application/json")
-	if resp == nil {
-		return
+type errEncoding struct {
+	Err  error
+	What string
+	Op   string
+}
+
+func (err errEncoding) Error() string {
+	return fmt.Sprintf("encoding error during %v: %v in %v", err.Op, err.Err, err.What)
+}
+
+// GetBrokerAddr returns a broker from the config endpoint.
+func GetBrokerAddr() (string, error) {
+	resp, err := get(configEP, "application/json")
+	if err != nil {
+		return "", err
 	}
+
 	if resp.StatusCode != 200 {
-		errorlog.Printf("api.Config: unexpected status %v", resp.Status)
-		return
+		return "", errStatus{resp}
 	}
+
+	var k struct {
+		Broker string `json:"brokers"`
+		Port   string `json:"port"`
+	}
+
 	d := json.NewDecoder(resp.Body)
-	err := d.Decode(&k)
-	if err != nil && err != io.EOF {
-		errorlog.Print(err)
+	if err := d.Decode(&k); err != nil && err != io.EOF {
+		b, _ := ioutil.ReadAll(d.Buffered())
+		return "", errEncoding{err, string(b), "GetBrokerAddr"}
 	}
-	return
+
+	return fmt.Sprintf("ssl://%s:%s", k.Broker, k.Port), nil
 }

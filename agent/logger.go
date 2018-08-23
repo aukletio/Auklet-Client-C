@@ -2,66 +2,47 @@ package agent
 
 import (
 	"bufio"
+	"io"
 	"log"
-	"net"
-	"os"
-
-	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
-// Logger is a remote logging connection server. Applications using Auklet can
-// write newline-delimited messages to the logger's socket to send logs to
-// Auklet's backend.
+// Logger is a remote logging connection server.
 type Logger struct {
-	local, remote *os.File
-	out           chan broker.Message
-	handler       Handler
+	line *bufio.Scanner
+	out  chan Message
 }
 
-// NewLogger opens an anonymous socket and returns a Logger that uses handler to
-// convert socket messages into broker Messages.
-func NewLogger(handler Handler) Logger {
-	local, remote, err := socketpair("logserver-")
-	if err != nil {
-		errorlog.Print(err)
+// NewLogger returns a Logger that uses handler to convert data from in into
+// broker Messages.
+func NewLogger(in io.Reader) Logger {
+	l := Logger{
+		line: bufio.NewScanner(in),
+		out:  make(chan Message),
 	}
-	return Logger{
-		local:   local,
-		remote:  remote,
-		out:     make(chan broker.Message),
-		handler: handler,
-	}
+	go l.serve()
+	return l
 }
 
-// Serve activates l, causing it to send and receive messages.
-func (l Logger) Serve() {
+// serve activates l, causing it to send and receive messages.
+func (l Logger) serve() {
 	defer close(l.out)
-	conn, err := net.FileConn(l.local)
-	if err != nil {
-		errorlog.Print(err)
-	}
-	log.Printf("accepted connection on %v", l.local.Name())
-	defer log.Printf("connection on %v closed", l.local.Name())
-	s := bufio.NewScanner(conn)
-	s.Split(bufio.ScanLines)
-	for s.Scan() {
-		log.Printf(`got log "%v"`, s.Text())
-		m, err := l.handler(s.Bytes())
-		if err != nil {
-			errorlog.Print(err)
-			continue
+	log.Printf("Logger: accepted connection")
+	defer log.Printf("Logger: connection closed")
+	for l.line.Scan() {
+		l.out <- Message{
+			Type: "applog",
+			Data: l.line.Bytes(),
 		}
-		l.out <- m
+	}
+	if err := l.line.Err(); err != nil {
+		l.out <- Message{
+			Type:  "log",
+			Error: err.Error(),
+		}
 	}
 }
 
 // Output returns l's output channel.
-func (l Logger) Output() <-chan broker.Message {
+func (l Logger) Output() <-chan Message {
 	return l.out
-}
-
-// Remote returns the socket to be inherited by the child process.
-func (l Logger) Remote() *os.File {
-	return l.remote
 }

@@ -1,4 +1,4 @@
-package main
+package version
 
 // BuildDate is provided at compile-time; DO NOT MODIFY.
 var BuildDate = "no timestamp"
