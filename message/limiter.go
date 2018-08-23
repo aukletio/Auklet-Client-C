@@ -70,36 +70,31 @@ func (l *DataLimiter) newPeriod() bool {
 	return time.Now().After(l.PeriodEnd)
 }
 
-func (l *DataLimiter) advancePeriodEnd() {
-	now := time.Now()
-	newEnd := l.PeriodEnd
-	for newEnd.Before(now) {
+// advanceToNextPeriod ensures that the period end is in the future. If the
+// current period end is in the past (implying that we're in a new period)
+// the period end is advanced by one month.
+func advanceToNextPeriod(periodEnd, now time.Time) time.Time {
+	for periodEnd.Before(now) {
 		// advance newEnd by one month
-		newEnd = newEnd.AddDate(0, 1, 0)
+		periodEnd = periodEnd.AddDate(0, 1, 0)
 	}
-	l.PeriodEnd = newEnd
+
+	return periodEnd
 }
 
-func (l *DataLimiter) setPeriodDay(day int) {
-	if l.PeriodEnd.Day() == day {
-		return
+// setPeriodDay moves the boundary between periods to the given day of the
+// month.
+func setPeriodDay(dayOfMonth int, periodEnd, now time.Time) time.Time {
+	if periodEnd.Day() == dayOfMonth {
+		return periodEnd
 	}
-	d := toFutureDate(day)
-	log.Printf("limiter: moving period day from %v to %v", l.PeriodEnd, d)
-	l.PeriodEnd = d
-}
 
-func toFutureDate(day int) time.Time {
-	now := time.Now()
-	t := time.Date(now.Year(), now.Month(), day, 0, 0, 0, 0, now.Location())
-	if t.Before(now) {
-		return t.AddDate(0, 1, 0)
-	}
-	return t
+	t := time.Date(now.Year(), now.Month(), dayOfMonth, 0, 0, 0, 0, now.Location())
+	return advanceToNextPeriod(t, now)
 }
 
 func (l *DataLimiter) startThisPeriod() {
-	l.advancePeriodEnd()
+	l.PeriodEnd = advanceToNextPeriod(l.PeriodEnd, time.Now())
 	l.Count = 0
 	l.store.Save(l)
 }
@@ -182,7 +177,10 @@ func (l *DataLimiter) overBudget() serverState {
 }
 
 func (l *DataLimiter) apply(conf api.CellularConfig) serverState {
-	l.setPeriodDay(conf.Date)
+	old := l.PeriodEnd
+	l.PeriodEnd = setPeriodDay(conf.Date, l.PeriodEnd, time.Now())
+	log.Printf("limiter: moving period day from %v to %v", old, l.PeriodEnd)
+
 	l.setBudget(conf.Limit)
 	l.startThisPeriod()
 	return l.initial
