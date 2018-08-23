@@ -39,7 +39,7 @@ func NewMQTTProducer(addr string, t *tls.Config, creds *api.Credentials) (*MQTTP
 	opt := mqtt.NewClientOptions()
 	opt.AddBroker(addr)
 	opt.SetTLSConfig(t)
-	opt.SetClientID(creds.Username)
+	opt.SetClientID(creds.ClientID)
 	opt.SetCredentialsProvider(func() (string, string) {
 		return creds.Username, creds.Password
 	})
