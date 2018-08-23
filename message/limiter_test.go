@@ -40,19 +40,19 @@ func consume(s broker.MessageSource) (count int) {
 
 func TestDataLimiter(t *testing.T) {
 	cases := []struct {
-		conf func() Persistor
+		conf     func() Persistor
 		generate func(source, *DataLimiter)
-		consume func(*DataLimiter)
+		consume  func(*DataLimiter)
 	}{
 		{
 			conf: func() Persistor {
-				return newConfig(intPtr(4000), time.Now().Add(50 * time.Millisecond))
+				return newConfig(intPtr(4000), time.Now().Add(50*time.Millisecond))
 			},
 			generate: func(s source, _ *DataLimiter) {
 				defer close(s)
 				for i := 0; i < 4; i++ {
 					s <- broker.Message{Bytes: make([]byte, 1100)}
-					time.Sleep(10*time.Millisecond)
+					time.Sleep(10 * time.Millisecond)
 				}
 			},
 			consume: func(l *DataLimiter) {
@@ -63,21 +63,21 @@ func TestDataLimiter(t *testing.T) {
 		},
 		{
 			conf: func() Persistor {
-				return newConfig(intPtr(4000), time.Now().Add(50 * time.Millisecond))
+				return newConfig(intPtr(4000), time.Now().Add(50*time.Millisecond))
 			},
 			generate: func(s source, l *DataLimiter) {
 				defer close(s)
 				for i := 0; i < 2; i++ {
 					s <- broker.Message{Bytes: make([]byte, 1100)}
-					time.Sleep(10*time.Millisecond)
+					time.Sleep(10 * time.Millisecond)
 				}
 				l.Configure() <- api.CellularConfig{
 					Limit: nil,
-					Date: time.Now().Day(),
+					Date:  time.Now().Day(),
 				}
 				for i := 0; i < 2; i++ {
 					s <- broker.Message{Bytes: make([]byte, 1100)}
-					time.Sleep(10*time.Millisecond)
+					time.Sleep(10 * time.Millisecond)
 				}
 			},
 			consume: func(l *DataLimiter) { consume(l) },
