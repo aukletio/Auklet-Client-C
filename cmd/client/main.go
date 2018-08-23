@@ -181,7 +181,7 @@ func (c *client) runPipeline() {
 				errorlog.Print(err)
 				return
 			}
-			go func() { requester.Configure() <- 1 }()
+			go func() { requester.Configure() <- 10 }()
 			go func() { limiter.Configure() <- dl.Cellular }()
 		}
 		poll()
