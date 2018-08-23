@@ -115,6 +115,7 @@ type Credentials struct {
 	Username string `json:"id"`
 	Password string `json:"client_password"`
 	Org      string `json:"organization"`
+	ClientID string `json:"client_id"`
 }
 
 // GetCredentials retrieves credentials from the filesystem or API, whichever is
