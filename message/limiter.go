@@ -28,6 +28,9 @@ type DataLimiter struct {
 
 	// PeriodEnd marks the end of the current period.
 	PeriodEnd time.Time `json:"periodEnd"`
+
+	// initialized in the initial state
+	periodTimer *time.Timer
 }
 
 // NewDataLimiter returns a DataLimiter for input whose state persists on
@@ -65,15 +68,10 @@ func (l *DataLimiter) Encode(w io.Writer) (err error) {
 	return json.NewEncoder(w).Encode(l)
 }
 
-// newPeriod returns true if the current time is after the period end.
-func (l *DataLimiter) newPeriod() bool {
-	return time.Now().After(l.PeriodEnd)
-}
-
-// advanceToNextPeriod ensures that the period end is in the future. If the
+// ensureFuture ensures that the period end is in the future. If the
 // current period end is in the past (implying that we're in a new period)
 // the period end is advanced by one month.
-func advanceToNextPeriod(periodEnd, now time.Time) time.Time {
+func ensureFuture(periodEnd, now time.Time) time.Time {
 	for periodEnd.Before(now) {
 		// advance newEnd by one month
 		periodEnd = periodEnd.AddDate(0, 1, 0)
@@ -82,21 +80,23 @@ func advanceToNextPeriod(periodEnd, now time.Time) time.Time {
 	return periodEnd
 }
 
-// setPeriodDay moves the boundary between periods to the given day of the
+// dayThisMonth moves the boundary between periods to the given day of the
 // month.
-func setPeriodDay(dayOfMonth int, periodEnd, now time.Time) time.Time {
-	if periodEnd.Day() == dayOfMonth {
-		return periodEnd
-	}
-
-	t := time.Date(now.Year(), now.Month(), dayOfMonth, 0, 0, 0, 0, now.Location())
-	return advanceToNextPeriod(t, now)
+func dayThisMonth(dayOfMonth int, now time.Time) time.Time {
+	return time.Date(now.Year(), now.Month(), dayOfMonth, 0, 0, 0, 0, now.Location())
 }
 
+// startThisPeriod moves the PeriodEnd forward (if necessary) and resets the
+// counter.
 func (l *DataLimiter) startThisPeriod() {
-	l.PeriodEnd = advanceToNextPeriod(l.PeriodEnd, time.Now())
+	// Make sure that the period end is in the future.
+	l.PeriodEnd = ensureFuture(l.PeriodEnd, time.Now())
+	l.reset()
+}
+
+func (l *DataLimiter) reset() (err error) {
 	l.Count = 0
-	l.store.Save(l)
+	return l.store.Save(l)
 }
 
 func (l *DataLimiter) increment(n int) (err error) {
@@ -106,17 +106,14 @@ func (l *DataLimiter) increment(n int) (err error) {
 
 // serve activates l, causing it to receive and send Messages.
 func (l *DataLimiter) serve() {
-	state := l.initial
-	for state != nil {
-		if l.newPeriod() {
-			l.startThisPeriod()
-			state = l.initial
-		}
-		state = state()
+	for state := l.initial; state != nil; state = state() {
 	}
 }
 
+// initial starts a timer that expires at the period end, then
+// returns either overBudget or underBudget.
 func (l *DataLimiter) initial() serverState {
+	l.periodTimer = time.NewTimer(time.Until(l.PeriodEnd))
 	if l.Budget != nil && l.Count > 9**l.Budget/10 {
 		return l.overBudget
 	}
@@ -125,6 +122,9 @@ func (l *DataLimiter) initial() serverState {
 
 func (l *DataLimiter) underBudget() serverState {
 	select {
+	case <-l.periodTimer.C:
+		l.startThisPeriod()
+		return l.initial
 	case m, open := <-l.source.Output():
 		if !open {
 			return l.final
@@ -166,6 +166,9 @@ func (l *DataLimiter) handleMessage(m broker.Message) serverState {
 // state, when Serve notices that a new period has begun.
 func (l *DataLimiter) overBudget() serverState {
 	select {
+	case <-l.periodTimer.C:
+		l.startThisPeriod()
+		return l.initial
 	case _, open := <-l.source.Output():
 		if !open {
 			return l.final
@@ -176,13 +179,16 @@ func (l *DataLimiter) overBudget() serverState {
 	}
 }
 
+// apply applies the configuration and returns the initial state.
 func (l *DataLimiter) apply(conf api.CellularConfig) serverState {
 	old := l.PeriodEnd
-	l.PeriodEnd = setPeriodDay(conf.Date, l.PeriodEnd, time.Now())
-	log.Printf("limiter: moving period day from %v to %v", old, l.PeriodEnd)
-
+	now := time.Now()
+	l.PeriodEnd = ensureFuture(dayThisMonth(conf.Date, now), now)
+	log.Printf(`limiter: moving period day
+	from %v
+	to   %v`, old, l.PeriodEnd)
 	l.setBudget(conf.Limit)
-	l.startThisPeriod()
+	l.reset()
 	return l.initial
 }
 

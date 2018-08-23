@@ -92,7 +92,7 @@ func TestDataLimiter(t *testing.T) {
 	}
 }
 
-func TestSetPeriodDay(t *testing.T) {
+func TestEnsureFuture(t *testing.T) {
 	cases := []struct {
 		day         int
 		now, expect time.Time
@@ -119,10 +119,8 @@ func TestSetPeriodDay(t *testing.T) {
 		},
 	}
 
-	periodEnd := time.Date(2000, 1, 12, 0, 0, 0, 0, time.UTC)
-
 	for i, c := range cases {
-		if d := setPeriodDay(c.day, periodEnd, c.now); !c.expect.Equal(d) {
+		if d := ensureFuture(dayThisMonth(c.day, c.now), c.now); !c.expect.Equal(d) {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, d)
 		}
 	}
