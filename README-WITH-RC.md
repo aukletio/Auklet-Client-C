@@ -1,5 +1,12 @@
 # Changelog
 
+### [0.11.0-rc.2](https://github.com/ESG-USA/Auklet-Client-C/tree/0.11.0-rc.2)
+
+**Fixed bugs:**
+
+- cmd/client: let API determine emission period [#69](https://github.com/ESG-USA/Auklet-Client-C/pull/69) ([kdsch](https://github.com/kdsch))
+- cmd/client: change emission period to 10 seconds [#68](https://github.com/ESG-USA/Auklet-Client-C/pull/68) ([kdsch](https://github.com/kdsch))
+
 ### [0.11.0-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.11.0-rc.1)
 
 **Implemented enhancements:**

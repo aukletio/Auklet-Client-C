@@ -14,6 +14,8 @@
 
 **Fixed bugs:**
 
+- cmd/client: let API determine emission period [#69](https://github.com/ESG-USA/Auklet-Client-C/pull/69) ([kdsch](https://github.com/kdsch))
+- cmd/client: change emission period to 10 seconds [#68](https://github.com/ESG-USA/Auklet-Client-C/pull/68) ([kdsch](https://github.com/kdsch))
 - .devops: fix incorrect package path [#63](https://github.com/ESG-USA/Auklet-Client-C/pull/63) ([kdsch](https://github.com/kdsch))
 - schema: convert agent logs to raw messages [#56](https://github.com/ESG-USA/Auklet-Client-C/pull/56) ([kdsch](https://github.com/kdsch))
 
