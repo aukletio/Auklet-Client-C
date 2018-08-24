@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -226,9 +225,8 @@ func GetBrokerAddr() (string, error) {
 		Port   string `json:"port"`
 	}
 
-	d := json.NewDecoder(resp.Body)
-	if err := d.Decode(&k); err != nil && err != io.EOF {
-		b, _ := ioutil.ReadAll(d.Buffered())
+	b, _ := ioutil.ReadAll(resp.Body)
+	if err := json.Unmarshal(b, &k); err != nil {
 		return "", errEncoding{err, string(b), "GetBrokerAddr"}
 	}
 
