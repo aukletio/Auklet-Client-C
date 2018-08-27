@@ -13,8 +13,8 @@ import (
 // DataLimiter is a passthrough that limits the number of application-layer
 // bytes transmitted per period.
 type DataLimiter struct {
-	in    <-chan broker.Message
-	out   chan broker.Message
+	in  <-chan broker.Message
+	out chan broker.Message
 	// Conf is a channel by which the configuration can be updated.
 	Conf  chan api.CellularConfig
 	store Persistor
