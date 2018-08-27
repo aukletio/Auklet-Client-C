@@ -182,7 +182,7 @@ func (c *client) runPipeline() {
 				return
 			}
 			go func() { requester.Configure() <- dl.EmissionPeriod }()
-			go func() { limiter.Configure() <- dl.Cellular }()
+			go func() { limiter.Conf <- dl.Cellular }()
 		}
 		poll()
 		for _ = range time.Tick(time.Hour) {

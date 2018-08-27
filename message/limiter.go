@@ -15,7 +15,8 @@ import (
 type DataLimiter struct {
 	in    <-chan broker.Message
 	out   chan broker.Message
-	conf  chan api.CellularConfig
+	// Conf is a channel by which the configuration can be updated.
+	Conf  chan api.CellularConfig
 	store Persistor
 
 	// Budget is how many bytes can be transmitted per period. If nil, any
@@ -39,7 +40,7 @@ func NewDataLimiter(src broker.MessageSource, store Persistor) *DataLimiter {
 	l := &DataLimiter{
 		in:    src.Output(),
 		out:   make(chan broker.Message),
-		conf:  make(chan api.CellularConfig),
+		Conf:  make(chan api.CellularConfig),
 		store: store,
 	}
 	l.store.Load(l)
@@ -149,7 +150,7 @@ func (l *DataLimiter) underBudget() state {
 			return cleanup
 		}
 		return l.handleMessage(m)
-	case conf := <-l.conf:
+	case conf := <-l.Conf:
 		return l.apply(conf)
 	}
 }
@@ -193,7 +194,7 @@ func (l *DataLimiter) overBudget() state {
 			return cleanup
 		}
 		return overBudget
-	case conf := <-l.conf:
+	case conf := <-l.Conf:
 		return l.apply(conf)
 	}
 }
@@ -222,11 +223,6 @@ func (l *DataLimiter) cleanup() state {
 // closes when l's input closes.
 func (l *DataLimiter) Output() <-chan broker.Message {
 	return l.out
-}
-
-// Configure returns a channel by which the configuration can be updated.
-func (l *DataLimiter) Configure() chan<- api.CellularConfig {
-	return l.conf
 }
 
 // Persistor can save and load an object to some kind of storage.

@@ -118,7 +118,7 @@ func TestStateFuncs(t *testing.T) {
 			l: &DataLimiter{
 				periodTimer: new(time.Timer),
 				store:       new(MemPersistor),
-				conf:        sendConf(),
+				Conf:        sendConf(),
 			},
 			expect: initial,
 		},
@@ -146,7 +146,7 @@ func TestStateFuncs(t *testing.T) {
 		{
 			state: overBudget,
 			l: &DataLimiter{
-				conf:        sendConf(),
+				Conf:        sendConf(),
 				store:       new(MemPersistor),
 				periodTimer: new(time.Timer),
 			},
@@ -164,6 +164,16 @@ func TestStateFuncs(t *testing.T) {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, got)
 		}
 	}
+}
+
+func (s state) String() string {
+	return map[state]string{
+		terminal:    "terminal",
+		initial:     "initial",
+		underBudget: "underBudget",
+		overBudget:  "overBudget",
+		cleanup:     "cleanup",
+	}[s]
 }
 
 func TestHandleMessage(t *testing.T) {
@@ -197,9 +207,8 @@ func TestHandleMessage(t *testing.T) {
 		},
 		{
 			l: &DataLimiter{
-				Budget: intPtr(100),
-				out:    make(chan broker.Message, 1),
-				store:  new(MemPersistor),
+				out:   make(chan broker.Message, 1),
+				store: new(MemPersistor),
 			},
 			expect: underBudget,
 		},
@@ -210,7 +219,6 @@ func TestHandleMessage(t *testing.T) {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, got)
 		}
 	}
-
 }
 
 type mockPers struct{}
@@ -219,3 +227,43 @@ var errPers = errors.New("mock error")
 
 func (mockPers) Save(Encodable) error { return errPers }
 func (mockPers) Load(Decodable) error { return errPers }
+
+func comparePtr(a, b *int) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a != nil && b != nil && *a == *b {
+		return true
+	}
+	return false
+}
+
+func TestSetBudget(t *testing.T) {
+	cases := []struct {
+		mb     *int
+		expect *int
+	}{
+		{},
+		{mb: intPtr(1), expect: intPtr(1000000)},
+	}
+
+	for i, c := range cases {
+		l := &DataLimiter{Budget: new(int)}
+		if l.setBudget(c.mb); !comparePtr(l.Budget, c.expect) {
+			t.Errorf("case %v: expected %v, got %v", i, c.expect, l.Budget)
+		}
+	}
+}
+
+type source chan broker.Message
+
+func (s source) Output() <-chan broker.Message { return s }
+
+func TestDataLimiter(t *testing.T) {
+	s := make(source, 1)
+	l := NewDataLimiter(s, new(MemPersistor))
+	s <- broker.Message{}
+	close(s)
+	for _ = range l.Output() {
+	}
+}
