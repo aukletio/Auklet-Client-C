@@ -125,3 +125,122 @@ func TestEnsureFuture(t *testing.T) {
 		}
 	}
 }
+
+func expiredTimer() *time.Timer {
+	c := make(chan time.Time)
+	close(c)
+	return &time.Timer{C: c}
+}
+
+func closedChan() <-chan broker.Message {
+	c := make(chan broker.Message)
+	close(c)
+	return c
+}
+
+func sendOne() <-chan broker.Message {
+	c := make(chan broker.Message)
+	go func() { c <- broker.Message{} }()
+	return c
+}
+
+func sendConf() chan api.CellularConfig {
+	c := make(chan api.CellularConfig)
+	go func() { c <- api.CellularConfig{} }()
+	return c
+}
+
+func TestStateFuncs(t *testing.T) {
+	cases := []struct {
+		state  state // which state to test
+		l      *DataLimiter
+		expect state
+	}{
+		{
+			state:  initial,
+			l:      &DataLimiter{},
+			expect: underBudget,
+		},
+		{
+			state: initial,
+			l: &DataLimiter{
+				Budget: intPtr(10),
+				Count:  10,
+			},
+			expect: overBudget,
+		},
+		{
+			state: underBudget,
+			l: &DataLimiter{
+				periodTimer: expiredTimer(),
+				store:       new(MemPersistor),
+			},
+			expect: initial,
+		},
+		{
+			state:  underBudget,
+			l:      &DataLimiter{periodTimer: new(time.Timer), in: closedChan()},
+			expect: cleanup,
+		},
+		{
+			state: underBudget,
+			l: &DataLimiter{
+				periodTimer: new(time.Timer),
+				in:          sendOne(),
+				out:         make(chan broker.Message, 1),
+				store:       new(MemPersistor),
+			},
+			expect: underBudget,
+		},
+		{
+			state: underBudget,
+			l: &DataLimiter{
+				periodTimer: new(time.Timer),
+				store:       new(MemPersistor),
+				conf:        sendConf(),
+			},
+			expect: initial,
+		},
+		{
+			state:  overBudget,
+			l:      &DataLimiter{
+				periodTimer: expiredTimer(),
+				store: new(MemPersistor),
+			},
+			expect: initial,
+		},
+		{
+			state:  overBudget,
+			l:      &DataLimiter{in: closedChan(), periodTimer: new(time.Timer)},
+			expect: cleanup,
+		},
+		{
+			state: overBudget,
+			l: &DataLimiter{
+				in:          sendOne(),
+				periodTimer: new(time.Timer),
+			},
+			expect: overBudget,
+		},
+		{
+			state: overBudget,
+			l: &DataLimiter{
+				conf:        sendConf(),
+				store:       new(MemPersistor),
+				periodTimer: new(time.Timer),
+			},
+			expect: initial,
+		},
+		{
+			state:  cleanup,
+			l:      &DataLimiter{out: make(chan broker.Message)},
+			expect: terminal,
+		},
+	}
+
+	for i, c := range cases {
+		if got := c.l.lookup(c.state)(); got != c.expect {
+			t.Errorf("case %v: expected %v, got %v", i, c.expect, got)
+		}
+	}
+}
