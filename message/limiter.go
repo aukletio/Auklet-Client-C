@@ -13,10 +13,10 @@ import (
 // DataLimiter is a passthrough that limits the number of application-layer
 // bytes transmitted per period.
 type DataLimiter struct {
-	in <-chan broker.Message
-	out    chan broker.Message
-	conf   chan api.CellularConfig
-	store  Persistor
+	in    <-chan broker.Message
+	out   chan broker.Message
+	conf  chan api.CellularConfig
+	store Persistor
 
 	// Budget is how many bytes can be transmitted per period. If nil, any
 	// number of bytes can be transmitted.
@@ -37,10 +37,10 @@ type DataLimiter struct {
 // the filesystem.
 func NewDataLimiter(src broker.MessageSource, store Persistor) *DataLimiter {
 	l := &DataLimiter{
-		in: src.Output(),
-		out:    make(chan broker.Message),
-		conf:   make(chan api.CellularConfig),
-		store:  store,
+		in:    src.Output(),
+		out:   make(chan broker.Message),
+		conf:  make(chan api.CellularConfig),
+		store: store,
 	}
 	l.store.Load(l)
 	// If Load fails, there is no budget, so all messages will be sent.

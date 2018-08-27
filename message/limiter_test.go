@@ -202,10 +202,10 @@ func TestStateFuncs(t *testing.T) {
 			expect: initial,
 		},
 		{
-			state:  overBudget,
-			l:      &DataLimiter{
+			state: overBudget,
+			l: &DataLimiter{
 				periodTimer: expiredTimer(),
-				store: new(MemPersistor),
+				store:       new(MemPersistor),
 			},
 			expect: initial,
 		},
