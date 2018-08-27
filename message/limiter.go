@@ -106,28 +106,47 @@ func (l *DataLimiter) increment(n int) (err error) {
 
 // serve activates l, causing it to receive and send Messages.
 func (l *DataLimiter) serve() {
-	for state := l.initial; state != nil; state = state() {
+	for s := initial; s != terminal; s = l.lookup(s)() {
 	}
+}
+
+type state int
+
+const (
+	terminal state = iota
+	initial
+	underBudget
+	overBudget
+	cleanup
+)
+
+func (l *DataLimiter) lookup(s state) func() state {
+	return map[state]func() state{
+		initial:     l.initial,
+		underBudget: l.underBudget,
+		overBudget:  l.overBudget,
+		cleanup:     l.cleanup,
+	}[s]
 }
 
 // initial starts a timer that expires at the period end, then
 // returns either overBudget or underBudget.
-func (l *DataLimiter) initial() serverState {
+func (l *DataLimiter) initial() state {
 	l.periodTimer = time.NewTimer(time.Until(l.PeriodEnd))
 	if l.Budget != nil && l.Count > 9**l.Budget/10 {
-		return l.overBudget
+		return overBudget
 	}
-	return l.underBudget
+	return underBudget
 }
 
-func (l *DataLimiter) underBudget() serverState {
+func (l *DataLimiter) underBudget() state {
 	select {
 	case <-l.periodTimer.C:
 		l.startThisPeriod()
-		return l.initial
+		return initial
 	case m, open := <-l.source.Output():
 		if !open {
-			return l.final
+			return cleanup
 		}
 		return l.handleMessage(m)
 	case conf := <-l.conf:
@@ -135,18 +154,18 @@ func (l *DataLimiter) underBudget() serverState {
 	}
 }
 
-func (l *DataLimiter) handleMessage(m broker.Message) serverState {
+func (l *DataLimiter) handleMessage(m broker.Message) state {
 	n := len(m.Bytes)
 	if l.Budget != nil {
 		if n+l.Count > *l.Budget {
 			// m would put us over budget. We begin dropping messages.
-			return l.overBudget
+			return overBudget
 		} else if n+l.Count > 9**l.Budget/10 {
 			// m would put us over 90% of the budget, but not over 100%.
 			// We send it and begin to drop messages.
 			l.out <- m
 			l.increment(n)
-			return l.overBudget
+			return overBudget
 		}
 	}
 	// m does not put us over 90% of budget.
@@ -155,32 +174,32 @@ func (l *DataLimiter) handleMessage(m broker.Message) serverState {
 		// We had a problem persisting the counter. To be safe, we
 		// start dropping data.
 		if l.Budget != nil {
-			return l.overBudget
+			return overBudget
 		}
 	}
-	return l.underBudget
+	return underBudget
 }
 
 // The current period has exceeded 90% of its data budget. We drop messages.
 // Note that it is still possible for the limiter to return to the underBudget
 // state, when Serve notices that a new period has begun.
-func (l *DataLimiter) overBudget() serverState {
+func (l *DataLimiter) overBudget() state {
 	select {
 	case <-l.periodTimer.C:
 		l.startThisPeriod()
-		return l.initial
+		return initial
 	case _, open := <-l.source.Output():
 		if !open {
-			return l.final
+			return cleanup
 		}
-		return l.overBudget
+		return overBudget
 	case conf := <-l.conf:
 		return l.apply(conf)
 	}
 }
 
 // apply applies the configuration and returns the initial state.
-func (l *DataLimiter) apply(conf api.CellularConfig) serverState {
+func (l *DataLimiter) apply(conf api.CellularConfig) state {
 	old := l.PeriodEnd
 	now := time.Now()
 	l.PeriodEnd = ensureFuture(dayThisMonth(conf.Date, now), now)
@@ -189,14 +208,14 @@ func (l *DataLimiter) apply(conf api.CellularConfig) serverState {
 	to   %v`, old, l.PeriodEnd)
 	l.setBudget(conf.Limit)
 	l.reset()
-	return l.initial
+	return initial
 }
 
 // The input channel has closed, which implies that the pipeline is shutting
 // down.
-func (l *DataLimiter) final() serverState {
+func (l *DataLimiter) cleanup() state {
 	close(l.out)
-	return nil
+	return terminal
 }
 
 // Output returns a channel on which messages can be received. The channel
