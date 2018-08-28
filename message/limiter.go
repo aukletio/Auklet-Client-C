@@ -19,9 +19,10 @@ type DataLimiter struct {
 	Conf  chan api.CellularConfig
 	store Persistor
 
-	// Budget is how many bytes can be transmitted per period. If nil, any
-	// number of bytes can be transmitted.
-	Budget *int `json:"budget"`
+	// Budget is how many bytes can be transmitted per period.
+	// If HasBudget is false, any number of bytes can be transmitted.
+	Budget int `json:"budget"`
+	HasBudget bool `json:"hasBudget"`
 
 	// Count is how many bytes have been transmitted during the current
 	// period.
@@ -49,14 +50,14 @@ func NewDataLimiter(src broker.MessageSource, store Persistor) *DataLimiter {
 	return l
 }
 
-func (l *DataLimiter) setBudget(megabytes *int) {
-	if megabytes == nil {
+func (l *DataLimiter) setBudget(megabytes int, hasBudget bool) {
+	l.Budget = 1e6 * megabytes
+	l.HasBudget = hasBudget
+	if !hasBudget {
 		log.Print("limiter: setting budget to unlimited")
-		l.Budget = nil
 		return
 	}
-	*l.Budget = 1e6 * *megabytes
-	log.Printf("limiter: setting budget to %v B", *l.Budget)
+	log.Printf("limiter: setting budget to %v MB", megabytes)
 }
 
 // Decode updates l's state by reading bytes from r.
@@ -134,7 +135,7 @@ func (l *DataLimiter) lookup(s state) func() state {
 // returns either overBudget or underBudget.
 func (l *DataLimiter) initial() state {
 	l.periodTimer = time.NewTimer(time.Until(l.PeriodEnd))
-	if l.Budget != nil && l.Count > 9**l.Budget/10 {
+	if l.HasBudget && l.Count > 9*l.Budget/10 {
 		return overBudget
 	}
 	return underBudget
@@ -157,11 +158,11 @@ func (l *DataLimiter) underBudget() state {
 
 func (l *DataLimiter) handleMessage(m broker.Message) state {
 	n := len(m.Bytes)
-	if l.Budget != nil {
-		if n+l.Count > *l.Budget {
+	if l.HasBudget {
+		if n+l.Count > l.Budget {
 			// m would put us over budget. We begin dropping messages.
 			return overBudget
-		} else if n+l.Count > 9**l.Budget/10 {
+		} else if n+l.Count > 9*l.Budget/10 {
 			// m would put us over 90% of the budget, but not over 100%.
 			// We send it and begin to drop messages.
 			l.out <- m
@@ -174,7 +175,7 @@ func (l *DataLimiter) handleMessage(m broker.Message) state {
 	if l.increment(n) != nil {
 		// We had a problem persisting the counter. To be safe, we
 		// start dropping data.
-		if l.Budget != nil {
+		if l.HasBudget {
 			return overBudget
 		}
 	}
@@ -207,7 +208,7 @@ func (l *DataLimiter) apply(conf api.CellularConfig) state {
 	log.Printf(`limiter: moving period day
 	from %v
 	to   %v`, old, l.PeriodEnd)
-	l.setBudget(conf.Limit)
+	l.setBudget(conf.Limit, conf.LimitDefined)
 	l.reset()
 	return initial
 }

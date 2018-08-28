@@ -11,10 +11,14 @@ import (
 // CellularConfig defines a limit and date for devices that use a cellular
 // connection.
 type CellularConfig struct {
-	// Limit is the maximum number of application layer
-	// megabytes/period that the client may send over a
-	// cellular connection.
-	Limit *int `json:"cellular_data_limit"`
+	// LimitPtr is a pointer to the maximum number of application layer
+	// megabytes/period that the client may send over a cellular connection. If
+	// nil, there is no limit. This field is provided only for serialization.
+	// Clients should use Limit and LimitDefined instead.
+	LimitPtr *int `json:"cellular_data_limit"`
+
+	Limit int
+	LimitDefined bool
 
 	// Date is the day of the month that delimits a cellular
 	// data plan period. Valid values are within [1, 28].
@@ -55,5 +59,14 @@ func GetDataLimit() (*DataLimit, error) {
 		return nil, errEncoding{err, string(body), "GetDataLimit"}
 	}
 
+	depointerize(&l.DataLimit.Cellular)
 	return &l.DataLimit, nil
+}
+
+func depointerize(c *CellularConfig) {
+	if c.LimitPtr == nil {
+		return
+	}
+	c.LimitDefined = true
+	c.Limit = *c.LimitPtr
 }

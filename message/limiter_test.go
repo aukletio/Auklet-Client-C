@@ -43,10 +43,6 @@ func TestEnsureFuture(t *testing.T) {
 	}
 }
 
-func intPtr(value int) *int {
-	return &value
-}
-
 func expiredTimer() *time.Timer {
 	c := make(chan time.Time)
 	close(c)
@@ -85,7 +81,8 @@ func TestStateFuncs(t *testing.T) {
 		{
 			state: initial,
 			l: &DataLimiter{
-				Budget: intPtr(10),
+				Budget: 10,
+				HasBudget: true,
 				Count:  10,
 			},
 			expect: overBudget,
@@ -183,14 +180,15 @@ func TestHandleMessage(t *testing.T) {
 		expect state
 	}{
 		{
-			l:      &DataLimiter{Budget: intPtr(10)},
+			l:      &DataLimiter{Budget: 10, HasBudget: true},
 			m:      broker.Message{Bytes: make([]byte, 100)},
 			expect: overBudget,
 		},
 		{
 			l: &DataLimiter{
 				Count:  85,
-				Budget: intPtr(100),
+				Budget: 100,
+				HasBudget: true,
 				out:    make(chan broker.Message, 1),
 				store:  new(MemPersistor),
 			},
@@ -199,7 +197,8 @@ func TestHandleMessage(t *testing.T) {
 		},
 		{
 			l: &DataLimiter{
-				Budget: intPtr(100),
+				Budget: 100,
+				HasBudget: true,
 				out:    make(chan broker.Message, 1),
 				store:  mockPers{},
 			},
@@ -228,28 +227,19 @@ var errPers = errors.New("mock error")
 func (mockPers) Save(Encodable) error { return errPers }
 func (mockPers) Load(Decodable) error { return errPers }
 
-func comparePtr(a, b *int) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a != nil && b != nil && *a == *b {
-		return true
-	}
-	return false
-}
-
 func TestSetBudget(t *testing.T) {
 	cases := []struct {
-		mb     *int
-		expect *int
+		mb     int
+		hasBudget bool
+		expect int
 	}{
 		{},
-		{mb: intPtr(1), expect: intPtr(1000000)},
+		{mb: 1, hasBudget: true, expect: 1000000},
 	}
 
 	for i, c := range cases {
-		l := &DataLimiter{Budget: new(int)}
-		if l.setBudget(c.mb); !comparePtr(l.Budget, c.expect) {
+		l := &DataLimiter{}
+		if l.setBudget(c.mb, c.hasBudget); l.Budget != c.expect {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, l.Budget)
 		}
 	}
