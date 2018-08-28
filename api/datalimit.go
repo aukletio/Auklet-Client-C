@@ -17,7 +17,7 @@ type CellularConfig struct {
 	// Clients should use Limit and LimitDefined instead.
 	LimitPtr *int `json:"cellular_data_limit"`
 
-	Limit int
+	Limit        int
 	LimitDefined bool
 
 	// Date is the day of the month that delimits a cellular

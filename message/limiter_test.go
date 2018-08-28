@@ -81,9 +81,9 @@ func TestStateFuncs(t *testing.T) {
 		{
 			state: initial,
 			l: &DataLimiter{
-				Budget: 10,
+				Budget:    10,
 				HasBudget: true,
-				Count:  10,
+				Count:     10,
 			},
 			expect: overBudget,
 		},
@@ -186,21 +186,21 @@ func TestHandleMessage(t *testing.T) {
 		},
 		{
 			l: &DataLimiter{
-				Count:  85,
-				Budget: 100,
+				Count:     85,
+				Budget:    100,
 				HasBudget: true,
-				out:    make(chan broker.Message, 1),
-				store:  new(MemPersistor),
+				out:       make(chan broker.Message, 1),
+				store:     new(MemPersistor),
 			},
 			m:      broker.Message{Bytes: make([]byte, 10)},
 			expect: overBudget,
 		},
 		{
 			l: &DataLimiter{
-				Budget: 100,
+				Budget:    100,
 				HasBudget: true,
-				out:    make(chan broker.Message, 1),
-				store:  mockPers{},
+				out:       make(chan broker.Message, 1),
+				store:     mockPers{},
 			},
 			expect: overBudget,
 		},
@@ -229,9 +229,9 @@ func (mockPers) Load(Decodable) error { return errPers }
 
 func TestSetBudget(t *testing.T) {
 	cases := []struct {
-		mb     int
+		mb        int
 		hasBudget bool
-		expect int
+		expect    int
 	}{
 		{},
 		{mb: 1, hasBudget: true, expect: 1000000},

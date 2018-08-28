@@ -21,7 +21,7 @@ type DataLimiter struct {
 
 	// Budget is how many bytes can be transmitted per period.
 	// If HasBudget is false, any number of bytes can be transmitted.
-	Budget int `json:"budget"`
+	Budget    int  `json:"budget"`
 	HasBudget bool `json:"hasBudget"`
 
 	// Count is how many bytes have been transmitted during the current
