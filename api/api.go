@@ -17,12 +17,12 @@ import (
 
 // namespaces and endpoints for the API. All new endpoints should be entered
 // here.
-const (
+var (
 	releasesEP     = "/private/releases/?checksum="
 	certificatesEP = "/private/devices/certificates/"
 	devicesEP      = "/private/devices/"
 	configEP       = "/private/devices/config/"
-	dataLimitEP    = "/private/devices/%v/app_config/" // AppID
+	dataLimitEP    = "/private/devices/"+config.AppID()+"/app_config/"
 )
 
 // BaseURL is the subdomain against which requests will be performed. It
@@ -41,7 +41,12 @@ func get(args, contenttype string) (*http.Response, error) {
 		req.Header.Add("content-type", contenttype)
 	}
 
-	return http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
+	if resp.StatusCode != 200 {
+		return nil, errStatus{resp}
+	}
+
+	return resp, nil
 }
 
 type errNotReleased string
@@ -58,16 +63,8 @@ func (err errNotReleased) Error() string {
 // 2. The response's status code is not 200.
 //
 func Release(checksum string) error {
-	resp, err := get(releasesEP+checksum, "")
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != 200 {
-		return errNotReleased(checksum)
-	}
-
-	return nil
+	_, err := get(releasesEP+checksum, "")
+	return err
 }
 
 var errParseCA = errors.New("failed to parse CA")
@@ -99,10 +96,6 @@ func Certificates() (*tls.Config, error) {
 	resp, err := get(certificatesEP, "")
 	if err != nil {
 		return nil, err
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, errStatus{resp}
 	}
 
 	ca, _ := ioutil.ReadAll(resp.Body)
@@ -216,10 +209,6 @@ func GetBrokerAddr() (string, error) {
 		return "", err
 	}
 
-	if resp.StatusCode != 200 {
-		return "", errStatus{resp}
-	}
-
 	var k struct {
 		Broker string `json:"brokers"`
 		Port   string `json:"port"`
@@ -231,4 +220,63 @@ func GetBrokerAddr() (string, error) {
 	}
 
 	return fmt.Sprintf("ssl://%s:%s", k.Broker, k.Port), nil
+}
+
+// CellularConfig defines a limit and date for devices that use a cellular
+// connection.
+type CellularConfig struct {
+	// LimitPtr is a pointer to the maximum number of application layer
+	// megabytes/period that the client may send over a cellular connection. If
+	// nil, there is no limit. This field is provided only for serialization.
+	// Clients should use Limit and LimitDefined instead.
+	LimitPtr *int `json:"cellular_data_limit"`
+
+	Limit        int
+	LimitDefined bool
+
+	// Date is the day of the month that delimits a cellular
+	// data plan period. Valid values are within [1, 28].
+	Date int `json:"normalized_cell_plan_date"`
+}
+
+// DataLimit represents parameters that control the client's use of data.
+type DataLimit struct {
+	// EmissionPeriod is the time in seconds the client is to wait
+	// between emission requests to the agent.
+	EmissionPeriod int `json:"emission_period"`
+	Storage        struct {
+		// Limit is the maximum number of megabytes the client
+		// may use to store unsent messages. If nil, there is no
+		// storage limit.
+		Limit *int `json:"storage_limit"`
+	} `json:"storage"`
+	Cellular CellularConfig `json:"data"`
+}
+
+// GetDataLimit returns a DataLimit from the dataLimit endpoint.
+func GetDataLimit() (*DataLimit, error) {
+	resp, err := get(dataLimitEP, "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var l struct {
+		DataLimit `json:"config"`
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	if err := json.Unmarshal(body, &l); err != nil {
+		return nil, errEncoding{err, string(body), "GetDataLimit"}
+	}
+
+	depointerize(&l.DataLimit.Cellular)
+	return &l.DataLimit, nil
+}
+
+func depointerize(c *CellularConfig) {
+	if c.LimitPtr == nil {
+		return
+	}
+	c.LimitDefined = true
+	c.Limit = *c.LimitPtr
 }
