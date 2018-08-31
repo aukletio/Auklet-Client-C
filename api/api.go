@@ -66,12 +66,12 @@ type Credentials struct {
 // GetCredentials retrieves credentials from the filesystem or API, whichever is
 // available.
 func GetCredentials(path string) (*Credentials, error) {
-	creds, err := credsFromFile(path)
+	c, err := credsFromFile(path)
 	if err != nil {
 		// file doesn't exist; ask the API for credentials
 		return getAndSaveCredentials(path)
 	}
-	return creds, nil
+	return c, nil
 }
 
 func credsFromFile(path string) (*Credentials, error) {
@@ -80,26 +80,26 @@ func credsFromFile(path string) (*Credentials, error) {
 		return nil, err
 	}
 	// decrypt here
-	creds := new(Credentials)
-	if err := json.Unmarshal(b, creds); err != nil {
+	c := new(Credentials)
+	if err := json.Unmarshal(b, c); err != nil {
 		return nil, errEncoding{err, string(b), "credsFromFile"}
 	}
-	return creds, nil
+	return c, nil
 }
 
 // getAndSaveCredentials requests credentials from the API. If it receives them,
 // it writes them to the given path.
 func getAndSaveCredentials(path string) (*Credentials, error) {
-	creds := new(Credentials)
-	if err := Do(creds); err != nil {
+	c := new(Credentials)
+	if err := Do(c); err != nil {
 		return nil, err
 	}
-	b, _ := json.Marshal(creds)
+	b, _ := json.Marshal(c)
 	// encrypt here
 	if err := ioutil.WriteFile(path, b, 0666); err != nil {
 		return nil, err
 	}
-	return creds, nil
+	return c, nil
 }
 
 // decodeCredentials unmarshals data into Credentials. If the password is empty,
@@ -107,12 +107,12 @@ func getAndSaveCredentials(path string) (*Credentials, error) {
 //
 // The API returns an empty password if a device's credentials have been
 // requested more than once.
-func (creds *Credentials) decodeCredentials(data []byte) error {
-	if err := json.Unmarshal(data, creds); err != nil {
+func (c *Credentials) decodeCredentials(data []byte) error {
+	if err := json.Unmarshal(data, c); err != nil {
 		return errEncoding{err, string(data), "decodeCredentials"}
 	}
 
-	if creds.Password == "" {
+	if c.Password == "" {
 		return errors.New("empty password")
 	}
 
