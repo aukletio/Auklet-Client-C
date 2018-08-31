@@ -29,20 +29,22 @@ var (
 // should not assume any particular namespace.
 var BaseURL string
 
+// Call represents an API call.
 type Call interface {
-	Request() *http.Request
-	Handle(*http.Response) error
+	request() *http.Request
+	handle(*http.Response) error
 }
 
+// Do executes an API call.
 func Do(c Call) error {
-	req := c.Request()
+	req := c.request()
 	req.Header.Add("Authorization", "JWT "+config.APIKey())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 
-	return c.Handle(resp)
+	return c.handle(resp)
 }
 
 type errStatus struct {
@@ -123,7 +125,7 @@ type errEncoding struct {
 	Op   string
 }
 
-func (Credentials) Request() *http.Request {
+func (Credentials) request() *http.Request {
 	b, _ := json.Marshal(struct {
 		Mac   string `json:"mac_address_hash"`
 		AppID string `json:"application"`
@@ -139,7 +141,7 @@ func (Credentials) Request() *http.Request {
 	return req
 }
 
-func (c *Credentials) Handle(resp *http.Response) error {
+func (c *Credentials) handle(resp *http.Response) error {
 	if resp.StatusCode != 201 {
 		return errStatus{resp}
 	}
@@ -152,17 +154,19 @@ func (err errEncoding) Error() string {
 	return fmt.Sprintf("encoding error during %v: %v in %v", err.Op, err.Err, err.What)
 }
 
+// Release is an API call that checks whether
+// the given checksum has been released.
 type Release struct {
 	CheckSum string
 }
 
-func (r Release) Request() *http.Request {
+func (r Release) request() *http.Request {
 	url := BaseURL + releasesEP + "?checksum=" + r.CheckSum
 	req, _ := http.NewRequest("GET", url, nil)
 	return req
 }
 
-func (r Release) Handle(resp *http.Response) error {
+func (r Release) handle(resp *http.Response) error {
 	if resp.StatusCode != 200 {
 		return errNotReleased(r.CheckSum)
 	}
@@ -175,16 +179,17 @@ func (err errNotReleased) Error() string {
 	return fmt.Sprintf("not released: %v", string(err))
 }
 
+// Certificates represents CA certs.
 type Certificates struct {
 	TLSConfig *tls.Config
 }
 
-func (Certificates) Request() *http.Request {
+func (Certificates) request() *http.Request {
 	req, _ := http.NewRequest("GET", BaseURL+certificatesEP, nil)
 	return req
 }
 
-func (c *Certificates) Handle(resp *http.Response) (err error) {
+func (c *Certificates) handle(resp *http.Response) (err error) {
 	if resp.StatusCode != 200 {
 		return errStatus{resp}
 	}
@@ -213,17 +218,18 @@ func tlsConfig(ca []byte) (*tls.Config, error) {
 	}, nil
 }
 
+// BrokerAddress holds the broker address we use to send broker messages.
 type BrokerAddress struct {
 	Address string
 }
 
-func (BrokerAddress) Request() *http.Request {
+func (BrokerAddress) request() *http.Request {
 	req, _ := http.NewRequest("GET", BaseURL+configEP, nil)
 	req.Header.Add("content-type", "application/json")
 	return req
 }
 
-func (b *BrokerAddress) Handle(r *http.Response) error {
+func (b *BrokerAddress) handle(r *http.Response) error {
 	if r.StatusCode != 200 {
 		return errStatus{r}
 	}
@@ -242,6 +248,7 @@ func (b *BrokerAddress) Handle(r *http.Response) error {
 	return nil
 }
 
+// CellularConfig holds parameters for a cellular plan.
 type CellularConfig struct {
 	Date int // day of the month in [1,28]
 
@@ -249,18 +256,19 @@ type CellularConfig struct {
 	Limit   int
 }
 
+// DataLimit holds parameters controlling Auklet's data usage.
 type DataLimit struct {
 	EmissionPeriod int
 	Cellular       CellularConfig
 }
 
-func (DataLimit) Request() *http.Request {
+func (DataLimit) request() *http.Request {
 	req, _ := http.NewRequest("GET", BaseURL+dataLimitEP, nil)
 	req.Header.Add("content-type", "application/json")
 	return req
 }
 
-func (d *DataLimit) Handle(r *http.Response) (err error) {
+func (d *DataLimit) handle(r *http.Response) (err error) {
 	if r.StatusCode != 200 {
 		return errStatus{r}
 	}

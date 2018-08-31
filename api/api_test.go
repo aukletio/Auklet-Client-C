@@ -32,7 +32,7 @@ type mockCall struct {
 	url string
 }
 
-func (m mockCall) Request() *http.Request {
+func (m mockCall) request() *http.Request {
 	req, err := http.NewRequest("GET", m.url, nil)
 	if err != nil {
 		panic(err)
@@ -40,7 +40,7 @@ func (m mockCall) Request() *http.Request {
 	return req
 }
 
-func (mockCall) Handle(*http.Response) error { return nil }
+func (mockCall) handle(*http.Response) error { return nil }
 
 func TestDo(t *testing.T) {
 	s := httptest.NewServer(handler)
@@ -65,7 +65,7 @@ func TestDo(t *testing.T) {
 }
 
 func TestRequest(t *testing.T) {
-	cases := []interface{ Request() *http.Request }{
+	cases := []interface{ request() *http.Request }{
 		Credentials{},
 		Release{},
 		Certificates{},
@@ -74,7 +74,7 @@ func TestRequest(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		if c.Request() == nil {
+		if c.request() == nil {
 			t.Errorf("case %v: nil request", i)
 		}
 	}
@@ -86,7 +86,7 @@ func body(s string) io.ReadCloser {
 
 func TestHandle(t *testing.T) {
 	cases := []struct {
-		handler interface{ Handle(*http.Response) error }
+		handler interface{ handle(*http.Response) error }
 		resp    http.Response
 		ok      bool
 	}{
@@ -180,7 +180,7 @@ func TestHandle(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		err := c.handler.Handle(&c.resp)
+		err := c.handler.handle(&c.resp)
 		ok := err == nil
 		if c.ok != ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
@@ -245,7 +245,7 @@ func TestTLSConfig(t *testing.T) {
 	appendCertsFromPEM = func(*x509.CertPool, []byte) bool {
 		return true
 	}
-	if _, err := tlsConfig([]byte{}); err == nil {
-		t.Fail()
+	if _, err := tlsConfig([]byte{}); err != nil {
+		t.Error(err)
 	}
 }
