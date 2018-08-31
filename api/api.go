@@ -162,7 +162,7 @@ func (r Release) Request() *http.Request {
 	return req
 }
 
-func (r Release) Handle(resp *http.Response) error { 
+func (r Release) Handle(resp *http.Response) error {
 	if resp.StatusCode != 200 {
 		return errNotReleased(r.CheckSum)
 	}

@@ -1,8 +1,8 @@
 package api
 
 import (
-	"fmt"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -213,21 +213,21 @@ func TestGetAndSave(t *testing.T) {
 
 	cases := []struct {
 		url, path string
-		ok bool
+		ok        bool
 	}{
 		{
 			url: s.URL + "bogus",
 			ok:  false,
 		},
 		{
-			url: s.URL,
+			url:  s.URL,
 			path: "testdata/noexist/file",
-			ok:  false,
+			ok:   false,
 		},
 		{
-			url: s.URL,
+			url:  s.URL,
 			path: "testdata/file",
-			ok:  true,
+			ok:   true,
 		},
 	}
 
