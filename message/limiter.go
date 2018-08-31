@@ -208,7 +208,7 @@ func (l *DataLimiter) apply(conf api.CellularConfig) state {
 	log.Printf(`limiter: moving period day
 	from %v
 	to   %v`, old, l.PeriodEnd)
-	l.setBudget(conf.Limit, conf.LimitDefined)
+	l.setBudget(conf.Limit, conf.Defined)
 	l.reset()
 	return initial
 }
