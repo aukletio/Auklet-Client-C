@@ -92,7 +92,7 @@ type client struct {
 }
 
 func (c *client) run() {
-	if err := api.Release(c.exec.CheckSum()); err != nil {
+	if err := api.Do(api.Release{c.exec.CheckSum()}); err != nil {
 		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
 		if err := c.exec.Start(); err != nil {
@@ -126,7 +126,7 @@ func (c *client) prepare() bool {
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		creds, err := api.GetCredentials()
+		creds, err := api.GetCredentials(".auklet/identification")
 		if err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
@@ -135,21 +135,21 @@ func (c *client) prepare() bool {
 	}()
 	go func() {
 		defer wg.Done()
-		addr, err := api.GetBrokerAddr()
-		if err != nil {
+		addr := new(api.BrokerAddress)
+		if err := api.Do(addr); err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
 		}
-		c.addr = addr
+		c.addr = addr.Address
 	}()
 	go func() {
 		defer wg.Done()
-		certs, err := api.Certificates()
-		if err != nil {
+		certs := new(api.Certificates)
+		if err := api.Do(certs); err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
 		}
-		c.certs = certs
+		c.certs = certs.TLSConfig
 	}()
 	wg.Wait()
 	return c.addr != "" && c.certs != nil && c.creds != nil
@@ -165,24 +165,24 @@ func (c *client) runPipeline() {
 
 	persistor := broker.NewPersistor(dir)
 	loader := broker.NewMessageLoader(dir)
-	logger := agent.NewLogger(c.exec.Logs())
-	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
+	logger := agent.NewLogger(c.exec.AppLogs)
+	server := agent.NewServer(c.exec.AgentData, c.exec.Decoder)
 	agentMessages := agent.NewMerger(logger, server)
 	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username)
-	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done)
+	requester := agent.NewPeriodicRequester(c.exec.AgentData, server.Done)
 	merger := message.NewMerger(converter, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 
 	pollConfig := func() {
 		poll := func() {
-			dl, err := api.GetDataLimit()
-			if err != nil {
+			dl := new(api.DataLimit)
+			if err := api.Do(dl); err != nil {
 				// TODO: send this over MQTT
 				errorlog.Print(err)
 				return
 			}
 			go func() { requester.Configure() <- dl.EmissionPeriod }()
-			go func() { limiter.Configure() <- dl.Cellular }()
+			go func() { limiter.Conf <- dl.Cellular }()
 		}
 		poll()
 		for _ = range time.Tick(time.Hour) {
