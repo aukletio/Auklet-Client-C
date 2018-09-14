@@ -54,3 +54,13 @@ func TestConverter(t *testing.T) {
 		close(s)
 	}
 }
+
+func TestNilIfEmpty(t *testing.T) {
+	if nilIfEmpty("") != nil {
+		t.Fail()
+	}
+
+	if nilIfEmpty("nonempty") == nil {
+		t.Fail()
+	}
+}

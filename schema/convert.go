@@ -39,21 +39,23 @@ type Persistor interface {
 	CreateMessage(*broker.Message) error
 }
 
+func nilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 // NewConverter returns a converter for the given input stream that uses the
 // given persistor and app.
 func NewConverter(in MessageSource, persistor Persistor, app ExitSignalApp, username, userVersion string) Converter {
 	c := Converter{
-		in:        in,
-		out:       make(chan broker.Message),
-		persistor: persistor,
-		app:       app,
-		username:  username,
-		userVersion: func() *string {
-			if "" == userVersion {
-				return nil
-			}
-			return &userVersion
-		}(),
+		in:          in,
+		out:         make(chan broker.Message),
+		persistor:   persistor,
+		app:         app,
+		username:    username,
+		userVersion: nilIfEmpty(userVersion),
 	}
 	go c.serve()
 	return c
