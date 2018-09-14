@@ -133,12 +133,14 @@ func (exec *Exec) CheckSum() string { return exec.hash }
 
 // ExitStatus returns the process's exit status.
 func (exec *Exec) ExitStatus() int {
+	exec.Wait()
 	return exec.cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 }
 
 // Signal returns the text description of the signal that killed the process, if
 // any.
 func (exec *Exec) Signal() string {
+	exec.Wait()
 	ws := exec.cmd.ProcessState.Sys().(syscall.WaitStatus)
 	sig := ""
 	if ws.Signaled() {

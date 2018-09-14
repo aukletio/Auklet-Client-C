@@ -12,6 +12,7 @@ import (
 )
 
 type metadata struct {
+	Version       string `json:"version"` // user-defined version
 	Username      string `json:"device"`
 	ClientVersion string `json:"clientVersion"`
 	AgentVersion  string `json:"agentVersion"`
@@ -29,6 +30,7 @@ func nowMilli() int64 {
 
 func (c Converter) metadata() metadata {
 	return metadata{
+		Version:       c.userVersion,
 		Username:      c.username,
 		ClientVersion: version.Version,
 		AgentVersion:  c.app.AgentVersion(),
