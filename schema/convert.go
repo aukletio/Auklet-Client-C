@@ -18,7 +18,7 @@ type Converter struct {
 	persistor   Persistor
 	app         ExitSignalApp
 	username    string
-	userVersion string
+	userVersion *string
 }
 
 // ExitSignalApp is an App that has a signal and exit status.
@@ -43,12 +43,17 @@ type Persistor interface {
 // given persistor and app.
 func NewConverter(in MessageSource, persistor Persistor, app ExitSignalApp, username, userVersion string) Converter {
 	c := Converter{
-		in:          in,
-		out:         make(chan broker.Message),
-		persistor:   persistor,
-		app:         app,
-		username:    username,
-		userVersion: userVersion,
+		in:        in,
+		out:       make(chan broker.Message),
+		persistor: persistor,
+		app:       app,
+		username:  username,
+		userVersion: func() *string {
+			if "" == userVersion {
+				return nil
+			}
+			return &userVersion
+		}(),
 	}
 	go c.serve()
 	return c
