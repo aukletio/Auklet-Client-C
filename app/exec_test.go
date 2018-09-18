@@ -159,3 +159,14 @@ func TestConnect(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestRun(t *testing.T) {
+	e := must(NewExec("testdata/noexec"))
+	if err := e.Run(); err == nil {
+		t.Fail()
+	}
+	e = must(NewExec("testdata/ls"))
+	if err := e.Run(); err != nil {
+		t.Error(err)
+	}
+}
