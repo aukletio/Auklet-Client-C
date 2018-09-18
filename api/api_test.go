@@ -249,3 +249,14 @@ func TestTLSConfig(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func catch() { recover() }
+
+func TestErrors(t *testing.T) {
+	func() {
+		defer catch()
+		errStatus{}.Error()
+	}()
+	errEncoding{}.Error()
+	errNotReleased("").Error()
+}
