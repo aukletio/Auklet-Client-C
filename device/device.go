@@ -98,6 +98,7 @@ func monitorRates() <-chan rates {
 			prev = cur
 			cur = rates{In: stat.BytesRecv, Out: stat.BytesSent}
 		}
+		update()
 		tick := time.Tick(time.Second)
 		for {
 			select {
