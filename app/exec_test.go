@@ -68,6 +68,13 @@ func TestExec(t *testing.T) {
 
 var errSocketPair = errors.New("socketpair failed")
 
+func must(exec *Exec, err error) *Exec {
+	if err != nil {
+		panic(err)
+	}
+	return exec
+}
+
 func TestAddSockets(t *testing.T) {
 	cases := []struct {
 		socketpair func(string) (pair, error)
@@ -90,12 +97,6 @@ func TestAddSockets(t *testing.T) {
 			},
 			expect: errSocketPair,
 		},
-	}
-	must := func(exec *Exec, err error) *Exec {
-		if err != nil {
-			panic(err)
-		}
-		return exec
 	}
 	for i, c := range cases {
 		socketPair = c.socketpair
@@ -142,5 +143,19 @@ func TestGetAgentVersion(t *testing.T) {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
 		}
+	}
+}
+
+func TestConnect(t *testing.T) {
+	socketPair = func(string) (pair, error) {
+		return pair{}, errSocketPair
+	}
+	exec := must(NewExec("testdata/sendjson"))
+	if err := exec.Connect(); err == nil {
+		t.Fail()
+	}
+	socketPair = socketpair
+	if err := exec.Connect(); err != nil {
+		t.Error(err)
 	}
 }

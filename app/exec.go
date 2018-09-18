@@ -169,13 +169,14 @@ func (exec *Exec) Run() error {
 
 // Connect adds sockets, starts, and gets the agent version of exec.
 func (exec *Exec) Connect() error {
-	if err := exec.AddSockets(); err != nil {
-		return err
+	for _, fn := range []func() error{
+		exec.AddSockets,
+		exec.Start,
+		exec.GetAgentVersion,
+	} {
+		if err := fn(); err != nil {
+			return err
+		}
 	}
-
-	if err := exec.Start(); err != nil {
-		return err
-	}
-
-	return exec.GetAgentVersion()
+	return nil
 }
