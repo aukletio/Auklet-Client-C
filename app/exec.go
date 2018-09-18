@@ -157,3 +157,25 @@ func (exec *Exec) String() string {
 func (exec *Exec) AgentVersion() string {
 	return exec.agentVersion
 }
+
+// Run runs exec and waits for it to stop.
+func (exec *Exec) Run() error {
+	if err := exec.Start(); err != nil {
+		return err
+	}
+	exec.Wait()
+	return nil
+}
+
+// Connect adds sockets, starts, and gets the agent version of exec.
+func (exec *Exec) Connect() error {
+	if err := exec.AddSockets(); err != nil {
+		return err
+	}
+
+	if err := exec.Start(); err != nil {
+		return err
+	}
+
+	return exec.GetAgentVersion()
+}

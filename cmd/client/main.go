@@ -38,7 +38,17 @@ func main() {
 		os.Exit(1)
 	}
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
-	cfg := getConfig()
+	apply(config.Get())
+	c, err := newclient(args[0], args[1:]...)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := c.run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func apply(cfg config.Config) {
 	api.BaseURL = cfg.BaseURL
 	if !cfg.LogInfo {
 		log.SetOutput(ioutil.Discard)
@@ -46,14 +56,14 @@ func main() {
 	if !cfg.LogErrors {
 		errorlog.SetOutput(ioutil.Discard)
 	}
+}
+
+func newclient(name string, args ...string) (*client, error) {
 	exec, err := app.NewExec(args[0], args[1:]...)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	c := &client{
-		exec: exec,
-	}
-	c.run()
+	return &client{exec: exec}, nil
 }
 
 func usage() {
@@ -77,13 +87,6 @@ func licenses() {
 	}
 }
 
-func getConfig() config.Config {
-	if version.Version == "local-build" {
-		return config.LocalBuild()
-	}
-	return config.ReleaseBuild()
-}
-
 type client struct {
 	creds *api.Credentials
 	certs *tls.Config
@@ -91,34 +94,22 @@ type client struct {
 	exec  *app.Exec
 }
 
-func (c *client) run() {
+func (c *client) run() error {
 	if err := api.Do(api.Release{c.exec.CheckSum()}); err != nil {
 		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
-		if err := c.exec.Start(); err != nil {
-			log.Fatal(err)
-		}
-		c.exec.Wait()
-		return
+		return c.exec.Run()
 	}
 
-	if err := c.exec.AddSockets(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := c.exec.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := c.exec.GetAgentVersion(); err != nil {
-		log.Fatal(err)
+	if err := c.exec.Connect(); err != nil {
+		return err
 	}
 
 	if !c.prepare() {
-		return
+		return nil
 	}
 
-	c.runPipeline()
+	return c.runPipeline()
 }
 
 func (c *client) prepare() bool {
@@ -155,12 +146,12 @@ func (c *client) prepare() bool {
 	return c.addr != "" && c.certs != nil && c.creds != nil
 }
 
-func (c *client) runPipeline() {
+func (c *client) runPipeline() error {
 	dir := ".auklet/message"
 
 	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	persistor := broker.NewPersistor(dir)
@@ -192,4 +183,5 @@ func (c *client) runPipeline() {
 	go pollConfig()
 
 	producer.Serve(limiter)
+	return nil
 }

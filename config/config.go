@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
 // A Config represents the parameters of an Auklet client invocation.
@@ -85,4 +86,11 @@ func APIKey() string {
 // data sent to broker.
 func AppID() string {
 	return envar("APP_ID")
+}
+
+func Get() Config {
+	if version.Version == "local-build" {
+		return LocalBuild()
+	}
+	return ReleaseBuild()
 }
