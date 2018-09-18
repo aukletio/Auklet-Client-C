@@ -88,6 +88,7 @@ func AppID() string {
 	return envar("APP_ID")
 }
 
+// Get returns the config for this build.
 func Get() Config {
 	if version.Version == "local-build" {
 		return LocalBuild()

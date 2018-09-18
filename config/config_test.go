@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"testing"
+
+	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
 func empty(key string) string { return "" }
@@ -98,6 +100,16 @@ func TestAppID(t *testing.T) {
 	}
 
 	if got := AppID(); got != "app ID" {
+		t.Fail()
+	}
+}
+
+func TestGet(t *testing.T) {
+	if Get() != LocalBuild() {
+		t.Fail()
+	}
+	version.Version = "not local build"
+	if Get() != ReleaseBuild() {
 		t.Fail()
 	}
 }
