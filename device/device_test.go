@@ -2,8 +2,8 @@ package device
 
 import (
 	"errors"
-	"time"
 	"testing"
+	"time"
 )
 
 func Test(t *testing.T) {
@@ -11,6 +11,6 @@ func Test(t *testing.T) {
 		return "", errors.New("error")
 	}
 	CurrentIP()
-	time.Sleep(2*time.Second)
+	time.Sleep(2 * time.Second)
 	GetMetrics()
 }
