@@ -40,11 +40,7 @@ var MacHash = ifacehash()
 func ifacehash() string {
 	// MAC addresses are generally 6 bytes long
 	sum := make([]byte, 6)
-	interfaces, err := snet.Interfaces()
-	if err != nil {
-		errorlog.Print(err)
-	}
-
+	interfaces, _ := snet.Interfaces()
 	for _, i := range interfaces {
 		if bytes.Compare(i.HardwareAddr, nil) == 0 {
 			continue
