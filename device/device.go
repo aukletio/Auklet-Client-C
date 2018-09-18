@@ -17,9 +17,11 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
+var getIP = ipify.GetIp
+
 // CurrentIP returns the device's current public IP address.
 func CurrentIP() (ip string) {
-	ip, err := ipify.GetIp()
+	ip, err := getIP()
 	if err != nil {
 		errorlog.Print(err)
 	}
@@ -90,13 +92,11 @@ func monitorRates() <-chan rates {
 		var prev, cur rates
 		update := func() {
 			stats, err := net.IOCounters(false)
-			if err != nil || len(stats) != 1 {
-				// something isn't right
-				return
+			if err == nil && len(stats) == 1 {
+				stat := stats[0]
+				prev = cur
+				cur = rates{In: stat.BytesRecv, Out: stat.BytesSent}
 			}
-			stat := stats[0]
-			prev = cur
-			cur = rates{In: stat.BytesRecv, Out: stat.BytesSent}
 		}
 		update()
 		tick := time.Tick(time.Second)
