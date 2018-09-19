@@ -2,7 +2,6 @@ package broker
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -10,56 +9,68 @@ import (
 var errMockFs = errors.New("filesystem error")
 
 func TestSave(t *testing.T) {
-	osMkdirAll = func(string, os.FileMode) error { return errMockFs }
-	defer func() { osMkdirAll = os.MkdirAll }()
-
-	if err := (Message{}).save(); err == nil {
-		t.Fail()
-	}
-}
-
-func TestOpenFile(t *testing.T) {
-	osMkdirAll = func(string, os.FileMode) error { return nil }
-	osOpenFile = func(string, int, os.FileMode) (*os.File, error) { return nil, errMockFs }
 	defer func() {
 		osMkdirAll = os.MkdirAll
 		osOpenFile = os.OpenFile
 	}()
 
-	if err := (Message{}).save(); err == nil {
-		t.Fail()
+	cases := []struct {
+		mkdirall func(string, os.FileMode) error
+		openfile func(string, int, os.FileMode) (*os.File, error)
+		ok       bool
+	}{
+		{
+			mkdirall: func(string, os.FileMode) error { return errMockFs },
+			openfile: os.OpenFile,
+			ok:       false,
+		},
+		{
+			mkdirall: func(string, os.FileMode) error { return nil },
+			openfile: func(string, int, os.FileMode) (*os.File, error) { return nil, errMockFs },
+			ok:       false,
+		},
+	}
+
+	for i, c := range cases {
+		osMkdirAll = c.mkdirall
+		osOpenFile = c.openfile
+		err := (Message{}).save()
+		ok := err == nil
+		if ok != c.ok {
+			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
+		}
 	}
 }
 
-func TestStat(t *testing.T) {
-	orig := osStat
-	osStat = func(string) (sizer, error) { return nil, errMockFs }
-	defer func() { osStat = orig }()
-
-	paths, err := filepaths(".auklet/messages")
-	if len(paths) != 0 || err != nil {
-		t.Errorf("expected empty slice, nil; got %v, %v", paths, err)
+func TestFilepaths(t *testing.T) {
+	stat := osStat
+	open := osOpen
+	defer func() {
+		osStat = stat
+		osOpen = open
+	}()
+	statfail := func(string) (sizer, error) { return nil, errMockFs }
+	openfail := func(string) (*os.File, error) { return nil, errMockFs }
+	cases := []struct {
+		stat func(string) (sizer, error)
+		open func(string) (*os.File, error)
+		dir  string
+		ok   bool
+	}{
+		{stat: statfail, open: open, dir: "testdata/noexist", ok: true},
+		{stat: stat, open: openfail, dir: "testdata/noexist", ok: true},
+		{stat: stat, open: open, dir: "testdata/notdir", ok: false},
+		{stat: stat, open: openfail, dir: "testdata/r", ok: false},
 	}
-}
 
-func TestOpen(t *testing.T) {
-	osOpen = func(string) (*os.File, error) { return nil, errMockFs }
-	defer func() { osOpen = os.Open }()
-
-	paths, err := filepaths(".auklet/messages")
-	exp := "filepaths: failed to open message directory: filesystem error"
-	if len(paths) != 0 || (err != nil && err.Error() != exp) {
-		t.Errorf("expected empty slice, %v; got %v, %v", exp, paths, err)
-	}
-}
-
-func TestReaddirnames(t *testing.T) {
-	paths, err := filepaths("testdata/notdir")
-	if err == nil {
-		t.Fail()
-	}
-	if len(paths) != 0 {
-		t.Fail()
+	for i, c := range cases {
+		osStat = c.stat
+		osOpen = c.open
+		_, err := filepaths(c.dir)
+		ok := err == nil
+		if ok != c.ok {
+			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
+		}
 	}
 }
 
@@ -68,14 +79,8 @@ func TestMessageLoader(t *testing.T) {
 		dir string
 		ok  bool
 	}{
-		{
-			dir: "testdata/notdir",
-			ok:  false,
-		},
-		{
-			dir: "testdata/r",
-			ok:  true,
-		},
+		{dir: "testdata/notdir", ok: false},
+		{dir: "testdata/r", ok: true},
 	}
 
 	for i, c := range cases {
@@ -88,26 +93,22 @@ func TestMessageLoader(t *testing.T) {
 	}
 }
 
+func mkReadFile(b []byte, err error) func(string) ([]byte, error) {
+	return func(string) ([]byte, error) { return b, err }
+}
+
 func TestLoadMessage(t *testing.T) {
+	orig := ioutilReadFile
+	defer func() { ioutilReadFile = orig }()
+
 	cases := []struct {
 		readFile func(string) ([]byte, error)
 		ok       bool
 	}{
-		{
-			readFile: func(string) ([]byte, error) { return nil, errors.New("error") },
-			ok:       false,
-		},
-		{
-			readFile: func(string) ([]byte, error) { return []byte("}"), nil },
-			ok:       false,
-		},
-		{
-			readFile: func(string) ([]byte, error) { return []byte("{}"), nil },
-			ok:       true,
-		},
+		{readFile: mkReadFile(nil, errMockFs), ok: false},
+		{readFile: mkReadFile([]byte("}"), nil), ok: false},
+		{readFile: mkReadFile([]byte("{}"), nil), ok: true},
 	}
-
-	defer func() { ioutilReadFile = ioutil.ReadFile }()
 
 	for i, c := range cases {
 		ioutilReadFile = c.readFile
@@ -178,24 +179,15 @@ func TestChannels(t *testing.T) {
 }
 
 func TestCreateMessage(t *testing.T) {
+	var n int64 = 10
 	cases := []struct {
 		dir string
 		lim *int64
 		ok  bool
 	}{
-		{
-			dir: "testdata/notdir",
-			ok:  false,
-		},
-		{
-			dir: "testdata/w",
-			ok:  true,
-		},
-		{
-			dir: "testdata/w",
-			lim: func(n int64) *int64 { return &n }(-10),
-			ok:  false,
-		},
+		{dir: "testdata/notdir", ok: false},
+		{dir: "testdata/w", ok: true},
+		{dir: "testdata/w", lim: &n, ok: false},
 	}
 
 	for i, c := range cases {
@@ -224,18 +216,6 @@ func TestMain(m *testing.M) {
 	clean()
 
 	os.Exit(status)
-}
-
-func TestFilepaths(t *testing.T) {
-	osOpen = func(string) (*os.File, error) { return nil, errMockFs }
-	defer func() { osOpen = os.Open }()
-	paths, err := filepaths("testdata/r")
-	if err == nil {
-		t.Fail()
-	}
-	if len(paths) != 0 {
-		t.Fail()
-	}
 }
 
 func TestErrorStorageFull(t *testing.T) {
