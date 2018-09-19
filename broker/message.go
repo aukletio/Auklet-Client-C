@@ -3,11 +3,9 @@ package broker
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/spf13/afero"
 
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
@@ -24,8 +22,6 @@ const (
 	Event
 	Log
 )
-
-var fs = afero.NewOsFs()
 
 // Message represents a broker message.
 type Message struct {
@@ -53,6 +49,7 @@ type Persistor struct {
 	currentLimit chan *int64 // outgoing current values for limit
 	dir          string
 	count        int // counter to give Messages unique names
+	done         chan struct{}
 }
 
 // NewPersistor creates a new Persistor in dir.
@@ -61,6 +58,7 @@ func NewPersistor(dir string) *Persistor {
 		dir:          dir,
 		newLimit:     make(chan *int64),
 		currentLimit: make(chan *int64),
+		done:         make(chan struct{}),
 	}
 	go p.serve()
 	return p
@@ -70,6 +68,8 @@ func NewPersistor(dir string) *Persistor {
 func (p *Persistor) serve() {
 	for {
 		select {
+		case <-p.done:
+			return
 		case p.limit = <-p.newLimit:
 		case p.currentLimit <- p.limit:
 		}
@@ -88,9 +88,7 @@ type MessageLoader struct {
 
 // NewMessageLoader reads dir for messages and returns them as a stream.
 func NewMessageLoader(dir string) MessageLoader {
-	return MessageLoader{
-		out: load(dir),
-	}
+	return MessageLoader{out: load(dir)}
 }
 
 // Output returns l's output stream.
@@ -120,16 +118,12 @@ func load(dir string) <-chan Message {
 // loadMessage decodes the file at path into a Message.
 func loadMessage(path string) (m Message) {
 	m.path = path
-	f, err := fs.Open(path)
+	b, err := ioutilReadFile(path)
 	if err != nil {
 		m.Error = err.Error()
 		return
 	}
-	defer f.Close()
-	err = json.NewDecoder(f).Decode(&m)
-	if err == io.EOF {
-		return
-	} else if err != nil {
+	if err = json.Unmarshal(b, &m); err != nil {
 		m.Error = err.Error()
 	}
 	return
@@ -153,6 +147,18 @@ func (p *Persistor) CreateMessage(m *Message) (err error) {
 	return m.save()
 }
 
+type sizer interface {
+	Size() int64
+}
+
+var (
+	osOpen         = os.Open
+	osStat         = func(path string) (sizer, error) { return os.Stat(path) }
+	osMkdirAll     = os.MkdirAll
+	osOpenFile     = os.OpenFile
+	ioutilReadFile = ioutil.ReadFile
+)
+
 func size(dir string) (int64, error) {
 	var n int64
 	paths, err := filepaths(dir)
@@ -160,9 +166,9 @@ func size(dir string) (int64, error) {
 		return n, err
 	}
 	for _, path := range paths {
-		f, err := fs.Stat(path)
-		if err != nil {
-			err = fmt.Errorf("size: failed to calculate storage size of message %v: %v", path, err)
+		f, err2 := osStat(path)
+		if err2 != nil {
+			err = fmt.Errorf("size: failed to calculate storage size of message %v: %v", path, err2)
 			continue
 		}
 		n += f.Size()
@@ -171,13 +177,13 @@ func size(dir string) (int64, error) {
 }
 
 // filepaths returns a list of paths of messages.
-func filepaths(dir string) ([]string, error) {
+var filepaths = func(dir string) ([]string, error) {
 	var paths []string
-	if _, err := fs.Stat(dir); err != nil {
+	if _, err := osStat(dir); err != nil {
 		// no directory; this is not necessarily an error.
 		return paths, nil
 	}
-	d, err := fs.Open(dir)
+	d, err := osOpen(dir)
 	if err != nil {
 		return paths, fmt.Errorf("filepaths: failed to open message directory: %v", err)
 	}
@@ -194,20 +200,19 @@ func filepaths(dir string) ([]string, error) {
 
 func (m Message) save() error {
 	dir := filepath.Dir(m.path)
-	if err := fs.MkdirAll(dir, 0777); err != nil {
+	if err := osMkdirAll(dir, 0777); err != nil {
 		return fmt.Errorf("save: unable to save message to %v: %v", dir, err)
 	}
-	f, err := fs.OpenFile(m.path, os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return json.NewEncoder(f).Encode(m)
+	b, _ := json.Marshal(m)
+	// None of the types within Message
+	// can cause Marshal to fail, so we
+	// don't use the error value.
+	return ioutil.WriteFile(m.path, b, 0644)
 }
 
 // Remove deletes m from the persistence layer.
 func (m Message) Remove() {
-	if err := fs.Remove(m.path); err != nil {
+	if err := os.Remove(m.path); err != nil {
 		errorlog.Print(err)
 	}
 }
