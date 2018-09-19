@@ -1,15 +1,18 @@
 package schema
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 )
 
-type persistor struct{}
+type persistor struct {
+	err error
+}
 
-func (persistor) CreateMessage(*broker.Message) error { return nil }
+func (p persistor) CreateMessage(*broker.Message) error { return p.err }
 
 type source chan agent.Message
 
@@ -73,6 +76,17 @@ func TestConvert(t *testing.T) {
 
 func TestMarshal(t *testing.T) {
 	m := marshal(func() {}, 0)
+	if m.Error == "" {
+		t.Fail()
+	}
+}
+
+func TestPersistor(t *testing.T) {
+	s := make(source)
+	defer close(s)
+	c := NewConverter(s, persistor{err: errors.New("error")}, app{}, "username")
+	s <- agent.Message{Type: "profile"}
+	m := <-c.out
 	if m.Error == "" {
 		t.Fail()
 	}
