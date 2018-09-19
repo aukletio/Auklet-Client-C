@@ -69,7 +69,7 @@ func TestLoad(t *testing.T) {
 		ok  bool
 	}{
 		{
-			dir: "testdata/badperm",
+			dir: "testdata/notdir",
 			ok:  false,
 		},
 		{
@@ -183,7 +183,7 @@ func TestCreateMessage(t *testing.T) {
 		ok  bool
 	}{
 		{
-			dir: "testdata/badperm",
+			dir: "testdata/notdir",
 			ok:  false,
 		},
 		{
