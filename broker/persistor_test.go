@@ -63,7 +63,7 @@ func TestReaddirnames(t *testing.T) {
 	}
 }
 
-func TestLoad(t *testing.T) {
+func TestMessageLoader(t *testing.T) {
 	cases := []struct {
 		dir string
 		ok  bool
@@ -79,7 +79,8 @@ func TestLoad(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		m := <-load(c.dir)
+		l := NewMessageLoader(c.dir)
+		m := <-l.Output()
 		ok := m.Error == ""
 		if ok != c.ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, m.Error)
@@ -169,17 +170,17 @@ func (mockFileInfo) Size() int64 { return 0 }
 
 func TestChannels(t *testing.T) {
 	p := NewPersistor("testdata/w")
+	defer close(p.done)
 	p.Configure() <- nil
 	if lim := <-p.currentLimit; lim != nil {
 		t.Fail()
 	}
-	close(p.done)
 }
 
 func TestCreateMessage(t *testing.T) {
 	cases := []struct {
 		dir string
-		m   Message
+		lim *int64
 		ok  bool
 	}{
 		{
@@ -190,11 +191,17 @@ func TestCreateMessage(t *testing.T) {
 			dir: "testdata/w",
 			ok:  true,
 		},
+		{
+			dir: "testdata/w",
+			lim: func(n int64) *int64 { return &n }(-10),
+			ok:  false,
+		},
 	}
 
 	for i, c := range cases {
 		p := NewPersistor(c.dir)
-		err := p.CreateMessage(&c.m)
+		p.Configure() <- c.lim
+		err := p.CreateMessage(&Message{})
 		ok := err == nil
 		if ok != c.ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
@@ -204,13 +211,40 @@ func TestCreateMessage(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	status := m.Run()
-
-	// remove everything in w
-	paths, _ := filepaths("testdata/w")
-	for _, path := range paths {
-		os.Remove(path)
+	clean := func() {
+		// remove everything in w
+		paths, _ := filepaths("testdata/w")
+		for _, path := range paths {
+			os.Remove(path)
+		}
 	}
 
+	clean()
+	status := m.Run()
+	clean()
+
 	os.Exit(status)
+}
+
+func TestFilepaths(t *testing.T) {
+	osOpen = func(string) (*os.File, error) { return nil, errMockFs }
+	defer func() { osOpen = os.Open }()
+	paths, err := filepaths("testdata/r")
+	if err == nil {
+		t.Fail()
+	}
+	if len(paths) != 0 {
+		t.Fail()
+	}
+}
+
+func TestErrorStorageFull(t *testing.T) {
+	(ErrStorageFull{}).Error()
+}
+
+func TestServe(t *testing.T) {
+	c := make(chan struct{})
+	close(c)
+	p := Persistor{done: c}
+	p.serve()
 }

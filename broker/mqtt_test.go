@@ -26,6 +26,7 @@ import (
 // variable.
 
 func init() {
+	newClient(mqtt.NewClientOptions())
 	newClient = func(*mqtt.ClientOptions) client {
 		return klient{}
 	}
@@ -44,16 +45,19 @@ func (k klient) Publish(string, byte, bool, interface{}) mqtt.Token {
 func (k klient) Disconnect(uint) {}
 
 func TestConnect(t *testing.T) {
+	orig := wait
+	defer func() { wait = orig }()
+
 	errConn := errors.New("connect error")
 	cases := []struct {
-		wait   func(mqtt.Token) error
+		wait   func(token) error
 		expect error
 	}{
 		{
-			wait:   func(mqtt.Token) error { return nil },
+			wait:   func(token) error { return nil },
 			expect: nil,
 		}, {
-			wait:   func(mqtt.Token) error { return errConn },
+			wait:   func(token) error { return errConn },
 			expect: errConn,
 		},
 	}
@@ -75,24 +79,33 @@ func (c channel) Output() <-chan Message {
 }
 
 func TestPublish(t *testing.T) {
+	orig := wait
+	defer func() { wait = orig }()
+
 	errPublish := errors.New("publish error")
-	cases := []struct {
-		wait func(mqtt.Token) error
-	}{
-		{
-			wait: func(mqtt.Token) error { return nil },
-		}, {
-			wait: func(mqtt.Token) error { return errPublish },
-		},
+	cases := []func(token) error{
+		func(token) error { return nil },
+		func(token) error { return errPublish },
 	}
 
 	for _, c := range cases {
-		wait = c.wait
+		wait = c
 		source := make(channel)
 		go func() {
 			defer close(source)
 			source <- Message{}
 		}()
 		MQTTProducer{c: klient{}}.Serve(source)
+	}
+}
+
+type tok struct{}
+
+func (tok) Wait() bool   { return false }
+func (tok) Error() error { return nil }
+
+func TestWait(t *testing.T) {
+	if wait(tok{}) != nil {
+		t.Fail()
 	}
 }

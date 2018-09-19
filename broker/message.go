@@ -88,13 +88,11 @@ type MessageLoader struct {
 
 // NewMessageLoader reads dir for messages and returns them as a stream.
 func NewMessageLoader(dir string) MessageLoader {
-	return MessageLoader{out: load(dir)}
+	return MessageLoader{load(dir)}
 }
 
 // Output returns l's output stream.
-func (l MessageLoader) Output() <-chan Message {
-	return l.out
-}
+func (l MessageLoader) Output() <-chan Message { return l.out }
 
 // load loads the output channel with messages from the filesystem.
 func load(dir string) <-chan Message {
