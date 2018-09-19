@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -259,4 +260,23 @@ func TestErrors(t *testing.T) {
 	}()
 	errEncoding{}.Error()
 	errNotReleased("").Error()
+}
+
+func TestGetCredentials(t *testing.T) {
+	orig := credsFromFile
+	defer func() { credsFromFile = orig }()
+
+	pass := func(string) (*Credentials, error) { return nil, nil }
+	fail := func(string) (*Credentials, error) { return nil, errors.New("error") }
+	credsFromFile = pass
+	_, err := GetCredentials("")
+	if err != nil {
+		t.Fail()
+	}
+
+	credsFromFile = fail
+	_, err = GetCredentials("")
+	if err == nil {
+		t.Fail()
+	}
 }

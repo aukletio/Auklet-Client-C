@@ -74,7 +74,7 @@ func GetCredentials(path string) (*Credentials, error) {
 	return c, nil
 }
 
-func credsFromFile(path string) (*Credentials, error) {
+var credsFromFile = func(path string) (*Credentials, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
