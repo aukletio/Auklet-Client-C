@@ -55,3 +55,25 @@ func TestConverter(t *testing.T) {
 		close(s)
 	}
 }
+
+func TestDrop(t *testing.T) {
+	s := make(source)
+	NewConverter(s, persistor{}, app{}, "username")
+	s <- agent.Message{Type: "log"}
+	close(s)
+}
+
+func TestConvert(t *testing.T) {
+	s := make(source)
+	close(s)
+	c := NewConverter(s, persistor{}, app{}, "username")
+	c.convert(agent.Message{Type: "log"})
+	c.convert(agent.Message{Type: "applog"})
+}
+
+func TestMarshal(t *testing.T) {
+	m := marshal(func() {}, 0)
+	if m.Error == "" {
+		t.Fail()
+	}
+}
