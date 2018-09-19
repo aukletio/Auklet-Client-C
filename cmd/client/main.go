@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -23,20 +24,30 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
+var (
+	userVersion  string
+	viewLicenses bool
+)
+
 func init() {
 	log.SetFlags(log.Lmicroseconds)
+	flag.StringVar(&userVersion, "version", "", "user-defined version string")
+	flag.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
 }
 
 func main() {
-	args := os.Args[1:]
+	flag.Parse()
+	if viewLicenses {
+		licenses()
+		return
+	}
+
+	args := flag.Args()
 	if len(args) == 0 {
 		usage()
 		os.Exit(1)
 	}
-	if args[0] == "--licenses" {
-		licenses()
-		os.Exit(1)
-	}
+
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
 	apply(config.Get())
 	c, err := newclient(args[0], args[1:]...)
@@ -63,12 +74,15 @@ func newclient(name string, args ...string) (*client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &client{exec: exec}, nil
+	return &client{
+		exec:        exec,
+		userVersion: userVersion,
+	}, nil
 }
 
 func usage() {
 	fmt.Printf("usage: %v command [args ...]\n", os.Args[0])
-	fmt.Printf("view OSS licenses: %v --licenses\n", os.Args[0])
+	fmt.Printf("view OSS licenses: %v -licenses\n", os.Args[0])
 }
 
 func licenses() {
@@ -88,10 +102,11 @@ func licenses() {
 }
 
 type client struct {
-	creds *api.Credentials
-	certs *tls.Config
-	addr  string
-	exec  *app.Exec
+	creds       *api.Credentials
+	certs       *tls.Config
+	addr        string
+	exec        *app.Exec
+	userVersion string
 }
 
 func (c *client) run() error {
@@ -159,7 +174,7 @@ func (c *client) runPipeline() error {
 	logger := agent.NewLogger(c.exec.AppLogs)
 	server := agent.NewServer(c.exec.AgentData, c.exec.Decoder)
 	agentMessages := agent.NewMerger(logger, server)
-	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username)
+	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username, c.userVersion)
 	requester := agent.NewPeriodicRequester(c.exec.AgentData, server.Done)
 	merger := message.NewMerger(converter, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})

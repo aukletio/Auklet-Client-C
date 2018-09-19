@@ -22,7 +22,6 @@ type app struct{}
 
 func (app) ID() string           { return "app id" }
 func (app) CheckSum() string     { return "checksum" }
-func (app) Wait()                {}
 func (app) ExitStatus() int      { return 42 }
 func (app) Signal() string       { return "something" }
 func (app) AgentVersion() string { return "something" }
@@ -49,7 +48,7 @@ func TestConverter(t *testing.T) {
 	}
 	for i, c := range cases {
 		s := make(source)
-		converter := NewConverter(s, persistor{}, app{}, "username")
+		converter := NewConverter(s, persistor{}, app{}, "username", "userVersion")
 		s <- c.input
 		m := <-converter.Output()
 		if m.Error != c.err {
@@ -61,7 +60,7 @@ func TestConverter(t *testing.T) {
 
 func TestDrop(t *testing.T) {
 	s := make(source)
-	NewConverter(s, persistor{}, app{}, "username")
+	NewConverter(s, persistor{}, app{}, "username", "userVersion")
 	s <- agent.Message{Type: "log"}
 	close(s)
 }
@@ -69,7 +68,7 @@ func TestDrop(t *testing.T) {
 func TestConvert(t *testing.T) {
 	s := make(source)
 	close(s)
-	c := NewConverter(s, persistor{}, app{}, "username")
+	c := NewConverter(s, persistor{}, app{}, "username", "userVersion")
 	c.convert(agent.Message{Type: "log"})
 	c.convert(agent.Message{Type: "applog"})
 }
@@ -84,10 +83,19 @@ func TestMarshal(t *testing.T) {
 func TestPersistor(t *testing.T) {
 	s := make(source)
 	defer close(s)
-	c := NewConverter(s, persistor{err: errors.New("error")}, app{}, "username")
+	c := NewConverter(s, persistor{err: errors.New("error")}, app{}, "username", "userVersion")
 	s <- agent.Message{Type: "profile"}
 	m := <-c.out
 	if m.Error == "" {
+		t.Fail()
+	}
+}
+
+func TestNilIfEmpty(t *testing.T) {
+	if nilIfEmpty("") != nil {
+		t.Fail()
+	}
+	if nilIfEmpty("nonempty") == nil {
 		t.Fail()
 	}
 }
