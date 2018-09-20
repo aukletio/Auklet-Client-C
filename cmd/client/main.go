@@ -63,6 +63,10 @@ func run(args []string) int {
 
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
 	apply(config.Get())
+	return startClient(args)
+}
+
+func startClient(args []string) int {
 	c, err := newclient(args[0], args[1:]...)
 	if err != nil {
 		log.Print(err)
