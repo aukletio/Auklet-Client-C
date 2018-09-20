@@ -31,32 +31,48 @@ var (
 
 func init() {
 	log.SetFlags(log.Lmicroseconds)
-	flag.StringVar(&userVersion, "version", "", "user-defined version string")
-	flag.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
 }
 
+var (
+	osExit = os.Exit
+	osArgs = os.Args
+)
+
 func main() {
-	flag.Parse()
-	if viewLicenses {
-		licenses()
-		return
+	osExit(run(osArgs))
+}
+
+func run(args []string) int {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	fs.StringVar(&userVersion, "version", "", "user-defined version string")
+	fs.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
+	if err := fs.Parse(args); err != nil {
+		log.Print(err)
+		return 1
 	}
 
-	args := flag.Args()
+	if viewLicenses {
+		licenses()
+		return 0
+	}
+
 	if len(args) == 0 {
 		usage()
-		os.Exit(1)
+		return 1
 	}
 
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
 	apply(config.Get())
 	c, err := newclient(args[0], args[1:]...)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return 1
 	}
 	if err := c.run(); err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return 1
 	}
+	return 0
 }
 
 func apply(cfg config.Config) {
@@ -70,7 +86,7 @@ func apply(cfg config.Config) {
 }
 
 func newclient(name string, args ...string) (*client, error) {
-	exec, err := app.NewExec(args[0], args[1:]...)
+	exec, err := app.NewExec(name, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +125,12 @@ type client struct {
 	userVersion string
 }
 
+var (
+	apiDo = api.Do
+)
+
 func (c *client) run() error {
-	if err := api.Do(api.Release{c.exec.CheckSum()}); err != nil {
+	if err := apiDo(api.Release{c.exec.CheckSum()}); err != nil {
 		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
 		return c.exec.Run()
@@ -142,7 +162,7 @@ func (c *client) prepare() bool {
 	go func() {
 		defer wg.Done()
 		addr := new(api.BrokerAddress)
-		if err := api.Do(addr); err != nil {
+		if err := apiDo(addr); err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
 		}
@@ -151,7 +171,7 @@ func (c *client) prepare() bool {
 	go func() {
 		defer wg.Done()
 		certs := new(api.Certificates)
-		if err := api.Do(certs); err != nil {
+		if err := apiDo(certs); err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
 		}
@@ -182,7 +202,7 @@ func (c *client) runPipeline() error {
 	pollConfig := func() {
 		poll := func() {
 			dl := new(api.DataLimit)
-			if err := api.Do(dl); err != nil {
+			if err := apiDo(dl); err != nil {
 				// TODO: send this over MQTT
 				errorlog.Print(err)
 				return
