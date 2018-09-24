@@ -13,20 +13,20 @@ import (
 
 // Converter converts a stream of agent.Message to a stream of broker.Message.
 type Converter struct {
-	in        MessageSource
-	out       chan broker.Message
-	persistor Persistor
-	app       ExitWaitSignalApp
-	username  string
+	in          MessageSource
+	out         chan broker.Message
+	persistor   Persistor
+	app         ExitSignalApp
+	username    string
+	userVersion *string
 }
 
-// ExitWaitSignalApp is an ExitApp for which we can wait to exit.
-type ExitWaitSignalApp interface {
+// ExitSignalApp is an App that has a signal and exit status.
+type ExitSignalApp interface {
 	AgentVersion() string
 	CheckSum() string
 	ExitStatus() int
 	Signal() string
-	Wait()
 }
 
 // MessageSource is a source of agent messages.
@@ -39,15 +39,23 @@ type Persistor interface {
 	CreateMessage(*broker.Message) error
 }
 
+func nilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 // NewConverter returns a converter for the given input stream that uses the
 // given persistor and app.
-func NewConverter(in MessageSource, persistor Persistor, app ExitWaitSignalApp, username string) Converter {
+func NewConverter(in MessageSource, persistor Persistor, app ExitSignalApp, username, userVersion string) Converter {
 	c := Converter{
-		in:        in,
-		out:       make(chan broker.Message),
-		persistor: persistor,
-		app:       app,
-		username:  username,
+		in:          in,
+		out:         make(chan broker.Message),
+		persistor:   persistor,
+		app:         app,
+		username:    username,
+		userVersion: nilIfEmpty(userVersion),
 	}
 	go c.serve()
 	return c
@@ -88,7 +96,6 @@ func (c Converter) convert(m agent.Message) broker.Message {
 	case "profile":
 		return marshal(c.profile(m.Data), broker.Profile)
 	case "event":
-		c.app.Wait()
 		log.Printf("%v exited with error signal", c.app)
 		return marshal(c.errorSig(m.Data), broker.Event)
 	case "log":

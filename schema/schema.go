@@ -12,15 +12,16 @@ import (
 )
 
 type metadata struct {
-	Username     string `json:"device"`
-	Version      string `json:"clientVersion"`
-	AgentVersion string `json:"agentVersion"`
-	AppID        string `json:"application"`
-	CheckSum     string `json:"checksum"`  // SHA512/224 hash of the executable
-	IP           string `json:"publicIP"`  // current public IP address
-	UUID         string `json:"id"`        // identifier for this message
-	Time         int64  `json:"timestamp"` // Unix milliseconds
-	Error        string `json:"error,omitempty"`
+	Version       *string `json:"version"` // user-defined version
+	Username      string  `json:"device"`
+	ClientVersion string  `json:"clientVersion"`
+	AgentVersion  string  `json:"agentVersion"`
+	AppID         string  `json:"application"`
+	CheckSum      string  `json:"checksum"`  // SHA512/224 hash of the executable
+	IP            string  `json:"publicIP"`  // current public IP address
+	UUID          string  `json:"id"`        // identifier for this message
+	Time          int64   `json:"timestamp"` // Unix milliseconds
+	Error         string  `json:"error,omitempty"`
 }
 
 func nowMilli() int64 {
@@ -29,14 +30,15 @@ func nowMilli() int64 {
 
 func (c Converter) metadata() metadata {
 	return metadata{
-		Username:     c.username,
-		Version:      version.Version,
-		AgentVersion: c.app.AgentVersion(),
-		AppID:        config.AppID(),
-		CheckSum:     c.app.CheckSum(),
-		IP:           device.CurrentIP(),
-		UUID:         uuid.NewV4().String(),
-		Time:         nowMilli(),
+		Version:       c.userVersion,
+		Username:      c.username,
+		ClientVersion: version.Version,
+		AgentVersion:  c.app.AgentVersion(),
+		AppID:         config.AppID(),
+		CheckSum:      c.app.CheckSum(),
+		IP:            device.CurrentIP(),
+		UUID:          uuid.NewV4().String(),
+		Time:          nowMilli(),
 	}
 }
 
