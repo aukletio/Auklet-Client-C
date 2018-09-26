@@ -12,7 +12,7 @@ func (s channel) Output() <-chan broker.Message { return s }
 
 func TestMerger(t *testing.T) {
 	c := make(channel)
-	merger := NewMerger(c)
+	merger := Merge(c)
 	c <- broker.Message{}
 	close(c)
 	<-merger.Output()

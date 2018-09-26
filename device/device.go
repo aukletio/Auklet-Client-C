@@ -17,27 +17,21 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
-var getIP = ipify.GetIp
-
 // CurrentIP returns the device's current public IP address.
 func CurrentIP() (ip string) {
-	ip, err := getIP()
+	ip, err := ipify.GetIp()
 	if err != nil {
 		errorlog.Print(err)
 	}
 	return
 }
 
-// MacHash is derived from the MAC addresses of all available network
-// interfaces. It serves as a unique device identifier.
-var MacHash = ifacehash()
-
-// ifacehash generates a unique device identifier based on the MAC addresses of
+// IfaceHash generates a unique device identifier based on the MAC addresses of
 // hardware interfaces.
 //
 // I'm concerned that this isn't a good way to generate device identifiers.
 // Alternatives: use a file to store a generated UUID.
-func ifacehash() string {
+func IfaceHash() string {
 	// MAC addresses are generally 6 bytes long
 	sum := make([]byte, 6)
 	interfaces, _ := snet.Interfaces()

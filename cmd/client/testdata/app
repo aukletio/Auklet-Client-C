@@ -1,0 +1,11 @@
+#!/bin/sh -e
+emit() {
+	echo $1 >&4
+}
+
+emit '{"version":"something"}' 
+
+for i in {1..10}; do
+	sleep 1
+	emit '{}'
+done

@@ -1,191 +1,30 @@
 package api
 
 import (
-	"crypto/x509"
-	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
 var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.URL)
 	switch r.URL.Path {
-	case releasesEP:
-		if len(r.URL.Query()["checksum"]) < 1 {
+	case ReleasesEP:
+		checksum := r.URL.Query()["checksum"][0]
+		if len(checksum) < 1 {
 			http.Error(w, "404", http.StatusNotFound)
 		}
-	case certificatesEP:
-	case devicesEP:
+	case CertificatesEP:
+	case DevicesEP:
 		w.WriteHeader(201)
 		w.Write([]byte(`{"client_password":"nonempty"}`))
-	case configEP, dataLimitEP:
+	case ConfigEP:
+	case fmt.Sprintf(DataLimitEP, "appid"):
+		w.WriteHeader(200)
+		w.Write([]byte("{}"))
 	default:
 		http.Error(w, "404", http.StatusNotFound)
-	}
-}
-
-type mockCall struct {
-	url string
-}
-
-func (m mockCall) request() *http.Request {
-	req, err := http.NewRequest("GET", m.url, nil)
-	if err != nil {
-		panic(err)
-	}
-	return req
-}
-
-func (mockCall) handle(*http.Response) error { return nil }
-
-func TestDo(t *testing.T) {
-	s := httptest.NewServer(handler)
-	BaseURL = s.URL
-	defer s.Close()
-
-	cases := []struct {
-		call Call
-		ok   bool
-	}{
-		{call: mockCall{""}, ok: false},
-		{call: mockCall{s.URL}, ok: true},
-	}
-
-	for i, c := range cases {
-		err := Do(c.call)
-		ok := err == nil
-		if ok != c.ok {
-			t.Errorf("case %v: got %v, expected %v: %v", i, ok, c.ok, err)
-		}
-	}
-}
-
-func TestRequest(t *testing.T) {
-	cases := []interface{ request() *http.Request }{
-		Credentials{},
-		Release{},
-		Certificates{},
-		BrokerAddress{},
-		DataLimit{},
-	}
-
-	for i, c := range cases {
-		if c.request() == nil {
-			t.Errorf("case %v: nil request", i)
-		}
-	}
-}
-
-func body(s string) io.ReadCloser {
-	return ioutil.NopCloser(strings.NewReader(s))
-}
-
-func TestHandle(t *testing.T) {
-	cases := []struct {
-		handler interface{ handle(*http.Response) error }
-		resp    http.Response
-		ok      bool
-	}{
-		{
-			handler: new(Credentials),
-			resp:    http.Response{StatusCode: 404},
-			ok:      false, // non-201 status
-		},
-		{
-			handler: new(Credentials),
-			resp:    http.Response{StatusCode: 201, Body: body(`}`)},
-			ok:      false,
-		},
-		{
-			handler: new(Credentials),
-			resp: http.Response{
-				StatusCode: 201,
-				Body:       body(`{"client_password":""}`),
-			},
-			ok: false,
-		},
-		{
-			handler: new(Credentials),
-			resp: http.Response{
-				StatusCode: 201,
-				Body:       body(`{"client_password":"nonempty"}`),
-			},
-			ok: true,
-		},
-		{
-			handler: Release{},
-			resp:    http.Response{StatusCode: 404},
-			ok:      false,
-		},
-		{
-			handler: Release{},
-			resp:    http.Response{StatusCode: 200},
-			ok:      true,
-		},
-		{
-			handler: new(Certificates),
-			resp:    http.Response{StatusCode: 404},
-			ok:      false, // non-200 status
-		},
-		{
-			handler: new(Certificates),
-			resp:    http.Response{StatusCode: 200, Body: body("")},
-			ok:      false,
-		},
-		{
-			handler: new(BrokerAddress),
-			resp:    http.Response{StatusCode: 404},
-			ok:      false,
-		},
-		{
-			handler: new(BrokerAddress),
-			resp:    http.Response{StatusCode: 200, Body: body("")},
-			ok:      false,
-		},
-		{
-			handler: new(BrokerAddress),
-			resp: http.Response{
-				StatusCode: 200,
-				Body:       body(`{"brokers":null,"port":null}`),
-			},
-			ok: true,
-		},
-		{
-			handler: new(DataLimit),
-			resp:    http.Response{StatusCode: 404},
-			ok:      false,
-		},
-		{
-			handler: new(DataLimit),
-			resp:    http.Response{StatusCode: 200, Body: body(``)},
-			ok:      false,
-		},
-		{
-			handler: new(DataLimit),
-			resp:    http.Response{StatusCode: 200, Body: body(`{}`)},
-			ok:      true,
-		},
-		{
-			handler: new(DataLimit),
-			resp: http.Response{
-				StatusCode: 200,
-				Body:       body(`{"config":{"data":{"cellular_data_limit":1}}}`),
-			},
-			ok: true,
-		},
-	}
-
-	for i, c := range cases {
-		err := c.handler.handle(&c.resp)
-		ok := err == nil
-		if c.ok != ok {
-			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
-		}
 	}
 }
 
@@ -213,28 +52,28 @@ func TestGetAndSave(t *testing.T) {
 	defer s.Close()
 
 	cases := []struct {
-		url, path string
-		ok        bool
+		api  API
+		path string
+		ok   bool
 	}{
 		{
-			url: s.URL + "bogus",
+			api: API{BaseURL: s.URL, DevicesEP: DevicesEP + "bogus"},
 			ok:  false,
 		},
 		{
-			url:  s.URL,
+			api:  API{BaseURL: s.URL, DevicesEP: DevicesEP},
 			path: "testdata/noexist/file",
 			ok:   false,
 		},
 		{
-			url:  s.URL,
+			api:  API{BaseURL: s.URL, DevicesEP: DevicesEP},
 			path: "testdata/file",
 			ok:   true,
 		},
 	}
 
 	for i, c := range cases {
-		BaseURL = c.url
-		_, err := getAndSaveCredentials(c.path)
+		_, err := getAndSaveCredentials(c.api, c.path)
 		ok := err == nil
 		if ok != c.ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
@@ -242,41 +81,66 @@ func TestGetAndSave(t *testing.T) {
 	}
 }
 
-func TestTLSConfig(t *testing.T) {
-	appendCertsFromPEM = func(*x509.CertPool, []byte) bool {
-		return true
+func TestRelease(t *testing.T) {
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	api := API{
+		BaseURL:    s.URL,
+		ReleasesEP: ReleasesEP,
 	}
-	if _, err := tlsConfig([]byte{}); err != nil {
+
+	if err := api.Release(""); err == nil {
+		t.Fail()
+	}
+
+	if err := api.Release("valid"); err != nil {
 		t.Error(err)
 	}
 }
 
-func catch() { recover() }
+func TestCertificates(t *testing.T) {
+	s := httptest.NewServer(handler)
+	defer s.Close()
 
-func TestErrors(t *testing.T) {
-	func() {
-		defer catch()
-		errStatus{}.Error()
-	}()
-	errEncoding{}.Error()
-	errNotReleased("").Error()
-}
-
-func TestGetCredentials(t *testing.T) {
-	orig := credsFromFile
-	defer func() { credsFromFile = orig }()
-
-	pass := func(string) (*Credentials, error) { return nil, nil }
-	fail := func(string) (*Credentials, error) { return nil, errors.New("error") }
-	credsFromFile = pass
-	_, err := GetCredentials("")
-	if err != nil {
-		t.Fail()
+	api := API{
+		BaseURL:        s.URL,
+		CertificatesEP: CertificatesEP,
 	}
 
-	credsFromFile = fail
-	_, err = GetCredentials("")
-	if err == nil {
-		t.Fail()
+	_, err := api.Certificates()
+	if err != errParseCA {
+		t.Errorf("expected %v, got %v", errParseCA, err)
+	}
+}
+
+func TestBrokerAddress(t *testing.T) {
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	api := API{
+		BaseURL:  s.URL,
+		ConfigEP: ConfigEP,
+	}
+
+	_, err := api.BrokerAddress()
+	if _, is := err.(errEncoding); !is {
+		t.Errorf("expected errEncoding, got %v", err)
+	}
+}
+
+func TestDataLimit(t *testing.T) {
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	api := API{
+		BaseURL:     s.URL,
+		DataLimitEP: DataLimitEP,
+		AppID:       "appid",
+	}
+
+	_, err := api.DataLimit()
+	if err != nil {
+		t.Error(err)
 	}
 }

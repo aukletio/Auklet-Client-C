@@ -26,33 +26,34 @@ func (app) ExitStatus() int      { return 42 }
 func (app) Signal() string       { return "something" }
 func (app) AgentVersion() string { return "something" }
 
+var cfg = Config{
+	Persistor:   persistor{},
+	App:         app{},
+	Username:    "username",
+	UserVersion: "userVersion",
+	AppID:       "app id",
+	MacHash:     "mac hash",
+}
+
 func TestConverter(t *testing.T) {
 	type converterCase struct {
 		input agent.Message
-		err   string
+		ok    bool
 	}
 	cases := []converterCase{
-		{
-			input: agent.Message{Type: "event"},
-			err:   "",
-		}, {
-			input: agent.Message{Type: "profile"},
-			err:   "",
-		}, {
-			input: agent.Message{Type: "cleanExit"},
-			err:   "",
-		}, {
-			input: agent.Message{Type: "unknown"},
-			err:   `message of type "unknown" not handled`,
-		},
+		{input: agent.Message{Type: "event"}, ok: true},
+		{input: agent.Message{Type: "profile"}, ok: true},
+		{input: agent.Message{Type: "cleanExit"}, ok: true},
+		{input: agent.Message{Type: "unknown"}, ok: false},
 	}
 	for i, c := range cases {
 		s := make(source)
-		converter := NewConverter(s, persistor{}, app{}, "username", "userVersion")
+		converter := NewConverter(cfg, s)
 		s <- c.input
 		m := <-converter.Output()
-		if m.Error != c.err {
-			t.Errorf("case %v: got %v, expected %v", i, m.Error, c.err)
+		ok := m.Error == ""
+		if ok != c.ok {
+			t.Errorf("case %v: got %v, expected %v: %v", i, ok, c.ok, m.Error)
 		}
 		close(s)
 	}
@@ -60,7 +61,7 @@ func TestConverter(t *testing.T) {
 
 func TestDrop(t *testing.T) {
 	s := make(source)
-	NewConverter(s, persistor{}, app{}, "username", "userVersion")
+	NewConverter(cfg, s)
 	s <- agent.Message{Type: "log"}
 	close(s)
 }
@@ -68,7 +69,7 @@ func TestDrop(t *testing.T) {
 func TestConvert(t *testing.T) {
 	s := make(source)
 	close(s)
-	c := NewConverter(s, persistor{}, app{}, "username", "userVersion")
+	c := NewConverter(cfg, s)
 	c.convert(agent.Message{Type: "log"})
 	c.convert(agent.Message{Type: "applog"})
 }
@@ -83,19 +84,13 @@ func TestMarshal(t *testing.T) {
 func TestPersistor(t *testing.T) {
 	s := make(source)
 	defer close(s)
-	c := NewConverter(s, persistor{err: errors.New("error")}, app{}, "username", "userVersion")
+	c := NewConverter(Config{
+		Persistor: persistor{err: errors.New("error")},
+		App:       app{},
+	}, s)
 	s <- agent.Message{Type: "profile"}
 	m := <-c.out
 	if m.Error == "" {
-		t.Fail()
-	}
-}
-
-func TestNilIfEmpty(t *testing.T) {
-	if nilIfEmpty("") != nil {
-		t.Fail()
-	}
-	if nilIfEmpty("nonempty") == nil {
 		t.Fail()
 	}
 }

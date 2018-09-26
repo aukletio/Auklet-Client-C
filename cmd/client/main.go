@@ -1,103 +1,110 @@
 package main
 
 import (
-	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gobuffalo/packr"
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
-	"github.com/ESG-USA/Auklet-Client-C/api"
+	backend "github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/message"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
-var (
-	userVersion  string
-	viewLicenses bool
-)
-
-func init() {
+func configureLogs(env config.Getenv) {
 	log.SetFlags(log.Lmicroseconds)
-}
-
-var (
-	osExit = os.Exit
-	osArgs = os.Args
-)
-
-func main() {
-	osExit(run(osArgs))
-}
-
-func run(args []string) int {
-	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	fs.StringVar(&userVersion, "version", "", "user-defined version string")
-	fs.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
-	if err := fs.Parse(args); err != nil {
-		log.Print(err)
-		return 1
-	}
-
-	if viewLicenses {
-		licenses()
-		return 0
-	}
-
-	if len(args) == 0 {
-		usage()
-		return 1
-	}
-
-	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
-	apply(config.Get())
-	return startClient(args)
-}
-
-func startClient(args []string) int {
-	c, err := newclient(args[0], args[1:]...)
-	if err != nil {
-		log.Print(err)
-		return 1
-	}
-	if err := c.run(); err != nil {
-		log.Print(err)
-		return 1
-	}
-	return 0
-}
-
-func apply(cfg config.Config) {
-	api.BaseURL = cfg.BaseURL
-	if !cfg.LogInfo {
+	if !env.LogInfo() {
 		log.SetOutput(ioutil.Discard)
 	}
-	if !cfg.LogErrors {
+	if !env.LogErrors() {
 		errorlog.SetOutput(ioutil.Discard)
 	}
 }
 
-func newclient(name string, args ...string) (*client, error) {
-	exec, err := app.NewExec(name, args...)
-	if err != nil {
-		return nil, err
+func main() {
+	env := config.OS
+	configureLogs(env)
+	appID := env.AppID()
+	macHash := device.IfaceHash()
+	api := backend.API{
+		BaseURL: env.BaseURL(version.Version),
+		Key:     env.APIKey(),
+		AppID:   appID,
+		MacHash: macHash,
+
+		ReleasesEP:     backend.ReleasesEP,
+		CertificatesEP: backend.CertificatesEP,
+		DevicesEP:      backend.DevicesEP,
+		ConfigEP:       backend.ConfigEP,
+		DataLimitEP:    backend.DataLimitEP,
 	}
-	return &client{
+	run(api, os.Args[1:], appID, macHash)
+}
+
+func run(api api, args []string, appID, macHash string) {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	var userVersion string
+	var viewLicenses bool
+	fs.StringVar(&userVersion, "version", "", "user-defined version string")
+	fs.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
+	if err := fs.Parse(args); err != nil {
+		log.Fatal(err)
+	}
+
+	if viewLicenses {
+		licenses()
+		os.Exit(0)
+	}
+
+	if len(args) == 0 {
+		usage()
+		os.Exit(1)
+	}
+
+	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
+	exec, err := app.NewExec(args[0], args[1:]...)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfg, err := broker.NewConfig(api, ".auklet/identification") // broker.API
+	if err != nil {
+		errorlog.Print(err)
+	}
+
+	producer, err := broker.NewMQTTProducer(cfg)
+	if err != nil {
+		errorlog.Print(err)
+	}
+
+	c := client{
+		msgPath:     ".auklet/message",
+		limPath:     ".auklet/datalimit.json",
+		api:         api,
 		exec:        exec,
 		userVersion: userVersion,
-	}, nil
+		appID:       appID,
+		macHash:     macHash,
+		producer:    producer,
+	}
+
+	if err := c.run(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func usage() {
@@ -121,106 +128,111 @@ func licenses() {
 	}
 }
 
-type client struct {
-	creds       *api.Credentials
-	certs       *tls.Config
-	addr        string
-	exec        *app.Exec
-	userVersion string
+type api interface {
+	Release(checksum string) error
+	broker.API
+	dataLimiter
 }
 
-var (
-	apiDo = api.Do
-)
+type exec interface {
+	schema.ExitSignalApp
+	Connect() error
+	Run() error
+	AgentData() io.ReadWriter
+	Decoder() *json.Decoder
+	AppLogs() io.Reader
+}
+
+type client struct {
+	msgPath     string
+	limPath     string
+	api         api
+	exec        exec
+	userVersion string
+	username    string
+	appID       string
+	macHash     string
+	producer    interface{ Serve(broker.MessageSource) }
+}
 
 func (c *client) run() error {
-	if err := apiDo(api.Release{c.exec.CheckSum()}); err != nil {
+	err := c.api.Release(c.exec.CheckSum())
+	if err != nil {
 		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
 		return c.exec.Run()
+	}
+
+	if c.producer == nil {
+		return nil
 	}
 
 	if err := c.exec.Connect(); err != nil {
 		return err
 	}
 
-	if !c.prepare() {
-		return nil
-	}
-
-	return c.runPipeline()
+	c.runPipeline()
+	return nil
 }
 
-func (c *client) prepare() bool {
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		creds, err := api.GetCredentials(".auklet/identification")
+func (c *client) runPipeline() {
+	reqConfig, limConfig := pollConfig(c.api) // dataLimiter
+
+	// main source of messages
+	server := agent.NewServer(c.exec.AgentData(), c.exec.Decoder())
+
+	c.producer.Serve(
+		message.NewDataLimiter(
+			message.FilePersistor{Path: c.limPath},
+			limConfig,
+			schema.NewConverter(
+				schema.Config{
+					Persistor:   broker.NewPersistor(c.msgPath),
+					App:         c.exec, // schema.ExitSignalApp
+					Username:    c.username,
+					UserVersion: c.userVersion,
+					AppID:       c.appID,
+					MacHash:     c.macHash,
+				},
+				server,
+				agent.NewLogger(c.exec.AppLogs()),
+			),
+			broker.NewMessageLoader(c.msgPath),
+			agent.NewPeriodicRequester(
+				c.exec.AgentData(),
+				server.Done,
+				reqConfig,
+			),
+		),
+	)
+}
+
+type dataLimiter interface {
+	DataLimit() (*backend.DataLimit, error)
+}
+
+// pollConfig periodically polls the backend for data-limiting parameters and
+// sends them on its output channels.
+func pollConfig(api dataLimiter) (<-chan int, <-chan backend.CellularConfig) {
+	reqConfig := make(chan int, 1)
+	limConfig := make(chan backend.CellularConfig, 1)
+
+	poll := func() {
+		dl, err := api.DataLimit()
 		if err != nil {
-			// TODO: send this over MQTT
 			errorlog.Print(err)
+			return
 		}
-		c.creds = creds
-	}()
-	go func() {
-		defer wg.Done()
-		addr := new(api.BrokerAddress)
-		if err := apiDo(addr); err != nil {
-			// TODO: send this over MQTT
-			errorlog.Print(err)
-		}
-		c.addr = addr.Address
-	}()
-	go func() {
-		defer wg.Done()
-		certs := new(api.Certificates)
-		if err := apiDo(certs); err != nil {
-			// TODO: send this over MQTT
-			errorlog.Print(err)
-		}
-		c.certs = certs.TLSConfig
-	}()
-	wg.Wait()
-	return c.addr != "" && c.certs != nil && c.creds != nil
-}
-
-func (c *client) runPipeline() error {
-	dir := ".auklet/message"
-
-	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds)
-	if err != nil {
-		return err
+		reqConfig <- dl.EmissionPeriod
+		limConfig <- dl.Cellular
 	}
 
-	persistor := broker.NewPersistor(dir)
-	loader := broker.NewMessageLoader(dir)
-	logger := agent.NewLogger(c.exec.AppLogs)
-	server := agent.NewServer(c.exec.AgentData, c.exec.Decoder)
-	agentMessages := agent.NewMerger(logger, server)
-	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username, c.userVersion)
-	requester := agent.NewPeriodicRequester(c.exec.AgentData, server.Done)
-	merger := message.NewMerger(converter, loader, requester)
-	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-
-	pollConfig := func() {
-		poll := func() {
-			dl := new(api.DataLimit)
-			if err := apiDo(dl); err != nil {
-				// TODO: send this over MQTT
-				errorlog.Print(err)
-				return
-			}
-			go func() { requester.Configure() <- dl.EmissionPeriod }()
-			go func() { limiter.Conf <- dl.Cellular }()
-		}
+	go func() {
 		poll()
 		for _ = range time.Tick(time.Hour) {
 			poll()
 		}
-	}
-	go pollConfig()
+	}()
 
-	producer.Serve(limiter)
-	return nil
+	return reqConfig, limConfig
 }

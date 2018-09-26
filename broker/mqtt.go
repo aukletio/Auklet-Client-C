@@ -7,7 +7,7 @@ import (
 
 	"github.com/eclipse/paho.mqtt.golang"
 
-	"github.com/ESG-USA/Auklet-Client-C/api"
+	backend "github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
@@ -39,16 +39,53 @@ var newClient = func(o *mqtt.ClientOptions) client {
 	return mqtt.NewClient(o)
 }
 
-// NewMQTTProducer returns a new producer for the given input.
-func NewMQTTProducer(addr string, t *tls.Config, creds *api.Credentials) (*MQTTProducer, error) {
-	credFn := func() (string, string) { return creds.Username, creds.Password }
-	credFn()
+type Config struct {
+	Address string
+	Certs   *tls.Config
+	Creds   *backend.Credentials
+}
 
+type API interface {
+	backend.Credentialer
+	BrokerAddress() (string, error)
+	Certificates() (*tls.Config, error)
+}
+
+func NewConfig(api API, idPath string) (Config, error) {
+	errChan := make(chan error)
+	var c Config
+	go func() {
+		creds, err := backend.GetCredentials(api, idPath)
+		errChan <- err
+		c.Creds = creds
+	}()
+	go func() {
+		addr, err := api.BrokerAddress()
+		errChan <- err
+		c.Address = addr
+	}()
+	go func() {
+		certs, err := api.Certificates()
+		errChan <- err
+		c.Certs = certs
+	}()
+	for _ = range [3]struct{}{} {
+		if err := <-errChan; err != nil {
+			return c, err
+		}
+	}
+	return c, nil
+}
+
+// NewMQTTProducer returns a new producer for the given input.
+func NewMQTTProducer(cfg Config) (*MQTTProducer, error) {
 	opt := mqtt.NewClientOptions()
-	opt.AddBroker(addr)
-	opt.SetTLSConfig(t)
-	opt.SetClientID(creds.ClientID)
-	opt.SetCredentialsProvider(credFn)
+	opt.AddBroker(cfg.Address)
+	opt.SetTLSConfig(cfg.Certs)
+	opt.SetClientID(cfg.Creds.ClientID)
+	opt.SetCredentialsProvider(func() (string, string) {
+		return cfg.Creds.Username, cfg.Creds.Password
+	})
 	c := newClient(opt)
 
 	if err := wait(c.Connect()); err != nil {
@@ -58,8 +95,8 @@ func NewMQTTProducer(addr string, t *tls.Config, creds *api.Credentials) (*MQTTP
 
 	return &MQTTProducer{
 		c:   c,
-		org: creds.Org,
-		id:  creds.Username,
+		org: cfg.Creds.Org,
+		id:  cfg.Creds.Username,
 	}, nil
 }
 

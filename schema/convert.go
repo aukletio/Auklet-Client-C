@@ -13,12 +13,9 @@ import (
 
 // Converter converts a stream of agent.Message to a stream of broker.Message.
 type Converter struct {
-	in          MessageSource
-	out         chan broker.Message
-	persistor   Persistor
-	app         ExitSignalApp
-	username    string
-	userVersion *string
+	in  MessageSource
+	out chan broker.Message
+	Config
 }
 
 // ExitSignalApp is an App that has a signal and exit status.
@@ -39,23 +36,22 @@ type Persistor interface {
 	CreateMessage(*broker.Message) error
 }
 
-func nilIfEmpty(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
+type Config struct {
+	Persistor   Persistor
+	App         ExitSignalApp
+	Username    string
+	UserVersion string
+	AppID       string
+	MacHash     string
 }
 
 // NewConverter returns a converter for the given input stream that uses the
 // given persistor and app.
-func NewConverter(in MessageSource, persistor Persistor, app ExitSignalApp, username, userVersion string) Converter {
+func NewConverter(cfg Config, in ...agent.MessageSource) Converter {
 	c := Converter{
-		in:          in,
-		out:         make(chan broker.Message),
-		persistor:   persistor,
-		app:         app,
-		username:    username,
-		userVersion: nilIfEmpty(userVersion),
+		in:     agent.Merge(in...),
+		out:    make(chan broker.Message),
+		Config: cfg,
 	}
 	go c.serve()
 	return c
@@ -76,7 +72,7 @@ func (c Converter) serve() {
 		}
 
 		brokerMsg := c.convert(agentMsg)
-		if err := c.persistor.CreateMessage(&brokerMsg); err != nil {
+		if err := c.Persistor.CreateMessage(&brokerMsg); err != nil {
 			// Let the backend know we ran out of local storage.
 			c.out <- broker.Message{
 				Error: err.Error(),
@@ -96,7 +92,7 @@ func (c Converter) convert(m agent.Message) broker.Message {
 	case "profile":
 		return marshal(c.profile(m.Data), broker.Profile)
 	case "event":
-		log.Printf("%v exited with error signal", c.app)
+		log.Printf("%v exited with error signal", c.App)
 		return marshal(c.errorSig(m.Data), broker.Event)
 	case "log":
 		return broker.Message{

@@ -6,22 +6,21 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/config"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
 type metadata struct {
-	Version       *string `json:"version"` // user-defined version
-	Username      string  `json:"device"`
-	ClientVersion string  `json:"clientVersion"`
-	AgentVersion  string  `json:"agentVersion"`
-	AppID         string  `json:"application"`
-	CheckSum      string  `json:"checksum"`  // SHA512/224 hash of the executable
-	IP            string  `json:"publicIP"`  // current public IP address
-	UUID          string  `json:"id"`        // identifier for this message
-	Time          int64   `json:"timestamp"` // Unix milliseconds
-	Error         string  `json:"error,omitempty"`
+	Version       string `json:"version"` // user-defined version
+	Username      string `json:"device"`
+	ClientVersion string `json:"clientVersion"`
+	AgentVersion  string `json:"agentVersion"`
+	AppID         string `json:"application"`
+	CheckSum      string `json:"checksum"`  // SHA512/224 hash of the executable
+	IP            string `json:"publicIP"`  // current public IP address
+	UUID          string `json:"id"`        // identifier for this message
+	Time          int64  `json:"timestamp"` // Unix milliseconds
+	Error         string `json:"error,omitempty"`
 }
 
 func nowMilli() int64 {
@@ -30,12 +29,12 @@ func nowMilli() int64 {
 
 func (c Converter) metadata() metadata {
 	return metadata{
-		Version:       c.userVersion,
-		Username:      c.username,
+		Version:       c.UserVersion,
+		Username:      c.Username,
 		ClientVersion: version.Version,
-		AgentVersion:  c.app.AgentVersion(),
-		AppID:         config.AppID(),
-		CheckSum:      c.app.CheckSum(),
+		AgentVersion:  c.App.AgentVersion(),
+		AppID:         c.AppID,
+		CheckSum:      c.App.CheckSum(),
 		IP:            device.CurrentIP(),
 		UUID:          uuid.NewV4().String(),
 		Time:          nowMilli(),
@@ -54,7 +53,7 @@ type appLog struct {
 func (c Converter) appLog(msg []byte) appLog {
 	return appLog{
 		metadata: c.metadata(),
-		MacHash:  device.MacHash,
+		MacHash:  c.MacHash,
 		Metrics:  device.GetMetrics(),
 		Message:  msg,
 	}
@@ -108,8 +107,8 @@ func (c Converter) errorSig(data []byte) errorSig {
 		e.Error = err.Error()
 	}
 	e.metadata = c.metadata()
-	e.Status = c.app.ExitStatus()
-	e.MacHash = device.MacHash
+	e.Status = c.App.ExitStatus()
+	e.MacHash = c.MacHash
 	e.Metrics = device.GetMetrics()
 	return e
 }
@@ -128,9 +127,9 @@ type exit struct {
 func (c Converter) exit() exit {
 	return exit{
 		metadata: c.metadata(),
-		Status:   c.app.ExitStatus(),
-		Signal:   c.app.Signal(),
-		MacHash:  device.MacHash,
+		Status:   c.App.ExitStatus(),
+		Signal:   c.App.Signal(),
+		MacHash:  c.MacHash,
 		Metrics:  device.GetMetrics(),
 	}
 }

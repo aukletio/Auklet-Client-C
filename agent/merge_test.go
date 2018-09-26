@@ -10,7 +10,7 @@ func (s source) Output() <-chan Message { return s }
 
 func TestMerger(t *testing.T) {
 	c := make(source)
-	merger := NewMerger(c)
+	merger := Merge(c)
 	c <- Message{}
 	close(c)
 	<-merger.Output()
