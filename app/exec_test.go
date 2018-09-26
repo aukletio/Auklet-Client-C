@@ -116,22 +116,22 @@ func TestGetAgentVersion(t *testing.T) {
 	}{
 		{
 			exec: &Exec{
-				AgentData: bytes.NewBufferString(`{"version":"something"}`),
+				agentData: bytes.NewBufferString(`{"version":"something"}`),
 			},
 			expect: nil,
 		}, {
 			exec: &Exec{
-				AgentData: bytes.NewBufferString(`{"version":""}`),
+				agentData: bytes.NewBufferString(`{"version":""}`),
 			},
 			expect: errNoVersion,
 		}, {
 			exec: &Exec{
-				AgentData: bytes.NewBufferString(` `),
+				agentData: bytes.NewBufferString(` `),
 			},
 			expect: errEOF,
 		}, {
 			exec: &Exec{
-				AgentData: bytes.NewBufferString(`}`),
+				agentData: bytes.NewBufferString(`}`),
 			},
 			expect: errEncoding,
 		},
