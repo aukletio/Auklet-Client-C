@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
@@ -56,41 +55,5 @@ func TestConverter(t *testing.T) {
 			t.Errorf("case %v: got %v, expected %v: %v", i, ok, c.ok, m.Error)
 		}
 		close(s)
-	}
-}
-
-func TestDrop(t *testing.T) {
-	s := make(source)
-	NewConverter(cfg, s)
-	s <- agent.Message{Type: "log"}
-	close(s)
-}
-
-func TestConvert(t *testing.T) {
-	s := make(source)
-	close(s)
-	c := NewConverter(cfg, s)
-	c.convert(agent.Message{Type: "log"})
-	c.convert(agent.Message{Type: "applog"})
-}
-
-func TestMarshal(t *testing.T) {
-	m := marshal(func() {}, 0)
-	if m.Error == "" {
-		t.Fail()
-	}
-}
-
-func TestPersistor(t *testing.T) {
-	s := make(source)
-	defer close(s)
-	c := NewConverter(Config{
-		Persistor: persistor{err: errors.New("error")},
-		App:       app{},
-	}, s)
-	s <- agent.Message{Type: "profile"}
-	m := <-c.out
-	if m.Error == "" {
-		t.Fail()
 	}
 }
