@@ -183,6 +183,11 @@ func (exec *Exec) Connect() error {
 	return nil
 }
 
+// AgentData returns a raw data stream from the agent.
 func (exec *Exec) AgentData() io.ReadWriter { return exec.agentData }
-func (exec *Exec) Decoder() *json.Decoder   { return exec.decoder }
-func (exec *Exec) AppLogs() io.Reader       { return exec.appLogs }
+
+// Decoder returns a JSON decoder reading from AgentData.
+func (exec *Exec) Decoder() *json.Decoder { return exec.decoder }
+
+// AppLogs returns a raw stream of application log data from the child process.
+func (exec *Exec) AppLogs() io.Reader { return exec.appLogs }

@@ -39,18 +39,23 @@ var newClient = func(o *mqtt.ClientOptions) client {
 	return mqtt.NewClient(o)
 }
 
+// Config provides parameters for an MQTTProducer.
 type Config struct {
 	Address string
 	Certs   *tls.Config
 	Creds   *backend.Credentials
 }
 
+// API consists of the backend interface needed to generate a Config.
 type API interface {
 	backend.Credentialer
 	BrokerAddress() (string, error)
 	Certificates() (*tls.Config, error)
 }
 
+// NewConfig returns a Config from the given API.
+// If there is a credentials file at idPath, it is loaded.
+// If new credentials are obtained, they are stored to idPath.
 func NewConfig(api API, idPath string) (Config, error) {
 	errChan := make(chan error)
 	var c Config

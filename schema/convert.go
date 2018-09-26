@@ -36,6 +36,7 @@ type Persistor interface {
 	CreateMessage(*broker.Message) error
 }
 
+// Config provides parameters needed by a Converter.
 type Config struct {
 	Persistor   Persistor
 	App         ExitSignalApp
@@ -45,7 +46,7 @@ type Config struct {
 	MacHash     string
 }
 
-// NewConverter returns a converter for the given input stream that uses the
+// NewConverter returns a converter for the given input streams that uses the
 // given persistor and app.
 func NewConverter(cfg Config, in ...agent.MessageSource) Converter {
 	c := Converter{

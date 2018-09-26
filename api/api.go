@@ -22,6 +22,7 @@ const (
 	DataLimitEP    = "/private/devices/%s/app_config/" // app id
 )
 
+// API provides an interface to the backend.
 type API struct {
 	// BaseURL is the subdomain against which requests will be performed. It
 	// should not assume any particular namespace.
@@ -144,6 +145,7 @@ func decodeCredentials(data []byte) (*Credentials, error) {
 	return c, nil
 }
 
+// Credentialer provides a way to get Credentials.
 type Credentialer interface {
 	Credentials() (*Credentials, error)
 }
@@ -224,6 +226,7 @@ type CellularConfig struct {
 	Limit   int
 }
 
+// DataLimit retrieves DataLimit parameters from the backend.
 func (a API) DataLimit() (*DataLimit, error) {
 	url := a.BaseURL + fmt.Sprintf(a.DataLimitEP, a.AppID)
 	req, err := http.NewRequest("GET", url, nil)

@@ -10,8 +10,10 @@ import (
 // Production defines the base URL for the production environment.
 const Production = "https://api.auklet.io"
 
+// Getenv is a function to retrieve the values of environment variables.
 type Getenv func(string) string
 
+// OS is the Getenv provided by the operating system.
 var OS Getenv = os.Getenv
 
 // StaticBaseURL is provided at compile-time; DO NOT MODIFY.
@@ -54,10 +56,12 @@ func (getenv Getenv) BaseURL(version string) string {
 	return StaticBaseURL
 }
 
+// LogErrors returns whether we should log errors.
 func (getenv Getenv) LogErrors() bool {
 	return getenv(prefix+"LOG_ERRORS") == "true"
 }
 
+// LogInfo returns whether we should log info.
 func (getenv Getenv) LogInfo() bool {
 	return getenv(prefix+"LOG_INFO") == "true"
 }
