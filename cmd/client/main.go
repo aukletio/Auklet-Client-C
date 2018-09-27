@@ -25,16 +25,6 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
-func configureLogs(env config.Getenv) {
-	log.SetFlags(log.Lmicroseconds)
-	if !env.LogInfo() {
-		log.SetOutput(ioutil.Discard)
-	}
-	if !env.LogErrors() {
-		errorlog.SetOutput(ioutil.Discard)
-	}
-}
-
 func main() {
 	env := config.OS
 	configureLogs(env)
@@ -53,6 +43,16 @@ func main() {
 		DataLimitEP:    backend.DataLimitEP,
 	}
 	run(api, os.Args[1:], appID, macHash)
+}
+
+func configureLogs(env config.Getenv) {
+	log.SetFlags(log.Lmicroseconds)
+	if !env.LogInfo() {
+		log.SetOutput(ioutil.Discard)
+	}
+	if !env.LogErrors() {
+		errorlog.SetOutput(ioutil.Discard)
+	}
 }
 
 func run(api api, args []string, appID, macHash string) {
@@ -144,9 +144,12 @@ type exec interface {
 }
 
 type client struct {
-	msgPath     string
-	limPath     string
-	api         api
+	msgPath string
+	limPath string
+	api     interface {
+		dataLimiter
+		Release(string) error
+	}
 	exec        exec
 	userVersion string
 	username    string
@@ -187,6 +190,7 @@ func (c *client) runPipeline() {
 			limConfig,
 			schema.NewConverter(
 				schema.Config{
+					Monitor:     device.NewMonitor(),
 					Persistor:   broker.NewPersistor(c.msgPath),
 					App:         c.exec, // schema.ExitSignalApp
 					Username:    c.username,
