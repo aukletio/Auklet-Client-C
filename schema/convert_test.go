@@ -5,6 +5,7 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
 type persistor struct {
@@ -25,7 +26,13 @@ func (app) ExitStatus() int      { return 42 }
 func (app) Signal() string       { return "something" }
 func (app) AgentVersion() string { return "something" }
 
+type monitor struct{}
+
+func (monitor) GetMetrics() device.Metrics { return device.Metrics{} }
+func (monitor) Close()                     {}
+
 var cfg = Config{
+	Monitor:     monitor{},
 	Persistor:   persistor{},
 	App:         app{},
 	Username:    "username",

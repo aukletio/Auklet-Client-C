@@ -9,6 +9,7 @@ import (
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
 // Converter converts a stream of agent.Message to a stream of broker.Message.
@@ -36,8 +37,14 @@ type Persistor interface {
 	CreateMessage(*broker.Message) error
 }
 
+type Monitor interface {
+	GetMetrics() device.Metrics
+	Close()
+}
+
 // Config provides parameters needed by a Converter.
 type Config struct {
+	Monitor     Monitor
 	Persistor   Persistor
 	App         ExitSignalApp
 	Username    string
@@ -65,6 +72,7 @@ func (c Converter) Output() <-chan broker.Message {
 
 func (c Converter) serve() {
 	defer close(c.out)
+	defer c.Monitor.Close()
 	for agentMsg := range c.in.Output() {
 		switch agentMsg.Type {
 		case "applog", "log":

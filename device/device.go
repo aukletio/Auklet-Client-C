@@ -49,12 +49,6 @@ func IfaceHash() string {
 	return fmt.Sprintf("%x", string(sum))
 }
 
-var ioRates = monitorRates()
-
-func init() {
-	cpu.Percent(0, false)
-}
-
 // Metrics represents overall system metrics.
 type Metrics struct {
 	CPUPercent float64 `json:"cpuUsage"`
@@ -76,41 +70,61 @@ func diff(cur, prev rates) rates {
 	}
 }
 
-// monitorRates returns a stream of network I/O rate values. The values sent on
+// serve generates a stream of network I/O rate values. The values sent on
 // the stream are updated once per second; consuming at a higher rate than this
 // will not increase resolution.
-func monitorRates() <-chan rates {
-	r := make(chan rates)
-	go func() {
-		var prev, cur rates
-		update := func() {
-			stats, err := net.IOCounters(false)
-			if err == nil && len(stats) == 1 {
-				stat := stats[0]
-				prev = cur
-				cur = rates{In: stat.BytesRecv, Out: stat.BytesSent}
-			}
+func (mon Monitor) serve() {
+	defer close(mon.ioRates)
+	var prev, cur rates
+	update := func() {
+		stats, err := net.IOCounters(false)
+		if err == nil && len(stats) == 1 {
+			stat := stats[0]
+			prev = cur
+			cur = rates{In: stat.BytesRecv, Out: stat.BytesSent}
 		}
-		update()
-		tick := time.Tick(time.Second)
-		for {
-			select {
-			case <-tick:
-				update()
-			case r <- diff(cur, prev):
-			}
+	}
+	update()
+	tick := time.NewTicker(time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-mon.done:
+			return
+		case <-tick.C:
+			update()
+		case mon.ioRates <- diff(cur, prev):
 		}
-	}()
-	return r
+	}
+}
+
+// Monitor provides a source of Metrics.
+type Monitor struct {
+	ioRates chan rates
+	done    chan struct{}
+}
+
+// NewMonitor returns a new Monitor.
+func NewMonitor() Monitor {
+	cpu.Percent(0, false)
+	m := Monitor{
+		ioRates: make(chan rates),
+		done:    make(chan struct{}),
+	}
+	go m.serve()
+	return m
 }
 
 // GetMetrics provides current system metrics.
-func GetMetrics() Metrics {
+func (mon Monitor) GetMetrics() Metrics {
 	c, _ := cpu.Percent(0, false)
 	m, _ := mem.VirtualMemory()
 	return Metrics{
-		rates:      <-ioRates,
+		rates:      <-mon.ioRates,
 		CPUPercent: c[0],
 		MemPercent: m.UsedPercent,
 	}
 }
+
+// Close shuts down the Monitor.
+func (mon Monitor) Close() { close(mon.done) }

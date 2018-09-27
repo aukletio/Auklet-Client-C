@@ -5,7 +5,11 @@ import (
 	"time"
 )
 
-func Test(t *testing.T) {
+// This test covers the Monitor implementation,
+// but does not check for correctness.
+func TestMonitor(t *testing.T) {
+	m := NewMonitor()
 	time.Sleep(2 * time.Second)
-	GetMetrics()
+	m.GetMetrics()
+	m.Close()
 }

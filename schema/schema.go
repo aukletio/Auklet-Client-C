@@ -54,7 +54,7 @@ func (c Converter) appLog(msg []byte) appLog {
 	return appLog{
 		metadata: c.metadata(),
 		MacHash:  c.MacHash,
-		Metrics:  device.GetMetrics(),
+		Metrics:  c.Monitor.GetMetrics(),
 		Message:  msg,
 	}
 }
@@ -109,7 +109,7 @@ func (c Converter) errorSig(data []byte) errorSig {
 	e.metadata = c.metadata()
 	e.Status = c.App.ExitStatus()
 	e.MacHash = c.MacHash
-	e.Metrics = device.GetMetrics()
+	e.Metrics = c.Monitor.GetMetrics()
 	return e
 }
 
@@ -130,6 +130,6 @@ func (c Converter) exit() exit {
 		Status:   c.App.ExitStatus(),
 		Signal:   c.App.Signal(),
 		MacHash:  c.MacHash,
-		Metrics:  device.GetMetrics(),
+		Metrics:  c.Monitor.GetMetrics(),
 	}
 }
