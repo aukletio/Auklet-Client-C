@@ -244,16 +244,3 @@ func TestSetBudget(t *testing.T) {
 		}
 	}
 }
-
-type source chan broker.Message
-
-func (s source) Output() <-chan broker.Message { return s }
-
-func TestDataLimiter(t *testing.T) {
-	s := make(source, 1)
-	l := NewDataLimiter(new(MemPersistor), nil, s)
-	s <- broker.Message{}
-	close(s)
-	for _ = range l.Output() {
-	}
-}
