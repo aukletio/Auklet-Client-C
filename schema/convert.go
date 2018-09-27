@@ -37,6 +37,7 @@ type Persistor interface {
 	CreateMessage(*broker.Message) error
 }
 
+// Monitor provides system metrics.
 type Monitor interface {
 	GetMetrics() device.Metrics
 	Close()
