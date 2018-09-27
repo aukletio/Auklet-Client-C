@@ -20,7 +20,7 @@ func TestMethods(t *testing.T) {
 		return
 	}
 
-	if err := exec.AddSockets(); err != nil {
+	if err := exec.addSockets(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -28,7 +28,7 @@ func TestMethods(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := exec.GetAgentVersion(); err == nil {
+	if err := exec.getAgentVersion(); err == nil {
 		t.Fatal(err)
 	}
 
@@ -75,7 +75,7 @@ func must(exec *Exec, err error) *Exec {
 	return exec
 }
 
-func TestAddSockets(t *testing.T) {
+func TestaddSockets(t *testing.T) {
 	cases := []struct {
 		socketpair func(string) (pair, error)
 		expect     error
@@ -100,7 +100,7 @@ func TestAddSockets(t *testing.T) {
 	}
 	for i, c := range cases {
 		socketPair = c.socketpair
-		err := must(NewExec("testdata/ls")).AddSockets()
+		err := must(NewExec("testdata/ls")).addSockets()
 		if err != c.expect {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
@@ -109,7 +109,7 @@ func TestAddSockets(t *testing.T) {
 	}
 }
 
-func TestGetAgentVersion(t *testing.T) {
+func TestgetAgentVersion(t *testing.T) {
 	cases := []struct {
 		exec   *Exec
 		expect error
@@ -138,7 +138,7 @@ func TestGetAgentVersion(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		err := c.exec.GetAgentVersion()
+		err := c.exec.getAgentVersion()
 		if err != c.expect {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
