@@ -48,11 +48,11 @@ func NewExec(name string, args ...string) (*Exec, error) {
 
 var socketPair = socketpair
 
-// AddSockets adds sockets to the executable so that we can communicate with
-// it. AddSockets must be called before starting the executable.
+// addSockets adds sockets to the executable so that we can communicate with
+// it. addSockets must be called before starting the executable.
 //
 // WARNING: Do not call this function on an unreleased executable!
-func (exec *Exec) AddSockets() error {
+func (exec *Exec) addSockets() error {
 	// If we fail to create sockets, we can't communicate with the running
 	// process. But we should try to send these errors to somebody.
 	appLogs, err := socketPair("appLogs")
@@ -95,11 +95,11 @@ var (
 	errNoVersion = errors.New("empty agent version")
 )
 
-// GetAgentVersion reads from the agentData stream and reads the agentVersion.
+// getAgentVersion reads from the agentData stream and reads the agentVersion.
 // This function must be called after starting the executable.
 //
 // WARNING: Do not call this function on an unreleased executable!
-func (exec *Exec) GetAgentVersion() error {
+func (exec *Exec) getAgentVersion() error {
 	var msg struct {
 		Version string `json:"version"`
 	}
@@ -155,7 +155,7 @@ func (exec *Exec) String() string {
 }
 
 // AgentVersion returns the agent version running in the process. It may be
-// called only after GetAgentVersion succeeds.
+// called only after getAgentVersion succeeds.
 func (exec *Exec) AgentVersion() string {
 	return exec.agentVersion
 }
@@ -172,9 +172,9 @@ func (exec *Exec) Run() error {
 // Connect adds sockets, starts, and gets the agent version of exec.
 func (exec *Exec) Connect() error {
 	for _, fn := range []func() error{
-		exec.AddSockets,
+		exec.addSockets,
 		exec.Start,
-		exec.GetAgentVersion,
+		exec.getAgentVersion,
 	} {
 		if err := fn(); err != nil {
 			return err
