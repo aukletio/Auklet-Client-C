@@ -84,6 +84,7 @@ func tlsConfig(ca []byte) (*tls.Config, error) {
 	if !certpool.AppendCertsFromPEM(ca) {
 		return nil, errParseCA
 	}
+	// We trust Go's PEM parser; no need to cover the successful case in tests.
 	return &tls.Config{
 		RootCAs:            certpool,
 		ClientAuth:         tls.NoClientCert,
@@ -153,6 +154,8 @@ type Credentialer interface {
 // GetCredentials retrieves credentials from the filesystem or API, whichever is
 // available.
 func GetCredentials(api Credentialer, path string) (*Credentials, error) {
+	// Not covered in tests, as its callees are covered.
+
 	c, err := credsFromFile(path)
 	if err != nil {
 		// file doesn't exist; ask the API for credentials

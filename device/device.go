@@ -19,6 +19,7 @@ import (
 
 // CurrentIP returns the device's current public IP address.
 func CurrentIP() (ip string) {
+	// Not covered in tests, because it depends on an external service.
 	ip, err := ipify.GetIp()
 	if err != nil {
 		errorlog.Print(err)
@@ -32,6 +33,8 @@ func CurrentIP() (ip string) {
 // I'm concerned that this isn't a good way to generate device identifiers.
 // Alternatives: use a file to store a generated UUID.
 func IfaceHash() string {
+	// Not covered in tests, because it's unclear how to test for correctness.
+
 	// MAC addresses are generally 6 bytes long
 	sum := make([]byte, 6)
 	interfaces, _ := snet.Interfaces()
