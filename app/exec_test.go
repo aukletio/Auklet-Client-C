@@ -75,7 +75,7 @@ func must(exec *Exec, err error) *Exec {
 	return exec
 }
 
-func TestaddSockets(t *testing.T) {
+func TestAddSockets(t *testing.T) {
 	cases := []struct {
 		socketpair func(string) (pair, error)
 		expect     error
@@ -109,7 +109,7 @@ func TestaddSockets(t *testing.T) {
 	}
 }
 
-func TestgetAgentVersion(t *testing.T) {
+func TestGetAgentVersion(t *testing.T) {
 	cases := []struct {
 		exec   *Exec
 		expect error
