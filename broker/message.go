@@ -149,6 +149,9 @@ type sizer interface {
 	Size() int64
 }
 
+// Stubs for testing. We should stop using these.
+// If we need to maintain the fine-grained coverage they enable,
+// we should replace them with local, explicit parameters or members.
 var (
 	osOpen         = os.Open
 	osStat         = func(path string) (sizer, error) { return os.Stat(path) }

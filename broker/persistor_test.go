@@ -203,11 +203,14 @@ func TestCreateMessage(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	dir := "testdata/w"
 	clean := func() {
 		// remove everything in w
-		paths, _ := filepaths("testdata/w")
+		paths, _ := filepaths(dir)
 		for _, path := range paths {
-			os.Remove(path)
+			if path != dir+"/.gitignore" {
+				os.Remove(path)
+			}
 		}
 	}
 
@@ -216,15 +219,4 @@ func TestMain(m *testing.M) {
 	clean()
 
 	os.Exit(status)
-}
-
-func TestErrorStorageFull(t *testing.T) {
-	(ErrStorageFull{}).Error()
-}
-
-func TestServe(t *testing.T) {
-	c := make(chan struct{})
-	close(c)
-	p := Persistor{done: c}
-	p.serve()
 }
