@@ -8,11 +8,9 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/device"
 )
 
-type persistor struct {
-	err error
-}
+type persistor struct{}
 
-func (p persistor) CreateMessage(*broker.Message) error { return p.err }
+func (p persistor) CreateMessage(*broker.Message) error { return nil }
 
 type source chan agent.Message
 
@@ -20,7 +18,6 @@ func (s source) Output() <-chan agent.Message { return s }
 
 type app struct{}
 
-func (app) ID() string           { return "app id" }
 func (app) CheckSum() string     { return "checksum" }
 func (app) ExitStatus() int      { return 42 }
 func (app) Signal() string       { return "something" }
