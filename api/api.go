@@ -13,6 +13,8 @@ import (
 	"os"
 
 	"github.com/spf13/afero"
+
+	"github.com/ESG-USA/Auklet-Client-C/fsutil"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
@@ -211,22 +213,10 @@ func (a API) getAndSaveCredentials() (*Credentials, error) {
 	}
 	b, _ := json.Marshal(c)
 	// encrypt here
-	if err := writeFile(a.Fs.OpenFile, a.CredsPath, b); err != nil {
+	if err := fsutil.WriteFile(a.Fs.OpenFile, a.CredsPath, b); err != nil {
 		return nil, fmt.Errorf("could not write credentials: %v", err)
 	}
 	return c, nil
-}
-
-type openFileFunc func(string, int, os.FileMode) (afero.File, error)
-
-func writeFile(openFile openFileFunc, path string, b []byte) error {
-	f, err := openFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.Write(b)
-	return err
 }
 
 // BrokerAddress returns an address to which we can send broker messages.

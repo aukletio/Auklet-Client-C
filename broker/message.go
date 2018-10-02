@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/ESG-USA/Auklet-Client-C/fsutil"
 )
 
 // This file defines interfaces for manipulating streams of broker
@@ -220,19 +221,7 @@ func (m Message) save() error {
 		// encoded to JSON; this check is here to keep it that way.
 		return fmt.Errorf("save: could not marshal JSON: %v", err)
 	}
-	return writeFile(m.fs.OpenFile, m.path, b)
-}
-
-type openFileFunc func(string, int, os.FileMode) (afero.File, error)
-
-func writeFile(openFile openFileFunc, path string, b []byte) error {
-	f, err := openFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.Write(b)
-	return err
+	return fsutil.WriteFile(m.fs.OpenFile, m.path, b)
 }
 
 // Remove deletes m from the persistence layer.
