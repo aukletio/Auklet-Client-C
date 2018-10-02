@@ -4,37 +4,83 @@ import (
 	"errors"
 	"os"
 	"testing"
+
+	"github.com/spf13/afero"
 )
 
 var errMockFs = errors.New("filesystem error")
 
-func TestSave(t *testing.T) {
-	defer func() {
-		osMkdirAll = os.MkdirAll
-		osOpenFile = os.OpenFile
-	}()
+type mockFs struct {
+	fs Fs
 
+	errOpenFile error
+	errMkdirAll error
+	errOpen     error
+}
+
+func (m mockFs) MkdirAll(path string, mode os.FileMode) error {
+	if m.errMkdirAll != nil {
+		return m.errMkdirAll
+	}
+	return m.fs.MkdirAll(path, mode)
+}
+
+func (m mockFs) OpenFile(path string, flag int, perm os.FileMode) (afero.File, error) {
+	if m.errOpenFile != nil {
+		return nil, m.errOpenFile
+	}
+	return m.fs.OpenFile(path, flag, perm)
+}
+
+func (m mockFs) Stat(path string) (os.FileInfo, error) {
+	return m.fs.Stat(path)
+}
+
+func (m mockFs) Open(path string) (afero.File, error) {
+	if m.errOpen != nil {
+		return nil, m.errOpen
+	}
+	return m.fs.Open(path)
+}
+
+func (m mockFs) Remove(path string) error { return m.Remove(path) }
+
+func TestSave(t *testing.T) {
 	cases := []struct {
-		mkdirall func(string, os.FileMode) error
-		openfile func(string, int, os.FileMode) (*os.File, error)
-		ok       bool
+		fs Fs
+		ok bool
 	}{
 		{
-			mkdirall: func(string, os.FileMode) error { return errMockFs },
-			openfile: os.OpenFile,
-			ok:       false,
+			fs: mockFs{
+				fs:          afero.NewMemMapFs(),
+				errMkdirAll: errMockFs,
+				errOpenFile: nil,
+			},
+			ok: false,
 		},
 		{
-			mkdirall: func(string, os.FileMode) error { return nil },
-			openfile: func(string, int, os.FileMode) (*os.File, error) { return nil, errMockFs },
-			ok:       false,
+			fs: mockFs{
+				fs:          afero.NewMemMapFs(),
+				errMkdirAll: nil,
+				errOpenFile: errMockFs,
+			},
+			ok: false,
+		},
+		{
+			fs: mockFs{
+				fs:          afero.NewMemMapFs(),
+				errMkdirAll: nil,
+				errOpenFile: nil,
+			},
+			ok: true,
 		},
 	}
 
 	for i, c := range cases {
-		osMkdirAll = c.mkdirall
-		osOpenFile = c.openfile
-		err := (Message{}).save()
+		err := (Message{
+			path: "",
+			fs:   c.fs,
+		}).save()
 		ok := err == nil
 		if ok != c.ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
@@ -42,49 +88,83 @@ func TestSave(t *testing.T) {
 	}
 }
 
+func touch(path string) Fs {
+	fs := afero.NewMemMapFs()
+	f, err := fs.Create(path)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	return fs
+}
+
 func TestFilepaths(t *testing.T) {
-	stat := osStat
-	open := osOpen
-	defer func() {
-		osStat = stat
-		osOpen = open
-	}()
-	statfail := func(string) (sizer, error) { return nil, errMockFs }
-	openfail := func(string) (*os.File, error) { return nil, errMockFs }
 	cases := []struct {
-		stat func(string) (sizer, error)
-		open func(string) (*os.File, error)
-		dir  string
-		ok   bool
+		fs  Fs
+		dir string
+		ok  bool
 	}{
-		{stat: statfail, open: open, dir: "testdata/noexist", ok: true},
-		{stat: stat, open: openfail, dir: "testdata/noexist", ok: true},
-		{stat: stat, open: open, dir: "testdata/notdir", ok: false},
-		{stat: stat, open: openfail, dir: "testdata/r", ok: false},
+		{
+			// dir doesn't exist
+			fs:  afero.NewMemMapFs(),
+			dir: "noexist",
+			ok:  true,
+		},
+		{
+			// dir exists, but not readable
+			fs: mockFs{
+				fs: func() Fs {
+					fs := afero.NewMemMapFs()
+					if err := fs.MkdirAll("dir", 0777); err != nil {
+						panic(err)
+					}
+					return fs
+				}(),
+				errOpen: errMockFs, // as if can't read entries; bad permissions?
+			},
+			dir: "dir",
+			ok:  false,
+		},
+		{
+			// file exists but is not a dir
+			fs:  touch("notdir"),
+			dir: "notdir",
+			ok:  false,
+		},
 	}
 
 	for i, c := range cases {
-		osStat = c.stat
-		osOpen = c.open
-		_, err := filepaths(c.dir)
+		_, err := filepaths(c.dir, c.fs)
 		ok := err == nil
 		if ok != c.ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
 		}
 	}
+}
+
+func oneFile(path string) Fs {
+	fs := afero.NewMemMapFs()
+	if err := fs.Mkdir(path, 0777); err != nil {
+		panic(err)
+	}
+	if err := writeFile(fs.OpenFile, path+"/file", []byte("{}")); err != nil {
+		panic(err)
+	}
+	return fs
 }
 
 func TestMessageLoader(t *testing.T) {
 	cases := []struct {
+		fs  Fs
 		dir string
 		ok  bool
 	}{
-		{dir: "testdata/notdir", ok: false},
-		{dir: "testdata/r", ok: true},
+		{fs: touch("notdir"), dir: "notdir", ok: false},
+		{fs: oneFile("dir"), dir: "dir", ok: true},
 	}
 
 	for i, c := range cases {
-		l := NewMessageLoader(c.dir)
+		l := NewMessageLoader(c.dir, c.fs)
 		m := <-l.Output()
 		ok := m.Error == ""
 		if ok != c.ok {
@@ -93,71 +173,18 @@ func TestMessageLoader(t *testing.T) {
 	}
 }
 
-func mkReadFile(b []byte, err error) func(string) ([]byte, error) {
-	return func(string) ([]byte, error) { return b, err }
-}
-
-func TestLoadMessage(t *testing.T) {
-	orig := ioutilReadFile
-	defer func() { ioutilReadFile = orig }()
-
-	cases := []struct {
-		readFile func(string) ([]byte, error)
-		ok       bool
-	}{
-		{readFile: mkReadFile(nil, errMockFs), ok: false},
-		{readFile: mkReadFile([]byte("}"), nil), ok: false},
-		{readFile: mkReadFile([]byte("{}"), nil), ok: true},
-	}
-
-	for i, c := range cases {
-		ioutilReadFile = c.readFile
-		m := loadMessage("")
-		ok := m.Error == ""
-		if ok != c.ok {
-			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, m.Error)
-		}
-	}
-}
-
 func TestSize(t *testing.T) {
-	origfp := filepaths
-	origstat := osStat
-	defer func() {
-		osStat = origstat
-		filepaths = origfp
-	}()
-
 	cases := []struct {
-		dir       string
-		stat      func(string) (sizer, error)
-		filepaths func(string) ([]string, error)
-		ok        bool
+		dir string
+		fs  Fs
+		ok  bool
 	}{
-		{
-			dir:       "",
-			stat:      origstat,
-			filepaths: func(string) ([]string, error) { return nil, errMockFs },
-			ok:        false,
-		},
-		{
-			dir:       "",
-			stat:      origstat,
-			filepaths: func(string) ([]string, error) { return []string{""}, nil },
-			ok:        false,
-		},
-		{
-			dir:       "testdata/r",
-			stat:      func(string) (sizer, error) { return mockFileInfo{}, nil },
-			filepaths: origfp,
-			ok:        true,
-		},
+		{dir: "notdir", fs: touch("notdir"), ok: false},
+		{dir: "dir", fs: oneFile("dir"), ok: true},
 	}
 
 	for i, c := range cases {
-		filepaths = c.filepaths
-		osStat = c.stat
-		_, err := size(c.dir)
+		_, err := size(c.dir, c.fs)
 		ok := err == nil
 		if ok != c.ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
@@ -165,34 +192,29 @@ func TestSize(t *testing.T) {
 	}
 }
 
-type mockFileInfo struct{}
-
-func (mockFileInfo) Size() int64 { return 0 }
-
 func TestChannels(t *testing.T) {
-	p := NewPersistor("testdata/w")
+	cfg := make(chan *int64)
+	p := NewPersistor("", afero.NewMemMapFs(), cfg)
 	defer close(p.done)
-	p.Configure() <- nil
-	if lim := <-p.currentLimit; lim != nil {
+	var l int64 = 42
+	cfg <- &l
+	if lim := <-p.currentLimit; lim != &l {
 		t.Fail()
 	}
 }
 
 func TestCreateMessage(t *testing.T) {
-	var n int64 = 10
 	cases := []struct {
+		fs  Fs
 		dir string
-		lim *int64
 		ok  bool
 	}{
-		{dir: "testdata/notdir", ok: false},
-		{dir: "testdata/w", ok: true},
-		{dir: "testdata/w", lim: &n, ok: false},
+		{fs: touch("notdir"), dir: "notdir", ok: false},
+		{fs: afero.NewMemMapFs(), dir: "", ok: true},
 	}
 
 	for i, c := range cases {
-		p := NewPersistor(c.dir)
-		p.Configure() <- c.lim
+		p := NewPersistor(c.dir, c.fs, nil)
 		err := p.CreateMessage(&Message{})
 		ok := err == nil
 		if ok != c.ok {
@@ -200,23 +222,4 @@ func TestCreateMessage(t *testing.T) {
 		}
 		close(p.done)
 	}
-}
-
-func TestMain(m *testing.M) {
-	dir := "testdata/w"
-	clean := func() {
-		// remove everything in w
-		paths, _ := filepaths(dir)
-		for _, path := range paths {
-			if path != dir+"/.gitignore" {
-				os.Remove(path)
-			}
-		}
-	}
-
-	clean()
-	status := m.Run()
-	clean()
-
-	os.Exit(status)
 }

@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/afero"
+
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
@@ -29,6 +31,8 @@ type Message struct {
 	Topic Topic  `json:"topic"`
 	Bytes []byte `json:"bytes"`
 	path  string
+
+	fs Fs
 }
 
 // ErrStorageFull indicates that the corresponding Persistor is full.
@@ -42,23 +46,35 @@ func (e ErrStorageFull) Error() string {
 	return fmt.Sprintf("persistor: storage full: %v used of %v limit", e.used, e.limit)
 }
 
+// Fs provides file system functions.
+type Fs interface {
+	Open(string) (afero.File, error)
+	Stat(string) (os.FileInfo, error)
+	MkdirAll(string, os.FileMode) error
+	OpenFile(string, int, os.FileMode) (afero.File, error)
+	Remove(path string) error
+}
+
 // Persistor controls a persistence layer for Messages.
 type Persistor struct {
-	limit        *int64      // storage limit in bytes; no limit if nil
-	newLimit     chan *int64 // incoming new values for limit
-	currentLimit chan *int64 // outgoing current values for limit
+	limit        *int64        // storage limit in bytes; no limit if nil
+	newLimit     <-chan *int64 // incoming new values for limit
+	currentLimit chan *int64   // outgoing current values for limit
 	dir          string
 	count        int // counter to give Messages unique names
 	done         chan struct{}
+
+	fs Fs
 }
 
 // NewPersistor creates a new Persistor in dir.
-func NewPersistor(dir string) *Persistor {
+func NewPersistor(dir string, fs Fs, conf <-chan *int64) *Persistor {
 	p := &Persistor{
 		dir:          dir,
-		newLimit:     make(chan *int64),
+		newLimit:     conf,
 		currentLimit: make(chan *int64),
 		done:         make(chan struct{}),
+		fs:           fs,
 	}
 	go p.serve()
 	return p
@@ -76,30 +92,25 @@ func (p *Persistor) serve() {
 	}
 }
 
-// Configure returns a channel on which p's storage limit can be controlled.
-func (p *Persistor) Configure() chan<- *int64 {
-	return p.newLimit
-}
-
 // MessageLoader generates a stream of messages from the filesystem.
 type MessageLoader struct {
 	out <-chan Message
 }
 
 // NewMessageLoader reads dir for messages and returns them as a stream.
-func NewMessageLoader(dir string) MessageLoader {
-	return MessageLoader{load(dir)}
+func NewMessageLoader(dir string, fs Fs) MessageLoader {
+	return MessageLoader{load(dir, fs)}
 }
 
 // Output returns l's output stream.
 func (l MessageLoader) Output() <-chan Message { return l.out }
 
 // load loads the output channel with messages from the filesystem.
-func load(dir string) <-chan Message {
+func load(dir string, fs Fs) <-chan Message {
 	out := make(chan Message)
 	go func() {
 		defer close(out)
-		paths, err := filepaths(dir)
+		paths, err := filepaths(dir, fs)
 		if err != nil {
 			out <- Message{
 				Error: err.Error(),
@@ -107,30 +118,43 @@ func load(dir string) <-chan Message {
 			}
 		}
 		for _, path := range paths {
-			out <- loadMessage(path)
+			out <- loadMessage(path, fs)
 		}
 	}()
 	return out
 }
 
 // loadMessage decodes the file at path into a Message.
-func loadMessage(path string) (m Message) {
+func loadMessage(path string, fs Fs) (m Message) {
 	m.path = path
-	b, err := ioutilReadFile(path)
+	m.fs = fs
+	b, err := readFile(path, fs.Open)
 	if err != nil {
 		m.Error = err.Error()
 		return
 	}
-	if err = json.Unmarshal(b, &m); err != nil {
+	if err := json.Unmarshal(b, &m); err != nil {
 		m.Error = err.Error()
 	}
 	return
 }
 
+// openFunc provides a way of opening files.
+type openFunc func(string) (afero.File, error)
+
+func readFile(path string, open openFunc) ([]byte, error) {
+	f, err := open(path)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
 // CreateMessage creates a new Message under p.
 func (p *Persistor) CreateMessage(m *Message) (err error) {
 	lim := <-p.currentLimit
-	totalSize, err := size(p.dir)
+	totalSize, err := size(p.dir, p.fs)
 	if err != nil {
 		return err
 	}
@@ -141,33 +165,19 @@ func (p *Persistor) CreateMessage(m *Message) (err error) {
 		}
 	}
 	m.path = fmt.Sprintf("%v/%v-%v", p.dir, os.Getpid(), p.count)
+	m.fs = p.fs
 	p.count++
 	return m.save()
 }
 
-type sizer interface {
-	Size() int64
-}
-
-// Stubs for testing. We should stop using these.
-// If we need to maintain the fine-grained coverage they enable,
-// we should replace them with local, explicit parameters or members.
-var (
-	osOpen         = os.Open
-	osStat         = func(path string) (sizer, error) { return os.Stat(path) }
-	osMkdirAll     = os.MkdirAll
-	osOpenFile     = os.OpenFile
-	ioutilReadFile = ioutil.ReadFile
-)
-
-func size(dir string) (int64, error) {
+func size(dir string, fs Fs) (int64, error) {
 	var n int64
-	paths, err := filepaths(dir)
+	paths, err := filepaths(dir, fs)
 	if err != nil {
 		return n, err
 	}
 	for _, path := range paths {
-		f, err2 := osStat(path)
+		f, err2 := fs.Stat(path)
 		if err2 != nil {
 			err = fmt.Errorf("size: failed to calculate storage size of message %v: %v", path, err2)
 			continue
@@ -178,13 +188,13 @@ func size(dir string) (int64, error) {
 }
 
 // filepaths returns a list of paths of messages.
-var filepaths = func(dir string) ([]string, error) {
+func filepaths(dir string, fs Fs) ([]string, error) {
 	var paths []string
-	if _, err := osStat(dir); err != nil {
+	if _, err := fs.Stat(dir); err != nil {
 		// no directory; this is not necessarily an error.
 		return paths, nil
 	}
-	d, err := osOpen(dir)
+	d, err := fs.Open(dir)
 	if err != nil {
 		return paths, fmt.Errorf("filepaths: failed to open message directory: %v", err)
 	}
@@ -201,19 +211,36 @@ var filepaths = func(dir string) ([]string, error) {
 
 func (m Message) save() error {
 	dir := filepath.Dir(m.path)
-	if err := osMkdirAll(dir, 0777); err != nil {
+	if err := m.fs.MkdirAll(dir, 0777); err != nil {
 		return fmt.Errorf("save: unable to save message to %v: %v", dir, err)
 	}
-	b, _ := json.Marshal(m)
-	// None of the types within Message
-	// can cause Marshal to fail, so we
-	// don't use the error value.
-	return ioutil.WriteFile(m.path, b, 0644)
+	b, err := json.Marshal(m)
+	if err != nil {
+		// Message doesn't currently export anything that can't be
+		// encoded to JSON; this check is here to keep it that way.
+		return fmt.Errorf("save: could not marshal JSON: %v", err)
+	}
+	return writeFile(m.fs.OpenFile, m.path, b)
+}
+
+type openFileFunc func(string, int, os.FileMode) (afero.File, error)
+
+func writeFile(openFile openFileFunc, path string, b []byte) error {
+	f, err := openFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(b)
+	return err
 }
 
 // Remove deletes m from the persistence layer.
 func (m Message) Remove() {
-	if err := os.Remove(m.path); err != nil {
+	if m.fs == nil {
+		return
+	}
+	if err := m.fs.Remove(m.path); err != nil {
 		errorlog.Print(err)
 	}
 }

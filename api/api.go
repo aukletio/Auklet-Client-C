@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+
+	"github.com/spf13/afero"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
@@ -22,6 +25,12 @@ const (
 	DataLimitEP    = "/private/devices/%s/app_config/" // app id
 )
 
+// Fs provides file system functions.
+type Fs interface {
+	Open(string) (afero.File, error)
+	OpenFile(string, int, os.FileMode) (afero.File, error)
+}
+
 // API provides an interface to the backend.
 type API struct {
 	// BaseURL is the subdomain against which requests will be performed. It
@@ -30,6 +39,10 @@ type API struct {
 	Key     string
 	AppID   string
 	MacHash string
+
+	// for credentials
+	CredsPath string // where to save/load credentials
+	Fs        Fs     // filesystem for saving/loading
 
 	ReleasesEP     string
 	CertificatesEP string
@@ -103,8 +116,8 @@ type Credentials struct {
 	ClientID string `json:"client_id"`
 }
 
-// Credentials retrieves Credentials for sending broker messages.
-func (a API) Credentials() (*Credentials, error) {
+// credentials retrieves Credentials for sending broker messages.
+func (a API) credentials() (*Credentials, error) {
 	b, _ := json.Marshal(struct {
 		Mac   string `json:"mac_address_hash"`
 		AppID string `json:"application"`
@@ -151,21 +164,33 @@ type Credentialer interface {
 	Credentials() (*Credentials, error)
 }
 
-// GetCredentials retrieves credentials from the filesystem or API, whichever is
-// available.
-func GetCredentials(api Credentialer, path string) (*Credentials, error) {
+// Credentials retrieves credentials from the filesystem,
+// with a fallback to the API. If credentials are retrieved
+// from the API, they are saved to the filesystem.
+func (a API) Credentials() (*Credentials, error) {
 	// Not covered in tests, as its callees are covered.
 
-	c, err := credsFromFile(path)
+	c, err := credsFromFile(a.CredsPath, a.Fs.Open)
 	if err != nil {
 		// file doesn't exist; ask the API for credentials
-		return getAndSaveCredentials(api, path)
+		return a.getAndSaveCredentials()
 	}
 	return c, nil
 }
 
-func credsFromFile(path string) (*Credentials, error) {
-	b, err := ioutil.ReadFile(path)
+type openFunc func(string) (afero.File, error)
+
+func readFile(path string, open openFunc) ([]byte, error) {
+	f, err := open(path)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
+func credsFromFile(path string, open openFunc) (*Credentials, error) {
+	b, err := readFile(path, open)
 	if err != nil {
 		return nil, fmt.Errorf("could not read credentials file: %v", err)
 	}
@@ -179,17 +204,29 @@ func credsFromFile(path string) (*Credentials, error) {
 
 // getAndSaveCredentials requests credentials from the API. If it receives them,
 // it writes them to the given path.
-func getAndSaveCredentials(api Credentialer, path string) (*Credentials, error) {
-	c, err := api.Credentials()
+func (a API) getAndSaveCredentials() (*Credentials, error) {
+	c, err := a.credentials()
 	if err != nil {
 		return nil, err
 	}
 	b, _ := json.Marshal(c)
 	// encrypt here
-	if err := ioutil.WriteFile(path, b, 0666); err != nil {
+	if err := writeFile(a.Fs.OpenFile, a.CredsPath, b); err != nil {
 		return nil, fmt.Errorf("could not write credentials: %v", err)
 	}
 	return c, nil
+}
+
+type openFileFunc func(string, int, os.FileMode) (afero.File, error)
+
+func writeFile(openFile openFileFunc, path string, b []byte) error {
+	f, err := openFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(b)
+	return err
 }
 
 // BrokerAddress returns an address to which we can send broker messages.
@@ -217,6 +254,7 @@ func (a API) BrokerAddress() (string, error) {
 
 // DataLimit holds parameters controlling Auklet's data usage.
 type DataLimit struct {
+	Storage        *int64
 	EmissionPeriod int
 	Cellular       CellularConfig
 }
@@ -246,7 +284,7 @@ func (a API) DataLimit() (*DataLimit, error) {
 		return nil, errStatus{resp}
 	}
 	type storage struct {
-		Limit *int `json:"storage_limit"`
+		Limit *int64 `json:"storage_limit"`
 	}
 	type data struct {
 		Limit *int `json:"cellular_data_limit"`
@@ -264,15 +302,21 @@ func (a API) DataLimit() (*DataLimit, error) {
 	if err := json.Unmarshal(body, &l); err != nil {
 		return nil, errEncoding{err, string(body), "DataLimit"}
 	}
-	d := new(DataLimit)
 	c := l.Config
-	d.EmissionPeriod = c.EmissionPeriod
-	d.Cellular.Date = c.Data.Date
-	d.Cellular.Defined = c.Data.Limit != nil
-	if d.Cellular.Defined {
-		d.Cellular.Limit = *c.Data.Limit
-	}
-	return d, nil
+	return &DataLimit{
+		Storage:        c.Storage.Limit,
+		EmissionPeriod: c.EmissionPeriod,
+		Cellular: CellularConfig{
+			Date:    c.Data.Date,
+			Defined: c.Data.Limit != nil,
+			Limit: func() int {
+				if c.Data.Limit != nil {
+					return *c.Data.Limit
+				}
+				return 0
+			}(),
+		},
+	}, nil
 }
 
 type errStatus struct {

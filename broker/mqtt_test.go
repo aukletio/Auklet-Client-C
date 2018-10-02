@@ -11,7 +11,7 @@ import (
 )
 
 // The testing strategy is to mock mqtt.Client. This is done with the
-// broker.client interface.
+// broker.Client interface.
 //
 // We would have mocked mqtt.Token, but it's _impossible_ as of release 1.1.1.
 // See https://github.com/eclipse/paho.mqtt.golang/issues/203
@@ -23,13 +23,6 @@ import (
 // types from package mqtt. Thankfully, our wait function provides a thin
 // wrapper around the tokens, which we can mock. Thus wait is declared as a
 // variable.
-
-func init() {
-	newClient(mqtt.NewClientOptions())
-	newClient = func(*mqtt.ClientOptions) client {
-		return klient{}
-	}
-}
 
 type klient struct{}
 
@@ -61,14 +54,12 @@ func TestConnect(t *testing.T) {
 		},
 	}
 
-	conf := new(tls.Config)
 	creds := new(api.Credentials)
 	for i, c := range cases {
 		wait = c.wait
 		if _, err := NewMQTTProducer(Config{
-			Address: "",
-			Certs:   conf,
-			Creds:   creds,
+			Creds:  creds,
+			Client: klient{},
 		}); err != c.expect {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, err)
 		}
@@ -130,14 +121,12 @@ func (a mockAPI) Certificates() (*tls.Config, error) {
 }
 
 func TestNewConfig(t *testing.T) {
-	fail := mockAPI{errors.New("error")}
-	pass := mockAPI{nil}
-	_, err := NewConfig(fail, "testdata/w/identification")
+	_, err := NewConfig(mockAPI{errors.New("error")})
 	if err == nil {
 		t.Error(err)
 	}
 
-	_, err = NewConfig(pass, "testdata/w/identification")
+	_, err = NewConfig(mockAPI{nil})
 	if err != nil {
 		t.Error(err)
 	}

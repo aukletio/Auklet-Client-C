@@ -6,14 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"testing"
 
+	"github.com/spf13/afero"
 	"github.com/vmihailenco/msgpack"
 
 	backend "github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/ESG-USA/Auklet-Client-C/message"
 )
 
 type mockExec struct {
@@ -78,15 +79,9 @@ func (p *mockProducer) Serve(src broker.MessageSource) {
 }
 
 func TestClient(t *testing.T) {
-	limPath := "testdata/w/datalimit.json"
-	msgPath := "testdata/w/message"
-	defer func() {
-		os.Remove(limPath)
-		os.Remove(msgPath)
-	}()
 	c := client{
-		msgPath: msgPath,
-		limPath: limPath,
+		msgPath:      ".auklet/message",
+		limPersistor: &message.MemPersistor{},
 		api: mockAPI{
 			checksum: "checksum",
 			dataLimit: backend.DataLimit{
@@ -110,6 +105,7 @@ func TestClient(t *testing.T) {
 		appID:       "appID",
 		macHash:     "macHash",
 		producer:    &mockProducer{},
+		fs:          afero.NewMemMapFs(),
 	}
 	if err := c.run(); err != nil {
 		t.Error(err)

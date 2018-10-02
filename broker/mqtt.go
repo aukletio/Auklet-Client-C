@@ -11,9 +11,9 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
-// MQTTProducer wraps an MQTT client.
+// MQTTProducer wraps an MQTT Client.
 type MQTTProducer struct {
-	c       client
+	c       Client
 	org, id string
 }
 
@@ -28,22 +28,16 @@ var wait = func(t token) error {
 	return t.Error()
 }
 
-type client interface {
+type Client interface {
 	Connect() mqtt.Token
 	Publish(string, byte, bool, interface{}) mqtt.Token
 	Disconnect(uint)
 }
 
-// newClient allows us to mock the MQTT client in tests.
-var newClient = func(o *mqtt.ClientOptions) client {
-	return mqtt.NewClient(o)
-}
-
 // Config provides parameters for an MQTTProducer.
 type Config struct {
-	Address string
-	Certs   *tls.Config
-	Creds   *backend.Credentials
+	Creds  *backend.Credentials
+	Client Client
 }
 
 // API consists of the backend interface needed to generate a Config.
@@ -54,50 +48,43 @@ type API interface {
 }
 
 // NewConfig returns a Config from the given API.
-// If there is a credentials file at idPath, it is loaded.
-// If new credentials are obtained, they are stored to idPath.
-func NewConfig(api API, idPath string) (Config, error) {
-	errChan := make(chan error)
-	var c Config
-	go func() {
-		creds, err := backend.GetCredentials(api, idPath)
-		errChan <- err
-		c.Creds = creds
-	}()
-	go func() {
-		addr, err := api.BrokerAddress()
-		errChan <- err
-		c.Address = addr
-	}()
-	go func() {
-		certs, err := api.Certificates()
-		errChan <- err
-		c.Certs = certs
-	}()
-	for _ = range [3]struct{}{} {
-		if err := <-errChan; err != nil {
-			return c, err
-		}
+func NewConfig(api API) (Config, error) {
+	creds, err := api.Credentials()
+	if err != nil {
+		return Config{}, err
 	}
-	return c, nil
+
+	addr, err := api.BrokerAddress()
+	if err != nil {
+		return Config{}, err
+	}
+
+	certs, err := api.Certificates()
+	if err != nil {
+		return Config{}, err
+	}
+
+	opt := mqtt.NewClientOptions()
+	opt.AddBroker(addr)
+	opt.SetTLSConfig(certs)
+	opt.SetClientID(creds.ClientID)
+	opt.SetCredentialsProvider(func() (string, string) {
+		return creds.Username, creds.Password
+	})
+
+	return Config{
+		Creds:  creds,
+		Client: mqtt.NewClient(opt),
+	}, nil
 }
 
 // NewMQTTProducer returns a new producer for the given input.
 func NewMQTTProducer(cfg Config) (*MQTTProducer, error) {
-	opt := mqtt.NewClientOptions()
-	opt.AddBroker(cfg.Address)
-	opt.SetTLSConfig(cfg.Certs)
-	opt.SetClientID(cfg.Creds.ClientID)
-	opt.SetCredentialsProvider(func() (string, string) {
-		return cfg.Creds.Username, cfg.Creds.Password
-	})
-	c := newClient(opt)
-
+	c := cfg.Client
 	if err := wait(c.Connect()); err != nil {
 		return nil, err
 	}
 	log.Print("producer: connected")
-
 	return &MQTTProducer{
 		c:   c,
 		org: cfg.Creds.Org,

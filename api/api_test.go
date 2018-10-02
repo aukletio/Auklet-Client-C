@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/spf13/afero"
 )
 
 var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
@@ -30,16 +32,44 @@ var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 
 func TestCredsFromFile(t *testing.T) {
 	cases := []struct {
+		open openFunc
 		path string
 		ok   bool
 	}{
-		{path: "testdata/noexist", ok: false},
-		{path: "testdata/invalid.json", ok: false},
-		{path: "testdata/valid.json", ok: true},
+		{
+			// creds file doesn't exist
+			open: afero.NewMemMapFs().Open,
+			path: "noexist",
+			ok:   false,
+		},
+		{
+			// file exists, but invalid encoding
+			open: func() openFunc {
+				fs := afero.NewMemMapFs()
+				if err := writeFile(fs.OpenFile, "invalid.json", []byte{}); err != nil {
+					panic(err)
+				}
+				return fs.Open
+			}(),
+			path: "invalid.json",
+			ok:   false,
+		},
+		{
+			// valid encoding
+			open: func() openFunc {
+				fs := afero.NewMemMapFs()
+				if err := writeFile(fs.OpenFile, "valid.json", []byte("{}")); err != nil {
+					panic(err)
+				}
+				return fs.Open
+			}(),
+			path: "valid.json",
+			ok:   true,
+		},
 	}
 
 	for i, c := range cases {
-		_, err := credsFromFile(c.path)
+		_, err := credsFromFile(c.path, c.open)
 		ok := err == nil
 		if ok != c.ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
@@ -52,28 +82,33 @@ func TestGetAndSave(t *testing.T) {
 	defer s.Close()
 
 	cases := []struct {
-		api  API
-		path string
-		ok   bool
+		api API
+		ok  bool
 	}{
 		{
-			api: API{BaseURL: s.URL, DevicesEP: DevicesEP + "bogus"},
-			ok:  false,
+			// incorrect URL, causing a failed request
+			api: API{
+				BaseURL:   s.URL,
+				DevicesEP: DevicesEP + "bogus",
+				CredsPath: "",  // won't be used
+				Fs:        nil, // won't be used
+			},
+			ok: false,
 		},
 		{
-			api:  API{BaseURL: s.URL, DevicesEP: DevicesEP},
-			path: "testdata/noexist/file",
-			ok:   false,
-		},
-		{
-			api:  API{BaseURL: s.URL, DevicesEP: DevicesEP},
-			path: "testdata/file",
-			ok:   true,
+			// OK
+			api: API{
+				BaseURL:   s.URL,
+				DevicesEP: DevicesEP,
+				CredsPath: "file",
+				Fs:        afero.NewMemMapFs(),
+			},
+			ok: true,
 		},
 	}
 
 	for i, c := range cases {
-		_, err := getAndSaveCredentials(c.api, c.path)
+		_, err := c.api.getAndSaveCredentials()
 		ok := err == nil
 		if ok != c.ok {
 			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)

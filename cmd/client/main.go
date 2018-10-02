@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gobuffalo/packr"
+	"github.com/spf13/afero"
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
 	backend "github.com/ESG-USA/Auklet-Client-C/api"
@@ -30,11 +31,16 @@ func main() {
 	configureLogs(env)
 	appID := env.AppID()
 	macHash := device.IfaceHash()
+	fs := afero.NewOsFs()
+
 	api := backend.API{
 		BaseURL: env.BaseURL(version.Version),
 		Key:     env.APIKey(),
 		AppID:   appID,
 		MacHash: macHash,
+
+		CredsPath: ".auklet/identification",
+		Fs:        fs,
 
 		ReleasesEP:     backend.ReleasesEP,
 		CertificatesEP: backend.CertificatesEP,
@@ -42,7 +48,7 @@ func main() {
 		ConfigEP:       backend.ConfigEP,
 		DataLimitEP:    backend.DataLimitEP,
 	}
-	run(api, os.Args[1:], appID, macHash)
+	run(fs, api, os.Args[1:], appID, macHash)
 }
 
 func configureLogs(env config.Getenv) {
@@ -55,13 +61,13 @@ func configureLogs(env config.Getenv) {
 	}
 }
 
-func run(api api, args []string, appID, macHash string) {
-	fs := flag.NewFlagSet("", flag.ContinueOnError)
+func run(fs broker.Fs, api backend.API, args []string, appID, macHash string) {
+	flags := flag.NewFlagSet("", flag.ContinueOnError)
 	var userVersion string
 	var viewLicenses bool
-	fs.StringVar(&userVersion, "version", "", "user-defined version string")
-	fs.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
-	if err := fs.Parse(args); err != nil {
+	flags.StringVar(&userVersion, "version", "", "user-defined version string")
+	flags.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
+	if err := flags.Parse(args); err != nil {
 		log.Fatal(err)
 	}
 
@@ -70,18 +76,18 @@ func run(api api, args []string, appID, macHash string) {
 		os.Exit(0)
 	}
 
-	if len(args) == 0 {
+	if len(flags.Args()) == 0 {
 		usage()
 		os.Exit(1)
 	}
 
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
-	exec, err := app.NewExec(args[0], args[1:]...)
+	exec, err := app.NewExec(flags.Args()[0], flags.Args()[1:]...)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cfg, err := broker.NewConfig(api, ".auklet/identification") // broker.API
+	cfg, err := broker.NewConfig(api)
 	if err != nil {
 		errorlog.Print(err)
 	}
@@ -92,14 +98,15 @@ func run(api api, args []string, appID, macHash string) {
 	}
 
 	c := client{
-		msgPath:     ".auklet/message",
-		limPath:     ".auklet/datalimit.json",
-		api:         api,
-		exec:        exec,
-		userVersion: userVersion,
-		appID:       appID,
-		macHash:     macHash,
-		producer:    producer,
+		msgPath:      ".auklet/message",
+		limPersistor: message.FilePersistor{Path: ".auklet/datalimit.json"},
+		api:          api,
+		exec:         exec,
+		userVersion:  userVersion,
+		appID:        appID,
+		macHash:      macHash,
+		producer:     producer,
+		fs:           fs,
 	}
 
 	if err := c.run(); err != nil {
@@ -128,12 +135,6 @@ func licenses() {
 	}
 }
 
-type api interface {
-	Release(checksum string) error
-	broker.API
-	dataLimiter
-}
-
 type exec interface {
 	schema.ExitSignalApp
 	Connect() error
@@ -144,9 +145,9 @@ type exec interface {
 }
 
 type client struct {
-	msgPath string
-	limPath string
-	api     interface {
+	msgPath      string // directory for storing unsent messages
+	limPersistor message.Persistor
+	api          interface {
 		dataLimiter
 		Release(string) error
 	}
@@ -156,6 +157,7 @@ type client struct {
 	appID       string
 	macHash     string
 	producer    interface{ Serve(broker.MessageSource) }
+	fs          broker.Fs
 }
 
 func (c *client) run() error {
@@ -179,19 +181,19 @@ func (c *client) run() error {
 }
 
 func (c *client) runPipeline() {
-	reqConfig, limConfig := pollConfig(c.api) // dataLimiter
+	cfg := pollConfig(c.api) // dataLimiter
 
 	// main source of messages
 	server := agent.NewServer(c.exec.AgentData(), c.exec.Decoder())
 
 	c.producer.Serve(
 		message.NewDataLimiter(
-			message.FilePersistor{Path: c.limPath},
-			limConfig,
+			c.limPersistor,
+			cfg.limiter,
 			schema.NewConverter(
 				schema.Config{
 					Monitor:     device.NewMonitor(),
-					Persistor:   broker.NewPersistor(c.msgPath),
+					Persistor:   broker.NewPersistor(c.msgPath, c.fs, cfg.persistor),
 					App:         c.exec, // schema.ExitSignalApp
 					Username:    c.username,
 					UserVersion: c.userVersion,
@@ -201,11 +203,11 @@ func (c *client) runPipeline() {
 				server,
 				agent.NewLogger(c.exec.AppLogs()),
 			),
-			broker.NewMessageLoader(c.msgPath),
+			broker.NewMessageLoader(c.msgPath, c.fs),
 			agent.NewPeriodicRequester(
 				c.exec.AgentData(),
 				server.Done,
-				reqConfig,
+				cfg.requester,
 			),
 		),
 	)
@@ -215,28 +217,38 @@ type dataLimiter interface {
 	DataLimit() (*backend.DataLimit, error)
 }
 
+type configChans struct {
+	requester chan int
+	limiter   chan backend.CellularConfig
+	persistor chan *int64
+}
+
 // pollConfig periodically polls the backend for data-limiting parameters and
 // sends them on its output channels.
-func pollConfig(api dataLimiter) (<-chan int, <-chan backend.CellularConfig) {
-	reqConfig := make(chan int, 1)
-	limConfig := make(chan backend.CellularConfig, 1)
-
-	poll := func() {
-		dl, err := api.DataLimit()
-		if err != nil {
-			errorlog.Print(err)
-			return
-		}
-		reqConfig <- dl.EmissionPeriod
-		limConfig <- dl.Cellular
+func pollConfig(api dataLimiter) configChans {
+	c := configChans{
+		requester: make(chan int, 1),
+		limiter:   make(chan backend.CellularConfig, 1),
+		persistor: make(chan *int64, 1),
 	}
 
 	go func() {
+		poll := func() {
+			dl, err := api.DataLimit()
+			if err != nil {
+				errorlog.Print(err)
+				return
+			}
+			c.persistor <- dl.Storage
+			c.requester <- dl.EmissionPeriod
+			c.limiter <- dl.Cellular
+		}
+
 		poll()
 		for _ = range time.Tick(time.Hour) {
 			poll()
 		}
 	}()
 
-	return reqConfig, limConfig
+	return c
 }
