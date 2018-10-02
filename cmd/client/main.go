@@ -63,6 +63,13 @@ func configureLogs(env config.Getenv) {
 
 func run(fs broker.Fs, api backend.API, args []string, appID, macHash string) {
 	flags := flag.NewFlagSet("", flag.ContinueOnError)
+	usage := func() {
+		fmt.Printf("Usage of %v:\n", os.Args[0])
+		fmt.Println("All non-flag arguments are treated as a command to run.")
+		flags.PrintDefaults()
+	}
+	flags.SetOutput(os.Stdout)
+	flags.Usage = usage
 	var userVersion string
 	var viewLicenses bool
 	flags.StringVar(&userVersion, "version", "", "user-defined version string")
@@ -112,11 +119,6 @@ func run(fs broker.Fs, api backend.API, args []string, appID, macHash string) {
 	if err := c.run(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func usage() {
-	fmt.Printf("usage: %v command [args ...]\n", os.Args[0])
-	fmt.Printf("view OSS licenses: %v -licenses\n", os.Args[0])
 }
 
 func licenses() {
