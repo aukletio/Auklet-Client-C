@@ -28,6 +28,7 @@ var wait = func(t token) error {
 	return t.Error()
 }
 
+// Client provides an MQTT client interface.
 type Client interface {
 	Connect() mqtt.Token
 	Publish(string, byte, bool, interface{}) mqtt.Token
