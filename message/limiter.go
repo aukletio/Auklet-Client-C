@@ -13,14 +13,16 @@ import (
 // DataLimiter is a passthrough that limits the number of application-layer
 // bytes transmitted per period.
 type DataLimiter struct {
-	source broker.MessageSource
-	out    chan broker.Message
-	conf   chan api.CellularConfig
-	store  Persistor
+	in  <-chan broker.Message
+	out chan broker.Message
+	// Conf is a channel by which the configuration can be updated.
+	Conf  chan api.CellularConfig
+	store Persistor
 
-	// Budget is how many bytes can be transmitted per period. If nil, any
-	// number of bytes can be transmitted.
-	Budget *int `json:"budget"`
+	// Budget is how many bytes can be transmitted per period.
+	// If HasBudget is false, any number of bytes can be transmitted.
+	Budget    int  `json:"budget"`
+	HasBudget bool `json:"hasBudget"`
 
 	// Count is how many bytes have been transmitted during the current
 	// period.
@@ -28,16 +30,19 @@ type DataLimiter struct {
 
 	// PeriodEnd marks the end of the current period.
 	PeriodEnd time.Time `json:"periodEnd"`
+
+	// initialized in the initial state
+	periodTimer *time.Timer
 }
 
 // NewDataLimiter returns a DataLimiter for input whose state persists on
 // the filesystem.
-func NewDataLimiter(input broker.MessageSource, store Persistor) *DataLimiter {
+func NewDataLimiter(src broker.MessageSource, store Persistor) *DataLimiter {
 	l := &DataLimiter{
-		source: input,
-		out:    make(chan broker.Message),
-		conf:   make(chan api.CellularConfig),
-		store:  store,
+		in:    src.Output(),
+		out:   make(chan broker.Message),
+		Conf:  make(chan api.CellularConfig),
+		store: store,
 	}
 	l.store.Load(l)
 	// If Load fails, there is no budget, so all messages will be sent.
@@ -45,14 +50,14 @@ func NewDataLimiter(input broker.MessageSource, store Persistor) *DataLimiter {
 	return l
 }
 
-func (l *DataLimiter) setBudget(megabytes *int) {
-	if megabytes == nil {
+func (l *DataLimiter) setBudget(megabytes int, hasBudget bool) {
+	l.Budget = 1e6 * megabytes
+	l.HasBudget = hasBudget
+	if !hasBudget {
 		log.Print("limiter: setting budget to unlimited")
-		l.Budget = nil
 		return
 	}
-	*l.Budget = 1e6 * *megabytes
-	log.Printf("limiter: setting budget to %v B", *l.Budget)
+	log.Printf("limiter: setting budget to %v MB", megabytes)
 }
 
 // Decode updates l's state by reading bytes from r.
@@ -65,43 +70,35 @@ func (l *DataLimiter) Encode(w io.Writer) (err error) {
 	return json.NewEncoder(w).Encode(l)
 }
 
-// newPeriod returns true if the current time is after the period end.
-func (l *DataLimiter) newPeriod() bool {
-	return time.Now().After(l.PeriodEnd)
-}
-
-func (l *DataLimiter) advancePeriodEnd() {
-	now := time.Now()
-	newEnd := l.PeriodEnd
-	for newEnd.Before(now) {
+// ensureFuture ensures that the period end is in the future. If the
+// current period end is in the past (implying that we're in a new period)
+// the period end is advanced by one month.
+func ensureFuture(periodEnd, now time.Time) time.Time {
+	for periodEnd.Before(now) {
 		// advance newEnd by one month
-		newEnd = newEnd.AddDate(0, 1, 0)
+		periodEnd = periodEnd.AddDate(0, 1, 0)
 	}
-	l.PeriodEnd = newEnd
+
+	return periodEnd
 }
 
-func (l *DataLimiter) setPeriodDay(day int) {
-	if l.PeriodEnd.Day() == day {
-		return
-	}
-	d := toFutureDate(day)
-	log.Printf("limiter: moving period day from %v to %v", l.PeriodEnd, d)
-	l.PeriodEnd = d
+// dayThisMonth moves the boundary between periods to the given day of the
+// month.
+func dayThisMonth(dayOfMonth int, now time.Time) time.Time {
+	return time.Date(now.Year(), now.Month(), dayOfMonth, 0, 0, 0, 0, now.Location())
 }
 
-func toFutureDate(day int) time.Time {
-	now := time.Now()
-	t := time.Date(now.Year(), now.Month(), day, 0, 0, 0, 0, now.Location())
-	if t.Before(now) {
-		return t.AddDate(0, 1, 0)
-	}
-	return t
-}
-
+// startThisPeriod moves the PeriodEnd forward (if necessary) and resets the
+// counter.
 func (l *DataLimiter) startThisPeriod() {
-	l.advancePeriodEnd()
+	// Make sure that the period end is in the future.
+	l.PeriodEnd = ensureFuture(l.PeriodEnd, time.Now())
+	l.reset()
+}
+
+func (l *DataLimiter) reset() (err error) {
 	l.Count = 0
-	l.store.Save(l)
+	return l.store.Save(l)
 }
 
 func (l *DataLimiter) increment(n int) (err error) {
@@ -111,47 +108,66 @@ func (l *DataLimiter) increment(n int) (err error) {
 
 // serve activates l, causing it to receive and send Messages.
 func (l *DataLimiter) serve() {
-	state := l.initial
-	for state != nil {
-		if l.newPeriod() {
-			l.startThisPeriod()
-			state = l.initial
-		}
-		state = state()
+	for s := initial; s != terminal; s = l.lookup(s)() {
 	}
 }
 
-func (l *DataLimiter) initial() serverState {
-	if l.Budget != nil && l.Count > 9**l.Budget/10 {
-		return l.overBudget
-	}
-	return l.underBudget
+type state int
+
+const (
+	terminal state = iota
+	initial
+	underBudget
+	overBudget
+	cleanup
+)
+
+func (l *DataLimiter) lookup(s state) func() state {
+	return map[state]func() state{
+		initial:     l.initial,
+		underBudget: l.underBudget,
+		overBudget:  l.overBudget,
+		cleanup:     l.cleanup,
+	}[s]
 }
 
-func (l *DataLimiter) underBudget() serverState {
+// initial starts a timer that expires at the period end, then
+// returns either overBudget or underBudget.
+func (l *DataLimiter) initial() state {
+	l.periodTimer = time.NewTimer(time.Until(l.PeriodEnd))
+	if l.HasBudget && l.Count > 9*l.Budget/10 {
+		return overBudget
+	}
+	return underBudget
+}
+
+func (l *DataLimiter) underBudget() state {
 	select {
-	case m, open := <-l.source.Output():
+	case <-l.periodTimer.C:
+		l.startThisPeriod()
+		return initial
+	case m, open := <-l.in:
 		if !open {
-			return l.final
+			return cleanup
 		}
 		return l.handleMessage(m)
-	case conf := <-l.conf:
+	case conf := <-l.Conf:
 		return l.apply(conf)
 	}
 }
 
-func (l *DataLimiter) handleMessage(m broker.Message) serverState {
+func (l *DataLimiter) handleMessage(m broker.Message) state {
 	n := len(m.Bytes)
-	if l.Budget != nil {
-		if n+l.Count > *l.Budget {
+	if l.HasBudget {
+		if n+l.Count > l.Budget {
 			// m would put us over budget. We begin dropping messages.
-			return l.overBudget
-		} else if n+l.Count > 9**l.Budget/10 {
+			return overBudget
+		} else if n+l.Count > 9*l.Budget/10 {
 			// m would put us over 90% of the budget, but not over 100%.
 			// We send it and begin to drop messages.
 			l.out <- m
 			l.increment(n)
-			return l.overBudget
+			return overBudget
 		}
 	}
 	// m does not put us over 90% of budget.
@@ -159,51 +175,55 @@ func (l *DataLimiter) handleMessage(m broker.Message) serverState {
 	if l.increment(n) != nil {
 		// We had a problem persisting the counter. To be safe, we
 		// start dropping data.
-		if l.Budget != nil {
-			return l.overBudget
+		if l.HasBudget {
+			return overBudget
 		}
 	}
-	return l.underBudget
+	return underBudget
 }
 
 // The current period has exceeded 90% of its data budget. We drop messages.
 // Note that it is still possible for the limiter to return to the underBudget
 // state, when Serve notices that a new period has begun.
-func (l *DataLimiter) overBudget() serverState {
+func (l *DataLimiter) overBudget() state {
 	select {
-	case _, open := <-l.source.Output():
+	case <-l.periodTimer.C:
+		l.startThisPeriod()
+		return initial
+	case _, open := <-l.in:
 		if !open {
-			return l.final
+			return cleanup
 		}
-		return l.overBudget
-	case conf := <-l.conf:
+		return overBudget
+	case conf := <-l.Conf:
 		return l.apply(conf)
 	}
 }
 
-func (l *DataLimiter) apply(conf api.CellularConfig) serverState {
-	l.setPeriodDay(conf.Date)
-	l.setBudget(conf.Limit)
-	l.startThisPeriod()
-	return l.initial
+// apply applies the configuration and returns the initial state.
+func (l *DataLimiter) apply(conf api.CellularConfig) state {
+	old := l.PeriodEnd
+	now := time.Now()
+	l.PeriodEnd = ensureFuture(dayThisMonth(conf.Date, now), now)
+	log.Printf(`limiter: moving period day
+	from %v
+	to   %v`, old, l.PeriodEnd)
+	l.setBudget(conf.Limit, conf.Defined)
+	l.reset()
+	return initial
 }
 
 // The input channel has closed, which implies that the pipeline is shutting
 // down.
-func (l *DataLimiter) final() serverState {
+func (l *DataLimiter) cleanup() state {
 	close(l.out)
-	return nil
+	return terminal
 }
 
 // Output returns a channel on which messages can be received. The channel
 // closes when l's input closes.
 func (l *DataLimiter) Output() <-chan broker.Message {
 	return l.out
-}
-
-// Configure returns a channel by which the configuration can be updated.
-func (l *DataLimiter) Configure() chan<- api.CellularConfig {
-	return l.conf
 }
 
 // Persistor can save and load an object to some kind of storage.

@@ -19,7 +19,6 @@ type app struct{}
 
 func (app) ID() string           { return "app id" }
 func (app) CheckSum() string     { return "checksum" }
-func (app) Wait()                {}
 func (app) ExitStatus() int      { return 42 }
 func (app) Signal() string       { return "something" }
 func (app) AgentVersion() string { return "something" }
@@ -46,7 +45,7 @@ func TestConverter(t *testing.T) {
 	}
 	for i, c := range cases {
 		s := make(source)
-		converter := NewConverter(s, persistor{}, app{}, "username")
+		converter := NewConverter(s, persistor{}, app{}, "username", "userVersion")
 		s <- c.input
 		m := <-converter.Output()
 		if m.Error != c.err {
