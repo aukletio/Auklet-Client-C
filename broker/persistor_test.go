@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/spf13/afero"
+
+	"github.com/ESG-USA/Auklet-Client-C/fsutil"
 )
 
 var errMockFs = errors.New("filesystem error")
@@ -147,7 +149,7 @@ func oneFile(path string) Fs {
 	if err := fs.Mkdir(path, 0777); err != nil {
 		panic(err)
 	}
-	if err := writeFile(fs.OpenFile, path+"/file", []byte("{}")); err != nil {
+	if err := fsutil.WriteFile(fs.OpenFile, path+"/file", []byte("{}")); err != nil {
 		panic(err)
 	}
 	return fs

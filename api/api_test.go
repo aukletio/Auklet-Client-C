@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/spf13/afero"
+
+	"github.com/ESG-USA/Auklet-Client-C/fsutil"
 )
 
 var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +48,7 @@ func TestCredsFromFile(t *testing.T) {
 			// file exists, but invalid encoding
 			open: func() openFunc {
 				fs := afero.NewMemMapFs()
-				if err := writeFile(fs.OpenFile, "invalid.json", []byte{}); err != nil {
+				if err := fsutil.WriteFile(fs.OpenFile, "invalid.json", []byte{}); err != nil {
 					panic(err)
 				}
 				return fs.Open
@@ -58,7 +60,7 @@ func TestCredsFromFile(t *testing.T) {
 			// valid encoding
 			open: func() openFunc {
 				fs := afero.NewMemMapFs()
-				if err := writeFile(fs.OpenFile, "valid.json", []byte("{}")); err != nil {
+				if err := fsutil.WriteFile(fs.OpenFile, "valid.json", []byte("{}")); err != nil {
 					panic(err)
 				}
 				return fs.Open
