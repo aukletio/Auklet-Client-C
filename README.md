@@ -1,5 +1,21 @@
 # Changelog
 
+## Merged But Unreleased
+
+**Implemented enhancements:**
+
+- APM-1564 Transition from checksum to release [#75](https://github.com/ESG-USA/Auklet-Client-C/pull/75) ([kdsch](https://github.com/kdsch))
+- APM-1596 Customer Defined Version in C/C++ Client/Agent (and a bugfix) [#74](https://github.com/ESG-USA/Auklet-Client-C/pull/74) ([kdsch](https://github.com/kdsch))
+- APM-1415  C/C++ Client ASIL B Compliance [#65](https://github.com/ESG-USA/Auklet-Client-C/pull/65) ([kdsch](https://github.com/kdsch))
+
+**Fixed bugs:**
+
+- Empty String Rather than Null For No User Defined Version [#77](https://github.com/ESG-USA/Auklet-Client-C/pull/77) ([kdsch](https://github.com/kdsch))
+
+**DevOps changes:**
+
+- Add gofmt hook [#71](https://github.com/ESG-USA/Auklet-Client-C/pull/71) ([rjenkinsjr](https://github.com/rjenkinsjr))
+
 ## [0.11.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.11.0)
 
 **Implemented enhancements:**
