@@ -122,17 +122,14 @@ func run(fs broker.Fs, api backend.API, args []string, appID, macHash string) {
 }
 
 func licenses() {
-	licensesBox := packr.NewBox("./licenses")
-	licenses := licensesBox.List()
+	box := packr.NewBox("./licenses")
 	// Print the Auklet license first, then iterate over all the others.
 	format := "License for %v\n-------------------------\n%v"
-	fmt.Printf(format, "Auklet Client", licensesBox.String("LICENSE"))
-	for _, l := range licenses {
+	fmt.Printf(format, "Auklet Client", box.String("LICENSE"))
+	for _, l := range box.List() {
 		if l != "LICENSE" {
-			ownerName := strings.Split(l, "--")
-			fmt.Printf("\n\n\n")
-			header := fmt.Sprintf("package: %v/%v", ownerName[0], ownerName[1])
-			fmt.Printf(format, header, licensesBox.String(l))
+			header := "package: " + strings.Replace(l, "--", "/", 1)
+			fmt.Printf("\n\n\n"+format, header, box.String(l))
 		}
 	}
 }
