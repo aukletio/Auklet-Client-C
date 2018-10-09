@@ -33,6 +33,8 @@ type Config struct {
 // Production defines the base URL for the production environment.
 const Production = "https://api.auklet.io"
 
+var getenv = os.Getenv
+
 // StaticBaseURL is provided at compile-time; DO NOT MODIFY.
 var StaticBaseURL = ""
 
@@ -43,8 +45,8 @@ const prefix = "AUKLET_"
 func LocalBuild() (c Config) {
 	c = Config{
 		BaseURL:   envar("BASE_URL"),
-		LogErrors: os.Getenv(prefix+"LOG_ERRORS") == "true",
-		LogInfo:   os.Getenv(prefix+"LOG_INFO") == "true",
+		LogErrors: getenv(prefix+"LOG_ERRORS") == "true",
+		LogInfo:   getenv(prefix+"LOG_INFO") == "true",
 	}
 	if c.BaseURL == "" {
 		c.BaseURL = Production
@@ -58,13 +60,13 @@ func LocalBuild() (c Config) {
 func ReleaseBuild() Config {
 	return Config{
 		BaseURL:   StaticBaseURL,
-		LogErrors: os.Getenv(prefix+"LOG_ERRORS") == "true",
-		LogInfo:   os.Getenv(prefix+"LOG_INFO") == "true",
+		LogErrors: getenv(prefix+"LOG_ERRORS") == "true",
+		LogInfo:   getenv(prefix+"LOG_INFO") == "true",
 	}
 }
 
 func envar(s string) string {
-	k := os.Getenv(prefix + s)
+	k := getenv(prefix + s)
 	if k == "" {
 		errorlog.Print("warning: empty ", prefix+s)
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -23,20 +24,30 @@ import (
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
+var (
+	userVersion  string
+	viewLicenses bool
+)
+
 func init() {
 	log.SetFlags(log.Lmicroseconds)
+	flag.StringVar(&userVersion, "version", "", "user-defined version string")
+	flag.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
 }
 
 func main() {
-	args := os.Args[1:]
+	flag.Parse()
+	if viewLicenses {
+		licenses()
+		return
+	}
+
+	args := flag.Args()
 	if len(args) == 0 {
 		usage()
 		os.Exit(1)
 	}
-	if args[0] == "--licenses" {
-		licenses()
-		os.Exit(1)
-	}
+
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
 	cfg := getConfig()
 	api.BaseURL = cfg.BaseURL
@@ -51,14 +62,15 @@ func main() {
 		log.Fatal(err)
 	}
 	c := &client{
-		exec: exec,
+		exec:        exec,
+		userVersion: userVersion,
 	}
 	c.run()
 }
 
 func usage() {
 	fmt.Printf("usage: %v command [args ...]\n", os.Args[0])
-	fmt.Printf("view OSS licenses: %v --licenses\n", os.Args[0])
+	fmt.Printf("view OSS licenses: %v -licenses\n", os.Args[0])
 }
 
 func licenses() {
@@ -85,14 +97,15 @@ func getConfig() config.Config {
 }
 
 type client struct {
-	creds *api.Credentials
-	certs *tls.Config
-	addr  string
-	exec  *app.Exec
+	creds       *api.Credentials
+	certs       *tls.Config
+	addr        string
+	exec        *app.Exec
+	userVersion string
 }
 
 func (c *client) run() {
-	if err := api.Release(c.exec.CheckSum()); err != nil {
+	if err := api.Do(api.Release{c.exec.CheckSum()}); err != nil {
 		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
 		if err := c.exec.Start(); err != nil {
@@ -126,7 +139,7 @@ func (c *client) prepare() bool {
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		creds, err := api.GetCredentials()
+		creds, err := api.GetCredentials(".auklet/identification")
 		if err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
@@ -135,21 +148,21 @@ func (c *client) prepare() bool {
 	}()
 	go func() {
 		defer wg.Done()
-		addr, err := api.GetBrokerAddr()
-		if err != nil {
+		addr := new(api.BrokerAddress)
+		if err := api.Do(addr); err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
 		}
-		c.addr = addr
+		c.addr = addr.Address
 	}()
 	go func() {
 		defer wg.Done()
-		certs, err := api.Certificates()
-		if err != nil {
+		certs := new(api.Certificates)
+		if err := api.Do(certs); err != nil {
 			// TODO: send this over MQTT
 			errorlog.Print(err)
 		}
-		c.certs = certs
+		c.certs = certs.TLSConfig
 	}()
 	wg.Wait()
 	return c.addr != "" && c.certs != nil && c.creds != nil
@@ -165,24 +178,24 @@ func (c *client) runPipeline() {
 
 	persistor := broker.NewPersistor(dir)
 	loader := broker.NewMessageLoader(dir)
-	logger := agent.NewLogger(c.exec.Logs())
-	server := agent.NewServer(c.exec.Data(), c.exec.Decoder())
+	logger := agent.NewLogger(c.exec.AppLogs)
+	server := agent.NewServer(c.exec.AgentData, c.exec.Decoder)
 	agentMessages := agent.NewMerger(logger, server)
-	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username)
-	requester := agent.NewPeriodicRequester(c.exec.Data(), server.Done)
+	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username, c.userVersion)
+	requester := agent.NewPeriodicRequester(c.exec.AgentData, server.Done)
 	merger := message.NewMerger(converter, loader, requester)
 	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
 
 	pollConfig := func() {
 		poll := func() {
-			dl, err := api.GetDataLimit()
-			if err != nil {
+			dl := new(api.DataLimit)
+			if err := api.Do(dl); err != nil {
 				// TODO: send this over MQTT
 				errorlog.Print(err)
 				return
 			}
 			go func() { requester.Configure() <- dl.EmissionPeriod }()
-			go func() { limiter.Configure() <- dl.Cellular }()
+			go func() { limiter.Conf <- dl.Cellular }()
 		}
 		poll()
 		for _ = range time.Tick(time.Hour) {
