@@ -1,5 +1,11 @@
 # Changelog
 
+## Merged But Unreleased
+
+**Fixed bugs:**
+
+- schema: change "checksum" tag to "release" [#79](https://github.com/ESG-USA/Auklet-Client-C/pull/79) ([kdsch](https://github.com/kdsch))
+
 ## [0.12.0](https://github.com/ESG-USA/Auklet-Client-C/tree/0.12.0)
 
 **Implemented enhancements:**
