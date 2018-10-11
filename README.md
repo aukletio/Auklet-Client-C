@@ -1,6 +1,6 @@
 # Changelog
 
-## Merged But Unreleased
+## [0.12.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.12.1)
 
 **Fixed bugs:**
 
