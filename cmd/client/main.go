@@ -83,7 +83,6 @@ func main() {
 }
 
 func configureLogs(env config.Getenv) {
-	log.SetFlags(log.Lmicroseconds)
 	if !env.LogInfo() {
 		log.SetOutput(ioutil.Discard)
 	}
@@ -150,12 +149,32 @@ type client struct {
 	fs          broker.Fs
 }
 
+func selectPrefix(fs afero.Fs, env config.Getenv) (string, error) {
+	prefixes := []string{
+		"./",              // pwd
+		env("HOME") + "/", // $HOME
+	}
+	for _, prefix := range prefixes {
+		if err := fs.MkdirAll(prefix+".auklet", 0777); err == nil {
+			return prefix, nil
+		}
+	}
+	return afero.TempDir(fs, "", "auklet-")
+}
+
 func newclient(userVersion string) (*client, error) {
 	env := config.OS
-	configureLogs(env)
+	fs := afero.NewOsFs()
+
+	prefix, err := selectPrefix(fs, env)
+	if err != nil {
+		errorlog.Print(err)
+	} else {
+		log.Printf("selected prefix %q", prefix)
+	}
+
 	appID := env.AppID()
 	macHash := device.IfaceHash()
-	fs := afero.NewOsFs()
 
 	api := backend.API{
 		BaseURL: env.BaseURL(version.Version),
@@ -163,7 +182,7 @@ func newclient(userVersion string) (*client, error) {
 		AppID:   appID,
 		MacHash: macHash,
 
-		CredsPath: ".auklet/identification",
+		CredsPath: prefix + ".auklet/identification",
 		Fs:        fs,
 
 		ReleasesEP:     backend.ReleasesEP,
@@ -183,9 +202,10 @@ func newclient(userVersion string) (*client, error) {
 		return nil, err
 	}
 
+	configureLogs(env)
 	return &client{
-		msgPath:      ".auklet/message",
-		limPersistor: message.FilePersistor{Path: ".auklet/datalimit.json"},
+		msgPath:      prefix + ".auklet/message",
+		limPersistor: message.FilePersistor{Path: prefix + ".auklet/datalimit.json"},
 		api:          api,
 		userVersion:  userVersion,
 		appID:        appID,
