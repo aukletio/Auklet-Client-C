@@ -30,19 +30,13 @@ type Exec struct {
 
 // NewExec creates a new executable from one or more arguments.
 func NewExec(name string, args ...string) (*Exec, error) {
-	bytes, err := ioutil.ReadFile(name)
-	if err != nil {
-		return nil, err
-	}
-
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	return &Exec{
-		hash: fmt.Sprintf("%x", sha512.Sum512_224(bytes)),
-		cmd:  cmd,
+		cmd: cmd,
 	}, nil
 }
 
@@ -129,7 +123,17 @@ func (exec *Exec) getAgentVersion() error {
 func (exec *Exec) Wait() { exec.cmd.Wait() }
 
 // CheckSum returns the executable file's SHA512/224 sum.
-func (exec *Exec) CheckSum() string { return exec.hash }
+func (exec *Exec) CheckSum() string {
+	if exec.hash == "" {
+		bytes, err := ioutil.ReadFile(exec.cmd.Path)
+		if err != nil {
+			return ""
+		}
+
+		exec.hash = fmt.Sprintf("%x", sha512.Sum512_224(bytes))
+	}
+	return exec.hash
+}
 
 // ExitStatus returns the process's exit status.
 func (exec *Exec) ExitStatus() int {

@@ -27,54 +27,22 @@ import (
 )
 
 func main() {
-	env := config.OS
-	configureLogs(env)
-	appID := env.AppID()
-	macHash := device.IfaceHash()
-	fs := afero.NewOsFs()
-
-	api := backend.API{
-		BaseURL: env.BaseURL(version.Version),
-		Key:     env.APIKey(),
-		AppID:   appID,
-		MacHash: macHash,
-
-		CredsPath: ".auklet/identification",
-		Fs:        fs,
-
-		ReleasesEP:     backend.ReleasesEP,
-		CertificatesEP: backend.CertificatesEP,
-		DevicesEP:      backend.DevicesEP,
-		ConfigEP:       backend.ConfigEP,
-		DataLimitEP:    backend.DataLimitEP,
-	}
-	run(fs, api, os.Args[1:], appID, macHash)
-}
-
-func configureLogs(env config.Getenv) {
-	log.SetFlags(log.Lmicroseconds)
-	if !env.LogInfo() {
-		log.SetOutput(ioutil.Discard)
-	}
-	if !env.LogErrors() {
-		errorlog.SetOutput(ioutil.Discard)
-	}
-}
-
-func run(fs broker.Fs, api backend.API, args []string, appID, macHash string) {
 	flags := flag.NewFlagSet("", flag.ContinueOnError)
-	usage := func() {
+	flags.SetOutput(os.Stdout)
+	flags.Usage = func() {
 		fmt.Printf("Usage of %v:\n", os.Args[0])
 		fmt.Println("All non-flag arguments are treated as a command to run.")
 		flags.PrintDefaults()
 	}
-	flags.SetOutput(os.Stdout)
-	flags.Usage = usage
-	var userVersion string
-	var viewLicenses bool
+	var (
+		userVersion  string
+		viewLicenses bool
+		noNetwork    bool
+	)
 	flags.StringVar(&userVersion, "version", "", "user-defined version string")
 	flags.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
-	if err := flags.Parse(args); err != nil {
+	flags.BoolVar(&noNetwork, "no-network", false, "disable network communication")
+	if err := flags.Parse(os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}
 
@@ -84,40 +52,43 @@ func run(fs broker.Fs, api backend.API, args []string, appID, macHash string) {
 	}
 
 	if len(flags.Args()) == 0 {
-		usage()
+		flags.Usage()
 		os.Exit(1)
 	}
 
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
-	exec, err := app.NewExec(flags.Args()[0], flags.Args()[1:]...)
+	e, err := app.NewExec(flags.Args()[0], flags.Args()[1:]...)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cfg, err := broker.NewConfig(api)
-	if err != nil {
-		errorlog.Print(err)
+	// choose pipeline type
+	var pipeline interface {
+		run(exec) error
 	}
 
-	producer, err := broker.NewMQTTProducer(cfg)
-	if err != nil {
-		errorlog.Print(err)
+	switch noNetwork {
+	case true:
+		pipeline = dumper{}
+	case false:
+		pipeline, err = newclient(userVersion)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	c := client{
-		msgPath:      ".auklet/message",
-		limPersistor: message.FilePersistor{Path: ".auklet/datalimit.json"},
-		api:          api,
-		exec:         exec,
-		userVersion:  userVersion,
-		appID:        appID,
-		macHash:      macHash,
-		producer:     producer,
-		fs:           fs,
-	}
-
-	if err := c.run(); err != nil {
+	if err := pipeline.run(e); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func configureLogs(env config.Getenv) {
+	log.SetFlags(log.Lmicroseconds)
+	if !env.LogInfo() {
+		log.SetOutput(ioutil.Discard)
+	}
+	if !env.LogErrors() {
+		errorlog.SetOutput(ioutil.Discard)
 	}
 }
 
@@ -143,6 +114,27 @@ type exec interface {
 	AppLogs() io.Reader
 }
 
+type dumper struct{}
+
+func (dumper) run(e exec) error {
+	if err := e.Connect(); err != nil {
+		return err
+	}
+
+	server := agent.NewServer(e.AgentData(), e.Decoder())
+	logger := agent.NewLogger(e.AppLogs())
+	agent.NewPeriodicRequester(e.AgentData(), server.Done, nil)
+	for m := range agent.Merge(server, logger).Output() {
+		// dump the contents
+		fmt.Printf(`type: %v
+data: %v
+error: %v
+
+`, m.Type, string(m.Data), m.Error)
+	}
+	return nil
+}
+
 type client struct {
 	msgPath      string // directory for storing unsent messages
 	limPersistor message.Persistor
@@ -150,7 +142,6 @@ type client struct {
 		dataLimiter
 		Release(string) error
 	}
-	exec        exec
 	userVersion string
 	username    string
 	appID       string
@@ -159,31 +150,71 @@ type client struct {
 	fs          broker.Fs
 }
 
-func (c *client) run() error {
-	err := c.api.Release(c.exec.CheckSum())
+func newclient(userVersion string) (*client, error) {
+	env := config.OS
+	configureLogs(env)
+	appID := env.AppID()
+	macHash := device.IfaceHash()
+	fs := afero.NewOsFs()
+
+	api := backend.API{
+		BaseURL: env.BaseURL(version.Version),
+		Key:     env.APIKey(),
+		AppID:   appID,
+		MacHash: macHash,
+
+		CredsPath: ".auklet/identification",
+		Fs:        fs,
+
+		ReleasesEP:     backend.ReleasesEP,
+		CertificatesEP: backend.CertificatesEP,
+		DevicesEP:      backend.DevicesEP,
+		ConfigEP:       backend.ConfigEP,
+		DataLimitEP:    backend.DataLimitEP,
+	}
+
+	cfg, err := broker.NewConfig(api)
+	if err != nil {
+		return nil, err
+	}
+
+	producer, err := broker.NewMQTTProducer(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client{
+		msgPath:      ".auklet/message",
+		limPersistor: message.FilePersistor{Path: ".auklet/datalimit.json"},
+		api:          api,
+		userVersion:  userVersion,
+		appID:        appID,
+		macHash:      macHash,
+		producer:     producer,
+		fs:           fs,
+	}, nil
+}
+
+func (c *client) run(exec exec) error {
+	err := c.api.Release(exec.CheckSum())
 	if err != nil {
 		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
-		return c.exec.Run()
+		return exec.Run()
 	}
 
 	if c.producer == nil {
 		return nil
 	}
 
-	if err := c.exec.Connect(); err != nil {
+	if err := exec.Connect(); err != nil {
 		return err
 	}
 
-	c.runPipeline()
-	return nil
-}
-
-func (c *client) runPipeline() {
 	cfg := pollConfig(c.api) // dataLimiter
 
 	// main source of messages
-	server := agent.NewServer(c.exec.AgentData(), c.exec.Decoder())
+	server := agent.NewServer(exec.AgentData(), exec.Decoder())
 
 	c.producer.Serve(
 		message.NewDataLimiter(
@@ -193,23 +224,24 @@ func (c *client) runPipeline() {
 				schema.Config{
 					Monitor:     device.NewMonitor(),
 					Persistor:   broker.NewPersistor(c.msgPath, c.fs, cfg.persistor),
-					App:         c.exec, // schema.ExitSignalApp
+					App:         exec, // schema.ExitSignalApp
 					Username:    c.username,
 					UserVersion: c.userVersion,
 					AppID:       c.appID,
 					MacHash:     c.macHash,
 				},
 				server,
-				agent.NewLogger(c.exec.AppLogs()),
+				agent.NewLogger(exec.AppLogs()),
 			),
 			broker.NewMessageLoader(c.msgPath, c.fs),
 			agent.NewPeriodicRequester(
-				c.exec.AgentData(),
+				exec.AgentData(),
 				server.Done,
 				cfg.requester,
 			),
 		),
 	)
+	return nil
 }
 
 type dataLimiter interface {

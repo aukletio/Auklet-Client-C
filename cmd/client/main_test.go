@@ -79,6 +79,14 @@ func (p *mockProducer) Serve(src broker.MessageSource) {
 }
 
 func TestClient(t *testing.T) {
+	e := &mockExec{
+		agentVersion: "agentVersion",
+		checksum:     "checksum",
+		appLogs:      strings.NewReader("appLogs\n"),
+		agentData:    bytes.NewBufferString(`{"type":"profile","data":{}}`),
+		decoder:      nil, // dynamically initialized
+	}
+
 	c := client{
 		msgPath:      ".auklet/message",
 		limPersistor: &message.MemPersistor{},
@@ -93,13 +101,6 @@ func TestClient(t *testing.T) {
 				},
 			},
 		},
-		exec: &mockExec{
-			agentVersion: "agentVersion",
-			checksum:     "checksum",
-			appLogs:      strings.NewReader("appLogs\n"),
-			agentData:    bytes.NewBufferString(`{"type":"profile","data":{}}`),
-			decoder:      nil, // dynamically initialized
-		},
 		userVersion: "userVersion",
 		username:    "username",
 		appID:       "appID",
@@ -107,7 +108,8 @@ func TestClient(t *testing.T) {
 		producer:    &mockProducer{},
 		fs:          afero.NewMemMapFs(),
 	}
-	if err := c.run(); err != nil {
+
+	if err := c.run(e); err != nil {
 		t.Error(err)
 	}
 }
