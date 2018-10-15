@@ -1,103 +1,40 @@
 package config
 
 import (
-	"os"
 	"testing"
 )
 
-func empty(key string) string { return "" }
+func TestBaseURL(t *testing.T) {
+	baseURL := "http://example.com"
+	empty := func(string) string { return "" }
+	nonempty := func(string) string { return baseURL }
 
-func baseDefined(key string) string {
-	if key == "AUKLET_BASE_URL" {
-		return "something"
-	}
-	return ""
-}
-
-func errorsDefined(key string) string {
-	if key == "AUKLET_LOG_ERRORS" {
-		return "true"
-	}
-	return ""
-}
-
-func infoDefined(key string) string {
-	if key == "AUKLET_LOG_INFO" {
-		return "true"
-	}
-	return ""
-}
-
-func TestLocalBuild(t *testing.T) {
 	cases := []struct {
-		getenv func(string) string
-		expect Config
+		version string
+		getenv  Getenv
+		expect  string
 	}{
 		{
-			getenv: empty,
-			expect: Config{BaseURL: Production},
+			version: "local-build",
+			getenv:  empty,
+			expect:  Production,
 		},
 		{
-			getenv: baseDefined,
-			expect: Config{BaseURL: "something"},
+			version: "local-build",
+			getenv:  nonempty,
+			expect:  baseURL,
 		},
 		{
-			getenv: errorsDefined,
-			expect: Config{BaseURL: Production, LogErrors: true},
-		},
-		{
-			getenv: infoDefined,
-			expect: Config{BaseURL: Production, LogInfo: true},
+			version: "not local-build",
+			getenv:  nil,
+			expect:  StaticBaseURL,
 		},
 	}
 
 	for i, c := range cases {
-		getenv = c.getenv
-		if got := LocalBuild(); got != c.expect {
-			t.Errorf("case %v: got %v, expected %v", i, got, c.expect)
+		got := c.getenv.BaseURL(c.version)
+		if got != c.expect {
+			t.Errorf("case %v: expected %v, got %v", i, c.expect, got)
 		}
-		getenv = os.Getenv
-	}
-}
-
-func TestReleaseBuild(t *testing.T) {
-	cases := []struct {
-		getenv func(string) string
-		expect Config
-	}{
-		{
-			getenv: empty,
-			expect: Config{
-				BaseURL: StaticBaseURL,
-			},
-		},
-	}
-
-	for i, c := range cases {
-		getenv = c.getenv
-		if got := ReleaseBuild(); got != c.expect {
-			t.Errorf("case %v: got %v, expected %v", i, got, c.expect)
-		}
-		getenv = os.Getenv
-	}
-}
-
-func TestAPIKey(t *testing.T) {
-	getenv = func(string) string {
-		return "api key"
-	}
-
-	if got := APIKey(); got != "api key" {
-		t.Fail()
-	}
-}
-
-func TestAppID(t *testing.T) {
-	getenv = func(string) string {
-		return "app ID"
-	}
-
-	if got := AppID(); got != "app ID" {
-		t.Fail()
 	}
 }

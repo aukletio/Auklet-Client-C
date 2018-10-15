@@ -7,53 +7,89 @@ import (
 
 	"github.com/eclipse/paho.mqtt.golang"
 
-	"github.com/ESG-USA/Auklet-Client-C/api"
+	backend "github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 )
 
-// MQTTProducer wraps an MQTT client.
+// MQTTProducer wraps an MQTT Client.
 type MQTTProducer struct {
-	c       client
+	c       Client
 	org, id string
 }
 
+type token interface {
+	Wait() bool
+	Error() error
+}
+
 // wait turns Paho's async API into a sync API.
-var wait = func(t mqtt.Token) error {
+var wait = func(t token) error {
 	t.Wait()
 	return t.Error()
 }
 
-type client interface {
+// Client provides an MQTT client interface.
+type Client interface {
 	Connect() mqtt.Token
 	Publish(string, byte, bool, interface{}) mqtt.Token
 	Disconnect(uint)
 }
 
-// newClient allows us to mock the MQTT client in tests.
-var newClient = func(o *mqtt.ClientOptions) client {
-	return mqtt.NewClient(o)
+// Config provides parameters for an MQTTProducer.
+type Config struct {
+	Creds  *backend.Credentials
+	Client Client
 }
 
-// NewMQTTProducer returns a new producer for the given input.
-func NewMQTTProducer(addr string, t *tls.Config, creds *api.Credentials) (*MQTTProducer, error) {
+// API consists of the backend interface needed to generate a Config.
+type API interface {
+	backend.Credentialer
+	BrokerAddress() (string, error)
+	Certificates() (*tls.Config, error)
+}
+
+// NewConfig returns a Config from the given API.
+func NewConfig(api API) (Config, error) {
+	creds, err := api.Credentials()
+	if err != nil {
+		return Config{}, err
+	}
+
+	addr, err := api.BrokerAddress()
+	if err != nil {
+		return Config{}, err
+	}
+
+	certs, err := api.Certificates()
+	if err != nil {
+		return Config{}, err
+	}
+
 	opt := mqtt.NewClientOptions()
 	opt.AddBroker(addr)
-	opt.SetTLSConfig(t)
+	opt.SetTLSConfig(certs)
 	opt.SetClientID(creds.ClientID)
 	opt.SetCredentialsProvider(func() (string, string) {
 		return creds.Username, creds.Password
 	})
-	c := newClient(opt)
 
+	return Config{
+		Creds:  creds,
+		Client: mqtt.NewClient(opt),
+	}, nil
+}
+
+// NewMQTTProducer returns a new producer for the given input.
+func NewMQTTProducer(cfg Config) (*MQTTProducer, error) {
+	c := cfg.Client
 	if err := wait(c.Connect()); err != nil {
 		return nil, err
 	}
 	log.Print("producer: connected")
-
 	return &MQTTProducer{
 		c:   c,
-		org: creds.Org,
-		id:  creds.Username,
+		org: cfg.Creds.Org,
+		id:  cfg.Creds.Username,
 	}, nil
 }
 

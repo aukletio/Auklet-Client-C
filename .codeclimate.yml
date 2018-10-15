@@ -11,3 +11,7 @@ ratings:
   - "**.go"
 exclude_paths:
 - .devops
+checks:
+  return-statements:
+    config:
+      threshold: 5

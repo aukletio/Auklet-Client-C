@@ -20,12 +20,12 @@ type Exec struct {
 	cmd  *exec.Cmd
 
 	// state initialized after confirming that the application is released
-	AppLogs   io.Reader
-	AgentData io.ReadWriter // raw data stream from the agent
+	appLogs   io.Reader
+	agentData io.ReadWriter // raw data stream from the agent
 
 	// state initialized after the process starts
 	agentVersion string
-	Decoder      *json.Decoder // reading from AgentData
+	decoder      *json.Decoder // reading from agentData
 }
 
 // NewExec creates a new executable from one or more arguments.
@@ -48,11 +48,11 @@ func NewExec(name string, args ...string) (*Exec, error) {
 
 var socketPair = socketpair
 
-// AddSockets adds sockets to the executable so that we can communicate with
-// it. AddSockets must be called before starting the executable.
+// addSockets adds sockets to the executable so that we can communicate with
+// it. addSockets must be called before starting the executable.
 //
 // WARNING: Do not call this function on an unreleased executable!
-func (exec *Exec) AddSockets() error {
+func (exec *Exec) addSockets() error {
 	// If we fail to create sockets, we can't communicate with the running
 	// process. But we should try to send these errors to somebody.
 	appLogs, err := socketPair("appLogs")
@@ -72,8 +72,8 @@ func (exec *Exec) AddSockets() error {
 		agentData.remote, // fd 4
 	)
 
-	exec.AppLogs = appLogs.local
-	exec.AgentData = agentData.local
+	exec.appLogs = appLogs.local
+	exec.agentData = agentData.local
 
 	return nil
 }
@@ -95,18 +95,18 @@ var (
 	errNoVersion = errors.New("empty agent version")
 )
 
-// GetAgentVersion reads from the AgentData stream and reads the agentVersion.
+// getAgentVersion reads from the agentData stream and reads the agentVersion.
 // This function must be called after starting the executable.
 //
 // WARNING: Do not call this function on an unreleased executable!
-func (exec *Exec) GetAgentVersion() error {
+func (exec *Exec) getAgentVersion() error {
 	var msg struct {
 		Version string `json:"version"`
 	}
 
 	// We should use a timeout here to avoid blocking indefinitely.
 
-	dec := json.NewDecoder(exec.AgentData)
+	dec := json.NewDecoder(exec.agentData)
 	if err := dec.Decode(&msg); err == io.EOF {
 		// The process died before it could convey its agentVersion.
 		return errEOF
@@ -120,7 +120,7 @@ func (exec *Exec) GetAgentVersion() error {
 	}
 
 	exec.agentVersion = msg.Version
-	exec.Decoder = dec
+	exec.decoder = dec
 
 	return nil
 }
@@ -155,7 +155,39 @@ func (exec *Exec) String() string {
 }
 
 // AgentVersion returns the agent version running in the process. It may be
-// called only after GetAgentVersion succeeds.
+// called only after getAgentVersion succeeds.
 func (exec *Exec) AgentVersion() string {
 	return exec.agentVersion
 }
+
+// Run runs exec and waits for it to stop.
+func (exec *Exec) Run() error {
+	if err := exec.Start(); err != nil {
+		return err
+	}
+	exec.Wait()
+	return nil
+}
+
+// Connect adds sockets, starts, and gets the agent version of exec.
+func (exec *Exec) Connect() error {
+	for _, fn := range []func() error{
+		exec.addSockets,
+		exec.Start,
+		exec.getAgentVersion,
+	} {
+		if err := fn(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// AgentData returns a raw data stream from the agent.
+func (exec *Exec) AgentData() io.ReadWriter { return exec.agentData }
+
+// Decoder returns a JSON decoder reading from AgentData.
+func (exec *Exec) Decoder() *json.Decoder { return exec.decoder }
+
+// AppLogs returns a raw stream of application log data from the child process.
+func (exec *Exec) AppLogs() io.Reader { return exec.appLogs }

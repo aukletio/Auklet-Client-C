@@ -115,7 +115,7 @@ func TestStateFuncs(t *testing.T) {
 			l: &DataLimiter{
 				periodTimer: new(time.Timer),
 				store:       new(MemPersistor),
-				Conf:        sendConf(),
+				conf:        sendConf(),
 			},
 			expect: initial,
 		},
@@ -143,7 +143,7 @@ func TestStateFuncs(t *testing.T) {
 		{
 			state: overBudget,
 			l: &DataLimiter{
-				Conf:        sendConf(),
+				conf:        sendConf(),
 				store:       new(MemPersistor),
 				periodTimer: new(time.Timer),
 			},
@@ -242,18 +242,5 @@ func TestSetBudget(t *testing.T) {
 		if l.setBudget(c.mb, c.hasBudget); l.Budget != c.expect {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, l.Budget)
 		}
-	}
-}
-
-type source chan broker.Message
-
-func (s source) Output() <-chan broker.Message { return s }
-
-func TestDataLimiter(t *testing.T) {
-	s := make(source, 1)
-	l := NewDataLimiter(s, new(MemPersistor))
-	s <- broker.Message{}
-	close(s)
-	for _ = range l.Output() {
 	}
 }

@@ -9,8 +9,9 @@ import (
 
 func TestRequester(t *testing.T) {
 	r, w := io.Pipe()
-	req := NewPeriodicRequester(w, nil)
-	req.Configure() <- 1
+	conf := make(chan int)
+	req := NewPeriodicRequester(w, nil, conf)
+	conf <- 1
 	buf := make([]byte, 1)
 	n, err := r.Read(buf)
 	if err != nil || n != 1 {
@@ -29,7 +30,7 @@ func TestRequester(t *testing.T) {
 
 func TestRequesterDone(t *testing.T) {
 	done := make(chan struct{})
-	req := NewPeriodicRequester(&bytes.Buffer{}, done)
+	req := NewPeriodicRequester(&bytes.Buffer{}, done, nil)
 	// terminate the requester
 	close(done)
 	if _, open := <-req.Output(); open {

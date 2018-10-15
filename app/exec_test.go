@@ -20,7 +20,7 @@ func TestMethods(t *testing.T) {
 		return
 	}
 
-	if err := exec.AddSockets(); err != nil {
+	if err := exec.addSockets(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -28,7 +28,7 @@ func TestMethods(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := exec.GetAgentVersion(); err == nil {
+	if err := exec.getAgentVersion(); err == nil {
 		t.Fatal(err)
 	}
 
@@ -68,6 +68,13 @@ func TestExec(t *testing.T) {
 
 var errSocketPair = errors.New("socketpair failed")
 
+func must(exec *Exec, err error) *Exec {
+	if err != nil {
+		panic(err)
+	}
+	return exec
+}
+
 func TestAddSockets(t *testing.T) {
 	cases := []struct {
 		socketpair func(string) (pair, error)
@@ -91,15 +98,9 @@ func TestAddSockets(t *testing.T) {
 			expect: errSocketPair,
 		},
 	}
-	must := func(exec *Exec, err error) *Exec {
-		if err != nil {
-			panic(err)
-		}
-		return exec
-	}
 	for i, c := range cases {
 		socketPair = c.socketpair
-		err := must(NewExec("testdata/ls")).AddSockets()
+		err := must(NewExec("testdata/ls")).addSockets()
 		if err != c.expect {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
@@ -115,32 +116,57 @@ func TestGetAgentVersion(t *testing.T) {
 	}{
 		{
 			exec: &Exec{
-				AgentData: bytes.NewBufferString(`{"version":"something"}`),
+				agentData: bytes.NewBufferString(`{"version":"something"}`),
 			},
 			expect: nil,
 		}, {
 			exec: &Exec{
-				AgentData: bytes.NewBufferString(`{"version":""}`),
+				agentData: bytes.NewBufferString(`{"version":""}`),
 			},
 			expect: errNoVersion,
 		}, {
 			exec: &Exec{
-				AgentData: bytes.NewBufferString(` `),
+				agentData: bytes.NewBufferString(` `),
 			},
 			expect: errEOF,
 		}, {
 			exec: &Exec{
-				AgentData: bytes.NewBufferString(`}`),
+				agentData: bytes.NewBufferString(`}`),
 			},
 			expect: errEncoding,
 		},
 	}
 
 	for i, c := range cases {
-		err := c.exec.GetAgentVersion()
+		err := c.exec.getAgentVersion()
 		if err != c.expect {
 			format := "case %v: expected %v, got %v"
 			t.Errorf(format, i, c.expect, err)
 		}
+	}
+}
+
+func TestConnect(t *testing.T) {
+	socketPair = func(string) (pair, error) {
+		return pair{}, errSocketPair
+	}
+	exec := must(NewExec("testdata/sendjson"))
+	if err := exec.Connect(); err == nil {
+		t.Fail()
+	}
+	socketPair = socketpair
+	if err := exec.Connect(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestRun(t *testing.T) {
+	e := must(NewExec("testdata/noexec"))
+	if err := e.Run(); err == nil {
+		t.Fail()
+	}
+	e = must(NewExec("testdata/ls"))
+	if err := e.Run(); err != nil {
+		t.Error(err)
 	}
 }

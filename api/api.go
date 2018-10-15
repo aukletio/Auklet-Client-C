@@ -10,50 +10,105 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
-	"github.com/ESG-USA/Auklet-Client-C/config"
-	"github.com/ESG-USA/Auklet-Client-C/device"
+	"github.com/spf13/afero"
+
+	"github.com/ESG-USA/Auklet-Client-C/fsutil"
 )
 
 // namespaces and endpoints for the API. All new endpoints should be entered
 // here.
-var (
-	releasesEP     = "/private/releases/"
-	certificatesEP = "/private/devices/certificates/"
-	devicesEP      = "/private/devices/"
-	configEP       = "/private/devices/config/"
-	dataLimitEP    = "/private/devices/" + config.AppID() + "/app_config/"
+const (
+	ReleasesEP     = "/private/releases/"
+	CertificatesEP = "/private/devices/certificates/"
+	DevicesEP      = "/private/devices/"
+	ConfigEP       = "/private/devices/config/"
+	DataLimitEP    = "/private/devices/%s/app_config/" // app id
 )
 
-// BaseURL is the subdomain against which requests will be performed. It
-// should not assume any particular namespace.
-var BaseURL string
-
-// Call represents an API call.
-type Call interface {
-	request() *http.Request
-	handle(*http.Response) error
+// Fs provides file system functions.
+type Fs interface {
+	Open(string) (afero.File, error)
+	OpenFile(string, int, os.FileMode) (afero.File, error)
 }
 
-// Do executes an API call.
-func Do(c Call) error {
-	req := c.request()
-	req.Header.Add("Authorization", "JWT "+config.APIKey())
+// API provides an interface to the backend.
+type API struct {
+	// BaseURL is the subdomain against which requests will be performed. It
+	// should not assume any particular namespace.
+	BaseURL string
+	Key     string
+	AppID   string
+	MacHash string
+
+	// for credentials
+	CredsPath string // where to save/load credentials
+	Fs        Fs     // filesystem for saving/loading
+
+	ReleasesEP     string
+	CertificatesEP string
+	DevicesEP      string
+	ConfigEP       string
+	DataLimitEP    string
+}
+
+// Release is an API call that checks whether
+// the given checksum has been released.
+func (a API) Release(checksum string) error {
+	url := a.BaseURL + a.ReleasesEP + "?checksum=" + checksum
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Add("Authorization", "JWT "+a.Key)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
-
-	return c.handle(resp)
+	if resp.StatusCode != 200 {
+		return errNotReleased{checksum}
+	}
+	return nil
 }
 
-type errStatus struct {
-	resp *http.Response
+type errNotReleased struct {
+	checksum string
 }
 
-func (err errStatus) Error() string {
-	return fmt.Sprintf("unexpected status: %v from %v", err.resp.Status, err.resp.Request.URL)
+func (err errNotReleased) Error() string {
+	return fmt.Sprintf("not released: %v", err.checksum)
 }
+
+// Certificates retrieves CA certs.
+func (a API) Certificates() (*tls.Config, error) {
+	url := a.BaseURL + a.CertificatesEP
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Add("Authorization", "JWT "+a.Key)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, errStatus{resp}
+	}
+	ca, _ := ioutil.ReadAll(resp.Body)
+	return tlsConfig(ca)
+}
+
+// tlsConfig converts ca into a *tls.Config.
+func tlsConfig(ca []byte) (*tls.Config, error) {
+	certpool := x509.NewCertPool()
+	if !certpool.AppendCertsFromPEM(ca) {
+		return nil, errParseCA
+	}
+	// We trust Go's PEM parser; no need to cover the successful case in tests.
+	return &tls.Config{
+		RootCAs:            certpool,
+		ClientAuth:         tls.NoClientCert,
+		ClientCAs:          nil,
+		InsecureSkipVerify: false,
+	}, nil
+}
+
+var errParseCA = errors.New("failed to parse CA")
 
 // Credentials represents credentials required for sending broker messages.
 type Credentials struct {
@@ -63,21 +118,83 @@ type Credentials struct {
 	ClientID string `json:"client_id"`
 }
 
-// GetCredentials retrieves credentials from the filesystem or API, whichever is
-// available.
-func GetCredentials(path string) (*Credentials, error) {
-	c, err := credsFromFile(path)
+// credentials retrieves Credentials for sending broker messages.
+func (a API) credentials() (*Credentials, error) {
+	b, _ := json.Marshal(struct {
+		Mac   string `json:"mac_address_hash"`
+		AppID string `json:"application"`
+	}{
+		// device info
+		Mac:   a.MacHash,
+		AppID: a.AppID,
+	})
+	url := a.BaseURL + a.DevicesEP
+	req, _ := http.NewRequest("POST", url, bytes.NewReader(b))
+	req.Header.Add("content-type", "application/json")
+	req.Header.Add("Authorization", "JWT "+a.Key)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 201 {
+		return nil, errStatus{resp}
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	return decodeCredentials(body)
+}
+
+// decodeCredentials unmarshals data into Credentials. If the password is empty,
+// it returns an error.
+//
+// The API returns an empty password if a device's credentials have been
+// requested more than once.
+func decodeCredentials(data []byte) (*Credentials, error) {
+	c := new(Credentials)
+	if err := json.Unmarshal(data, c); err != nil {
+		return nil, errEncoding{err, string(data), "decodeCredentials"}
+	}
+
+	if c.Password == "" {
+		return nil, errors.New("empty password")
+	}
+
+	return c, nil
+}
+
+// Credentialer provides a way to get Credentials.
+type Credentialer interface {
+	Credentials() (*Credentials, error)
+}
+
+// Credentials retrieves credentials from the filesystem,
+// with a fallback to the API. If credentials are retrieved
+// from the API, they are saved to the filesystem.
+func (a API) Credentials() (*Credentials, error) {
+	// Not covered in tests, as its callees are covered.
+
+	c, err := credsFromFile(a.CredsPath, a.Fs.Open)
 	if err != nil {
 		// file doesn't exist; ask the API for credentials
-		return getAndSaveCredentials(path)
+		return a.getAndSaveCredentials()
 	}
 	return c, nil
 }
 
-func credsFromFile(path string) (*Credentials, error) {
-	b, err := ioutil.ReadFile(path)
+type openFunc func(string) (afero.File, error)
+
+func readFile(path string, open openFunc) ([]byte, error) {
+	f, err := open(path)
 	if err != nil {
-		return nil, err
+		return []byte{}, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
+func credsFromFile(path string, open openFunc) (*Credentials, error) {
+	b, err := readFile(path, open)
+	if err != nil {
+		return nil, fmt.Errorf("could not read credentials file: %v", err)
 	}
 	// decrypt here
 	c := new(Credentials)
@@ -89,163 +206,47 @@ func credsFromFile(path string) (*Credentials, error) {
 
 // getAndSaveCredentials requests credentials from the API. If it receives them,
 // it writes them to the given path.
-func getAndSaveCredentials(path string) (*Credentials, error) {
-	c := new(Credentials)
-	if err := Do(c); err != nil {
+func (a API) getAndSaveCredentials() (*Credentials, error) {
+	c, err := a.credentials()
+	if err != nil {
 		return nil, err
 	}
 	b, _ := json.Marshal(c)
 	// encrypt here
-	if err := ioutil.WriteFile(path, b, 0666); err != nil {
-		return nil, err
+	if err := fsutil.WriteFile(a.Fs.OpenFile, a.CredsPath, b); err != nil {
+		return nil, fmt.Errorf("could not write credentials: %v", err)
 	}
 	return c, nil
 }
 
-// decodeCredentials unmarshals data into Credentials. If the password is empty,
-// it returns an error.
-//
-// The API returns an empty password if a device's credentials have been
-// requested more than once.
-func (c *Credentials) decodeCredentials(data []byte) error {
-	if err := json.Unmarshal(data, c); err != nil {
-		return errEncoding{err, string(data), "decodeCredentials"}
-	}
-
-	if c.Password == "" {
-		return errors.New("empty password")
-	}
-
-	return nil
-}
-
-type errEncoding struct {
-	Err  error
-	What string
-	Op   string
-}
-
-func (Credentials) request() *http.Request {
-	b, _ := json.Marshal(struct {
-		Mac   string `json:"mac_address_hash"`
-		AppID string `json:"application"`
-	}{
-		// device info
-		Mac:   device.MacHash,
-		AppID: config.AppID(),
-	})
-
-	url := BaseURL + devicesEP
-	req, _ := http.NewRequest("POST", url, bytes.NewReader(b))
+// BrokerAddress returns an address to which we can send broker messages.
+func (a API) BrokerAddress() (string, error) {
+	req, _ := http.NewRequest("GET", a.BaseURL+a.ConfigEP, nil)
 	req.Header.Add("content-type", "application/json")
-	return req
-}
-
-func (c *Credentials) handle(resp *http.Response) error {
-	if resp.StatusCode != 201 {
-		return errStatus{resp}
+	req.Header.Add("Authorization", "JWT "+a.Key)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
 	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	return c.decodeCredentials(body)
-}
-
-func (err errEncoding) Error() string {
-	return fmt.Sprintf("encoding error during %v: %v in %v", err.Op, err.Err, err.What)
-}
-
-// Release is an API call that checks whether
-// the given checksum has been released.
-type Release struct {
-	CheckSum string
-}
-
-func (r Release) request() *http.Request {
-	url := BaseURL + releasesEP + "?checksum=" + r.CheckSum
-	req, _ := http.NewRequest("GET", url, nil)
-	return req
-}
-
-func (r Release) handle(resp *http.Response) error {
 	if resp.StatusCode != 200 {
-		return errNotReleased(r.CheckSum)
+		return "", errStatus{resp}
 	}
-	return nil
-}
-
-type errNotReleased string
-
-func (err errNotReleased) Error() string {
-	return fmt.Sprintf("not released: %v", string(err))
-}
-
-// Certificates represents CA certs.
-type Certificates struct {
-	TLSConfig *tls.Config
-}
-
-func (Certificates) request() *http.Request {
-	req, _ := http.NewRequest("GET", BaseURL+certificatesEP, nil)
-	return req
-}
-
-func (c *Certificates) handle(resp *http.Response) (err error) {
-	if resp.StatusCode != 200 {
-		return errStatus{resp}
-	}
-	ca, _ := ioutil.ReadAll(resp.Body)
-	c.TLSConfig, err = tlsConfig(ca)
-	return
-}
-
-var errParseCA = errors.New("failed to parse CA")
-
-var appendCertsFromPEM = func(certpool *x509.CertPool, ca []byte) bool {
-	return certpool.AppendCertsFromPEM(ca)
-}
-
-// tlsConfig converts ca into a *tls.Config.
-func tlsConfig(ca []byte) (*tls.Config, error) {
-	certpool := x509.NewCertPool()
-	if !appendCertsFromPEM(certpool, ca) {
-		return nil, errParseCA
-	}
-	return &tls.Config{
-		RootCAs:            certpool,
-		ClientAuth:         tls.NoClientCert,
-		ClientCAs:          nil,
-		InsecureSkipVerify: false,
-	}, nil
-}
-
-// BrokerAddress holds the broker address we use to send broker messages.
-type BrokerAddress struct {
-	Address string
-}
-
-func (BrokerAddress) request() *http.Request {
-	req, _ := http.NewRequest("GET", BaseURL+configEP, nil)
-	req.Header.Add("content-type", "application/json")
-	return req
-}
-
-func (b *BrokerAddress) handle(r *http.Response) error {
-	if r.StatusCode != 200 {
-		return errStatus{r}
-	}
-
 	var k struct {
 		Broker string `json:"brokers"`
 		Port   string `json:"port"`
 	}
-
-	body, _ := ioutil.ReadAll(r.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &k); err != nil {
-		return errEncoding{err, string(body), "GetBrokerAddr"}
+		return "", errEncoding{err, string(body), "BrokerAddress"}
 	}
+	return fmt.Sprintf("ssl://%s:%s", k.Broker, k.Port), nil
+}
 
-	b.Address = fmt.Sprintf("ssl://%s:%s", k.Broker, k.Port)
-	return nil
+// DataLimit holds parameters controlling Auklet's data usage.
+type DataLimit struct {
+	Storage        *int64
+	EmissionPeriod int
+	Cellular       CellularConfig
 }
 
 // CellularConfig holds parameters for a cellular plan.
@@ -256,54 +257,72 @@ type CellularConfig struct {
 	Limit   int
 }
 
-// DataLimit holds parameters controlling Auklet's data usage.
-type DataLimit struct {
-	EmissionPeriod int
-	Cellular       CellularConfig
-}
-
-func (DataLimit) request() *http.Request {
-	req, _ := http.NewRequest("GET", BaseURL+dataLimitEP, nil)
+// DataLimit retrieves DataLimit parameters from the backend.
+func (a API) DataLimit() (*DataLimit, error) {
+	url := a.BaseURL + fmt.Sprintf(a.DataLimitEP, a.AppID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Add("content-type", "application/json")
-	return req
-}
-
-func (d *DataLimit) handle(r *http.Response) (err error) {
-	if r.StatusCode != 200 {
-		return errStatus{r}
+	req.Header.Add("Authorization", "JWT "+a.Key)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
 	}
-
+	if resp.StatusCode != 200 {
+		return nil, errStatus{resp}
+	}
 	type storage struct {
-		Limit *int `json:"storage_limit"`
+		Limit *int64 `json:"storage_limit"`
 	}
-
 	type data struct {
 		Limit *int `json:"cellular_data_limit"`
 		Date  int  `json:"normalized_cell_plan_date"`
 	}
-
 	type config struct {
 		EmissionPeriod int     `json:"emission_period"`
 		Storage        storage `json:"storage"`
 		Data           data    `json:"data"`
 	}
-
 	var l struct {
 		Config config `json:"config"`
 	}
-
-	body, _ := ioutil.ReadAll(r.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 	if err := json.Unmarshal(body, &l); err != nil {
-		return errEncoding{err, string(body), "GetDataLimit"}
+		return nil, errEncoding{err, string(body), "DataLimit"}
 	}
-
 	c := l.Config
-	d.EmissionPeriod = c.EmissionPeriod
-	d.Cellular.Date = c.Data.Date
-	d.Cellular.Defined = c.Data.Limit != nil
-	if d.Cellular.Defined {
-		d.Cellular.Limit = *c.Data.Limit
-	}
+	return &DataLimit{
+		Storage:        c.Storage.Limit,
+		EmissionPeriod: c.EmissionPeriod,
+		Cellular: CellularConfig{
+			Date:    c.Data.Date,
+			Defined: c.Data.Limit != nil,
+			Limit: func() int {
+				if c.Data.Limit != nil {
+					return *c.Data.Limit
+				}
+				return 0
+			}(),
+		},
+	}, nil
+}
 
-	return nil
+type errStatus struct {
+	resp *http.Response
+}
+
+func (err errStatus) Error() string {
+	return fmt.Sprintf("unexpected status: %v from %v", err.resp.Status, err.resp.Request.URL)
+}
+
+type errEncoding struct {
+	Err  error
+	What string
+	Op   string
+}
+
+func (err errEncoding) Error() string {
+	return fmt.Sprintf("encoding error during %v: %v in %v", err.Op, err.Err, err.What)
 }

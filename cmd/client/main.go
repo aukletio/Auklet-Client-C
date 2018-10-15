@@ -1,208 +1,253 @@
 package main
 
 import (
-	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gobuffalo/packr"
+	"github.com/spf13/afero"
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
-	"github.com/ESG-USA/Auklet-Client-C/api"
+	backend "github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/message"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
-var (
-	userVersion  string
-	viewLicenses bool
-)
+func main() {
+	env := config.OS
+	configureLogs(env)
+	appID := env.AppID()
+	macHash := device.IfaceHash()
+	fs := afero.NewOsFs()
 
-func init() {
-	log.SetFlags(log.Lmicroseconds)
-	flag.StringVar(&userVersion, "version", "", "user-defined version string")
-	flag.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
+	api := backend.API{
+		BaseURL: env.BaseURL(version.Version),
+		Key:     env.APIKey(),
+		AppID:   appID,
+		MacHash: macHash,
+
+		CredsPath: ".auklet/identification",
+		Fs:        fs,
+
+		ReleasesEP:     backend.ReleasesEP,
+		CertificatesEP: backend.CertificatesEP,
+		DevicesEP:      backend.DevicesEP,
+		ConfigEP:       backend.ConfigEP,
+		DataLimitEP:    backend.DataLimitEP,
+	}
+	run(fs, api, os.Args[1:], appID, macHash)
 }
 
-func main() {
-	flag.Parse()
-	if viewLicenses {
-		licenses()
-		return
+func configureLogs(env config.Getenv) {
+	log.SetFlags(log.Lmicroseconds)
+	if !env.LogInfo() {
+		log.SetOutput(ioutil.Discard)
+	}
+	if !env.LogErrors() {
+		errorlog.SetOutput(ioutil.Discard)
+	}
+}
+
+func run(fs broker.Fs, api backend.API, args []string, appID, macHash string) {
+	flags := flag.NewFlagSet("", flag.ContinueOnError)
+	usage := func() {
+		fmt.Printf("Usage of %v:\n", os.Args[0])
+		fmt.Println("All non-flag arguments are treated as a command to run.")
+		flags.PrintDefaults()
+	}
+	flags.SetOutput(os.Stdout)
+	flags.Usage = usage
+	var userVersion string
+	var viewLicenses bool
+	flags.StringVar(&userVersion, "version", "", "user-defined version string")
+	flags.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
+	if err := flags.Parse(args); err != nil {
+		log.Fatal(err)
 	}
 
-	args := flag.Args()
-	if len(args) == 0 {
+	if viewLicenses {
+		licenses()
+		os.Exit(0)
+	}
+
+	if len(flags.Args()) == 0 {
 		usage()
 		os.Exit(1)
 	}
 
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
-	cfg := getConfig()
-	api.BaseURL = cfg.BaseURL
-	if !cfg.LogInfo {
-		log.SetOutput(ioutil.Discard)
-	}
-	if !cfg.LogErrors {
-		errorlog.SetOutput(ioutil.Discard)
-	}
-	exec, err := app.NewExec(args[0], args[1:]...)
+	exec, err := app.NewExec(flags.Args()[0], flags.Args()[1:]...)
 	if err != nil {
 		log.Fatal(err)
 	}
-	c := &client{
-		exec:        exec,
-		userVersion: userVersion,
-	}
-	c.run()
-}
 
-func usage() {
-	fmt.Printf("usage: %v command [args ...]\n", os.Args[0])
-	fmt.Printf("view OSS licenses: %v -licenses\n", os.Args[0])
+	cfg, err := broker.NewConfig(api)
+	if err != nil {
+		errorlog.Print(err)
+	}
+
+	producer, err := broker.NewMQTTProducer(cfg)
+	if err != nil {
+		errorlog.Print(err)
+	}
+
+	c := client{
+		msgPath:      ".auklet/message",
+		limPersistor: message.FilePersistor{Path: ".auklet/datalimit.json"},
+		api:          api,
+		exec:         exec,
+		userVersion:  userVersion,
+		appID:        appID,
+		macHash:      macHash,
+		producer:     producer,
+		fs:           fs,
+	}
+
+	if err := c.run(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func licenses() {
-	licensesBox := packr.NewBox("./licenses")
-	licenses := licensesBox.List()
+	box := packr.NewBox("./licenses")
 	// Print the Auklet license first, then iterate over all the others.
 	format := "License for %v\n-------------------------\n%v"
-	fmt.Printf(format, "Auklet Client", licensesBox.String("LICENSE"))
-	for _, l := range licenses {
+	fmt.Printf(format, "Auklet Client", box.String("LICENSE"))
+	for _, l := range box.List() {
 		if l != "LICENSE" {
-			ownerName := strings.Split(l, "--")
-			fmt.Printf("\n\n\n")
-			header := fmt.Sprintf("package: %v/%v", ownerName[0], ownerName[1])
-			fmt.Printf(format, header, licensesBox.String(l))
+			header := "package: " + strings.Replace(l, "--", "/", 1)
+			fmt.Printf("\n\n\n"+format, header, box.String(l))
 		}
 	}
 }
 
-func getConfig() config.Config {
-	if version.Version == "local-build" {
-		return config.LocalBuild()
-	}
-	return config.ReleaseBuild()
+type exec interface {
+	schema.ExitSignalApp
+	Connect() error
+	Run() error
+	AgentData() io.ReadWriter
+	Decoder() *json.Decoder
+	AppLogs() io.Reader
 }
 
 type client struct {
-	creds       *api.Credentials
-	certs       *tls.Config
-	addr        string
-	exec        *app.Exec
+	msgPath      string // directory for storing unsent messages
+	limPersistor message.Persistor
+	api          interface {
+		dataLimiter
+		Release(string) error
+	}
+	exec        exec
 	userVersion string
+	username    string
+	appID       string
+	macHash     string
+	producer    interface{ Serve(broker.MessageSource) }
+	fs          broker.Fs
 }
 
-func (c *client) run() {
-	if err := api.Do(api.Release{c.exec.CheckSum()}); err != nil {
+func (c *client) run() error {
+	err := c.api.Release(c.exec.CheckSum())
+	if err != nil {
 		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
-		if err := c.exec.Start(); err != nil {
-			log.Fatal(err)
-		}
-		c.exec.Wait()
-		return
+		return c.exec.Run()
 	}
 
-	if err := c.exec.AddSockets(); err != nil {
-		log.Fatal(err)
+	if c.producer == nil {
+		return nil
 	}
 
-	if err := c.exec.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := c.exec.GetAgentVersion(); err != nil {
-		log.Fatal(err)
-	}
-
-	if !c.prepare() {
-		return
+	if err := c.exec.Connect(); err != nil {
+		return err
 	}
 
 	c.runPipeline()
-}
-
-func (c *client) prepare() bool {
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		creds, err := api.GetCredentials(".auklet/identification")
-		if err != nil {
-			// TODO: send this over MQTT
-			errorlog.Print(err)
-		}
-		c.creds = creds
-	}()
-	go func() {
-		defer wg.Done()
-		addr := new(api.BrokerAddress)
-		if err := api.Do(addr); err != nil {
-			// TODO: send this over MQTT
-			errorlog.Print(err)
-		}
-		c.addr = addr.Address
-	}()
-	go func() {
-		defer wg.Done()
-		certs := new(api.Certificates)
-		if err := api.Do(certs); err != nil {
-			// TODO: send this over MQTT
-			errorlog.Print(err)
-		}
-		c.certs = certs.TLSConfig
-	}()
-	wg.Wait()
-	return c.addr != "" && c.certs != nil && c.creds != nil
+	return nil
 }
 
 func (c *client) runPipeline() {
-	dir := ".auklet/message"
+	cfg := pollConfig(c.api) // dataLimiter
 
-	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds)
-	if err != nil {
-		log.Fatal(err)
+	// main source of messages
+	server := agent.NewServer(c.exec.AgentData(), c.exec.Decoder())
+
+	c.producer.Serve(
+		message.NewDataLimiter(
+			c.limPersistor,
+			cfg.limiter,
+			schema.NewConverter(
+				schema.Config{
+					Monitor:     device.NewMonitor(),
+					Persistor:   broker.NewPersistor(c.msgPath, c.fs, cfg.persistor),
+					App:         c.exec, // schema.ExitSignalApp
+					Username:    c.username,
+					UserVersion: c.userVersion,
+					AppID:       c.appID,
+					MacHash:     c.macHash,
+				},
+				server,
+				agent.NewLogger(c.exec.AppLogs()),
+			),
+			broker.NewMessageLoader(c.msgPath, c.fs),
+			agent.NewPeriodicRequester(
+				c.exec.AgentData(),
+				server.Done,
+				cfg.requester,
+			),
+		),
+	)
+}
+
+type dataLimiter interface {
+	DataLimit() (*backend.DataLimit, error)
+}
+
+type configChans struct {
+	requester chan int
+	limiter   chan backend.CellularConfig
+	persistor chan *int64
+}
+
+// pollConfig periodically polls the backend for data-limiting parameters and
+// sends them on its output channels.
+func pollConfig(api dataLimiter) configChans {
+	c := configChans{
+		requester: make(chan int, 1),
+		limiter:   make(chan backend.CellularConfig, 1),
+		persistor: make(chan *int64, 1),
 	}
 
-	persistor := broker.NewPersistor(dir)
-	loader := broker.NewMessageLoader(dir)
-	logger := agent.NewLogger(c.exec.AppLogs)
-	server := agent.NewServer(c.exec.AgentData, c.exec.Decoder)
-	agentMessages := agent.NewMerger(logger, server)
-	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username, c.userVersion)
-	requester := agent.NewPeriodicRequester(c.exec.AgentData, server.Done)
-	merger := message.NewMerger(converter, loader, requester)
-	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-
-	pollConfig := func() {
+	go func() {
 		poll := func() {
-			dl := new(api.DataLimit)
-			if err := api.Do(dl); err != nil {
-				// TODO: send this over MQTT
+			dl, err := api.DataLimit()
+			if err != nil {
 				errorlog.Print(err)
 				return
 			}
-			go func() { requester.Configure() <- dl.EmissionPeriod }()
-			go func() { limiter.Conf <- dl.Cellular }()
+			c.persistor <- dl.Storage
+			c.requester <- dl.EmissionPeriod
+			c.limiter <- dl.Cellular
 		}
+
 		poll()
 		for _ = range time.Tick(time.Hour) {
 			poll()
 		}
-	}
-	go pollConfig()
+	}()
 
-	producer.Serve(limiter)
+	return c
 }

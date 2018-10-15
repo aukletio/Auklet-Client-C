@@ -4,151 +4,224 @@ import (
 	"errors"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/spf13/afero"
+
+	"github.com/ESG-USA/Auklet-Client-C/fsutil"
 )
-
-func TestPersistor(t *testing.T) {
-	fs = afero.NewMemMapFs()
-	p := NewPersistor(".auklet/message")
-	var limit int64 = 900
-	p.Configure() <- &limit
-	m := &Message{
-		Bytes: make([]byte, 500),
-	}
-	if err := p.CreateMessage(m); err != nil {
-		t.Errorf("expected nil, got %v", err)
-	}
-	defer m.Remove()
-	err := p.CreateMessage(m)
-	if _, is := err.(ErrStorageFull); !is {
-		t.Errorf("expected ErrStorageFull, got %v", err)
-	}
-	exp := "persistor: storage full: 702 used of 900 limit"
-	if err == nil || err.Error() != exp {
-		t.Errorf("expected %q, got %v", exp, err)
-	}
-	defer m.Remove()
-}
-
-func TestPersistorLoad(t *testing.T) {
-	fs = afero.NewMemMapFs()
-	p := NewPersistor(".auklet/message")
-	m := Message{
-		Bytes: make([]byte, 500),
-	}
-	if err := p.CreateMessage(&m); err != nil {
-		t.Errorf("expected nil, got %v", err)
-	}
-	loader := NewMessageLoader(p.dir)
-	count := 0
-	for m = range loader.Output() {
-		count++
-	}
-	if count != 1 {
-		t.Errorf("expected one persistent message, got %v", count)
-	}
-}
 
 var errMockFs = errors.New("filesystem error")
 
 type mockFs struct {
-	mkdirAll func(string, os.FileMode) error
-	open     func(string) (afero.File, error)
-	openFile func(string, int, os.FileMode) (afero.File, error)
-	stat     func(string) (os.FileInfo, error)
+	fs Fs
+
+	errOpenFile error
+	errMkdirAll error
+	errOpen     error
 }
 
-func (fs mockFs) MkdirAll(path string, perm os.FileMode) error {
-	return fs.mkdirAll(path, perm)
+func (m mockFs) MkdirAll(path string, mode os.FileMode) error {
+	if m.errMkdirAll != nil {
+		return m.errMkdirAll
+	}
+	return m.fs.MkdirAll(path, mode)
 }
 
-func (fs mockFs) Open(name string) (afero.File, error) {
-	return fs.open(name)
+func (m mockFs) OpenFile(path string, flag int, perm os.FileMode) (afero.File, error) {
+	if m.errOpenFile != nil {
+		return nil, m.errOpenFile
+	}
+	return m.fs.OpenFile(path, flag, perm)
 }
 
-func (fs mockFs) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
-	return fs.openFile(name, flag, perm)
+func (m mockFs) Stat(path string) (os.FileInfo, error) {
+	return m.fs.Stat(path)
 }
 
-func (fs mockFs) Stat(name string) (os.FileInfo, error) {
-	return fs.stat(name)
+func (m mockFs) Open(path string) (afero.File, error) {
+	if m.errOpen != nil {
+		return nil, m.errOpen
+	}
+	return m.fs.Open(path)
 }
 
-// Package broker doesn't call these functions, but we have to implement them to
-// satisfy afero.Fs.
-func (mockFs) Name() string                               { panic(nil) }
-func (mockFs) Create(string) (afero.File, error)          { panic(nil) }
-func (mockFs) Mkdir(string, os.FileMode) error            { panic(nil) }
-func (mockFs) Remove(string) error                        { panic(nil) }
-func (mockFs) RemoveAll(string) error                     { panic(nil) }
-func (mockFs) Rename(string, string) error                { panic(nil) }
-func (mockFs) Chmod(string, os.FileMode) error            { panic(nil) }
-func (mockFs) Chtimes(string, time.Time, time.Time) error { panic(nil) }
+func (m mockFs) Remove(path string) error { return m.Remove(path) }
 
 func TestSave(t *testing.T) {
-	fs = mockFs{
-		mkdirAll: func(string, os.FileMode) error { return errMockFs },
+	cases := []struct {
+		fs Fs
+		ok bool
+	}{
+		{
+			fs: mockFs{
+				fs:          afero.NewMemMapFs(),
+				errMkdirAll: errMockFs,
+				errOpenFile: nil,
+			},
+			ok: false,
+		},
+		{
+			fs: mockFs{
+				fs:          afero.NewMemMapFs(),
+				errMkdirAll: nil,
+				errOpenFile: errMockFs,
+			},
+			ok: false,
+		},
+		{
+			fs: mockFs{
+				fs:          afero.NewMemMapFs(),
+				errMkdirAll: nil,
+				errOpenFile: nil,
+			},
+			ok: true,
+		},
 	}
-	err := Message{}.save()
-	exp := "save: unable to save message to .: filesystem error"
-	if err == nil || err.Error() != exp {
-		t.Errorf("expected %v, got %v", exp, err)
+
+	for i, c := range cases {
+		err := (Message{
+			path: "",
+			fs:   c.fs,
+		}).save()
+		ok := err == nil
+		if ok != c.ok {
+			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
+		}
 	}
 }
 
-func TestOpenFile(t *testing.T) {
-	fs = mockFs{
-		mkdirAll: func(string, os.FileMode) error { return nil },
-		openFile: func(string, int, os.FileMode) (afero.File, error) { return nil, errMockFs },
-	}
-	err := Message{}.save()
-	exp := "filesystem error"
-	if err == nil || err.Error() != exp {
-		t.Errorf("expected %v, got %v", exp, err)
-	}
-}
-
-func TestStat(t *testing.T) {
-	fs = mockFs{
-		stat: func(string) (os.FileInfo, error) { return nil, errMockFs },
-	}
-	paths, err := filepaths(".auklet/messages")
-	if len(paths) != 0 || err != nil {
-		t.Errorf("expected empty slice, nil; got %v, %v", paths, err)
-	}
-}
-
-func TestOpen(t *testing.T) {
-	mmfs := afero.NewMemMapFs()
-	fs = mockFs{
-		stat: mmfs.Stat,
-		open: func(string) (afero.File, error) { return nil, errMockFs },
-	}
-	paths, err := filepaths(".auklet/messages")
-	exp := "filepaths: failed to open message directory: filesystem error"
-	if len(paths) != 0 || (err != nil && err.Error() != exp) {
-		t.Errorf("expected empty slice, %v; got %v, %v", exp, paths, err)
-	}
-}
-
-func TestReaddirnames(t *testing.T) {
-	mmfs := afero.NewMemMapFs()
-	fs = mockFs{
-		stat: mmfs.Stat,
-		open: mmfs.Open,
-	}
-	// Create a regular file, then try to read it as a directory.
-	f, err := mmfs.Create(".auklet")
+func touch(path string) Fs {
+	fs := afero.NewMemMapFs()
+	f, err := fs.Create(path)
 	if err != nil {
-		t.Error(err)
+		panic(err)
 	}
-	f.Close()
+	defer f.Close()
+	return fs
+}
 
-	paths, err := filepaths(".auklet/messages")
-	exp := "filepaths: failed to open message directory: filesystem error"
-	if len(paths) != 0 || (err != nil && err.Error() != exp) {
-		t.Errorf("expected empty slice, %v; got %v, %v", exp, paths, err)
+func TestFilepaths(t *testing.T) {
+	cases := []struct {
+		fs  Fs
+		dir string
+		ok  bool
+	}{
+		{
+			// dir doesn't exist
+			fs:  afero.NewMemMapFs(),
+			dir: "noexist",
+			ok:  true,
+		},
+		{
+			// dir exists, but not readable
+			fs: mockFs{
+				fs: func() Fs {
+					fs := afero.NewMemMapFs()
+					if err := fs.MkdirAll("dir", 0777); err != nil {
+						panic(err)
+					}
+					return fs
+				}(),
+				errOpen: errMockFs, // as if can't read entries; bad permissions?
+			},
+			dir: "dir",
+			ok:  false,
+		},
+		{
+			// file exists but is not a dir
+			fs:  touch("notdir"),
+			dir: "notdir",
+			ok:  false,
+		},
+	}
+
+	for i, c := range cases {
+		_, err := filepaths(c.dir, c.fs)
+		ok := err == nil
+		if ok != c.ok {
+			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
+		}
+	}
+}
+
+func oneFile(path string) Fs {
+	fs := afero.NewMemMapFs()
+	if err := fs.Mkdir(path, 0777); err != nil {
+		panic(err)
+	}
+	if err := fsutil.WriteFile(fs.OpenFile, path+"/file", []byte("{}")); err != nil {
+		panic(err)
+	}
+	return fs
+}
+
+func TestMessageLoader(t *testing.T) {
+	cases := []struct {
+		fs  Fs
+		dir string
+		ok  bool
+	}{
+		{fs: touch("notdir"), dir: "notdir", ok: false},
+		{fs: oneFile("dir"), dir: "dir", ok: true},
+	}
+
+	for i, c := range cases {
+		l := NewMessageLoader(c.dir, c.fs)
+		m := <-l.Output()
+		ok := m.Error == ""
+		if ok != c.ok {
+			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, m.Error)
+		}
+	}
+}
+
+func TestSize(t *testing.T) {
+	cases := []struct {
+		dir string
+		fs  Fs
+		ok  bool
+	}{
+		{dir: "notdir", fs: touch("notdir"), ok: false},
+		{dir: "dir", fs: oneFile("dir"), ok: true},
+	}
+
+	for i, c := range cases {
+		_, err := size(c.dir, c.fs)
+		ok := err == nil
+		if ok != c.ok {
+			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
+		}
+	}
+}
+
+func TestChannels(t *testing.T) {
+	cfg := make(chan *int64)
+	p := NewPersistor("", afero.NewMemMapFs(), cfg)
+	defer close(p.done)
+	var l int64 = 42
+	cfg <- &l
+	if lim := <-p.currentLimit; lim != &l {
+		t.Fail()
+	}
+}
+
+func TestCreateMessage(t *testing.T) {
+	cases := []struct {
+		fs  Fs
+		dir string
+		ok  bool
+	}{
+		{fs: touch("notdir"), dir: "notdir", ok: false},
+		{fs: afero.NewMemMapFs(), dir: "", ok: true},
+	}
+
+	for i, c := range cases {
+		p := NewPersistor(c.dir, c.fs, nil)
+		err := p.CreateMessage(&Message{})
+		ok := err == nil
+		if ok != c.ok {
+			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
+		}
+		close(p.done)
 	}
 }
