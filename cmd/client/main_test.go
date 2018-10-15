@@ -25,6 +25,16 @@ type mockExec struct {
 	decoder      *json.Decoder
 }
 
+func newMockExec() *mockExec {
+	return &mockExec{
+		agentVersion: "agentVersion",
+		checksum:     "checksum",
+		appLogs:      strings.NewReader("appLogs\n"),
+		agentData:    bytes.NewBufferString(`{"type":"profile","data":{}}`),
+		decoder:      nil, // dynamically initialized
+	}
+}
+
 func (m mockExec) CheckSum() string         { return m.checksum }
 func (mockExec) Run() error                 { return nil }
 func (mockExec) Connect() error             { return nil }
@@ -79,6 +89,8 @@ func (p *mockProducer) Serve(src broker.MessageSource) {
 }
 
 func TestClient(t *testing.T) {
+	e := newMockExec()
+
 	c := client{
 		msgPath:      ".auklet/message",
 		limPersistor: &message.MemPersistor{},
@@ -93,13 +105,6 @@ func TestClient(t *testing.T) {
 				},
 			},
 		},
-		exec: &mockExec{
-			agentVersion: "agentVersion",
-			checksum:     "checksum",
-			appLogs:      strings.NewReader("appLogs\n"),
-			agentData:    bytes.NewBufferString(`{"type":"profile","data":{}}`),
-			decoder:      nil, // dynamically initialized
-		},
 		userVersion: "userVersion",
 		username:    "username",
 		appID:       "appID",
@@ -107,7 +112,17 @@ func TestClient(t *testing.T) {
 		producer:    &mockProducer{},
 		fs:          afero.NewMemMapFs(),
 	}
-	if err := c.run(); err != nil {
+
+	if err := c.run(e); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDumper(t *testing.T) {
+	e := newMockExec()
+
+	var d dumper
+	if err := d.run(e); err != nil {
 		t.Error(err)
 	}
 }

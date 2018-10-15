@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+func init() {
+	log.SetFlags(log.Lmicroseconds | log.LstdFlags)
+}
+
 var errorLogger = log.New(os.Stdout, "", log.Lmicroseconds|log.LstdFlags)
 
 // Print prints to the logger as in the manner of fmt.Print.

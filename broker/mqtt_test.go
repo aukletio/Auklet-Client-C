@@ -42,26 +42,28 @@ func TestConnect(t *testing.T) {
 
 	errConn := errors.New("connect error")
 	cases := []struct {
-		wait   func(token) error
-		expect error
+		wait func(token) error
+		ok   bool
 	}{
 		{
-			wait:   func(token) error { return nil },
-			expect: nil,
+			wait: func(token) error { return nil },
+			ok:   true,
 		}, {
-			wait:   func(token) error { return errConn },
-			expect: errConn,
+			wait: func(token) error { return errConn },
+			ok:   false,
 		},
 	}
 
 	creds := new(api.Credentials)
 	for i, c := range cases {
 		wait = c.wait
-		if _, err := NewMQTTProducer(Config{
+		_, err := NewMQTTProducer(Config{
 			Creds:  creds,
 			Client: klient{},
-		}); err != c.expect {
-			t.Errorf("case %v: expected %v, got %v", i, c.expect, err)
+		})
+		ok := err == nil
+		if ok != c.ok {
+			t.Errorf("case %v: expected %v, got %v: %v", i, c.ok, ok, err)
 		}
 	}
 }

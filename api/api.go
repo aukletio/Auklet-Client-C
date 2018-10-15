@@ -61,7 +61,7 @@ func (a API) Release(checksum string) error {
 	req.Header.Add("Authorization", "JWT "+a.Key)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("checking release %v: %v", checksum, err)
 	}
 	if resp.StatusCode != 200 {
 		return errNotReleased{checksum}
@@ -84,7 +84,7 @@ func (a API) Certificates() (*tls.Config, error) {
 	req.Header.Add("Authorization", "JWT "+a.Key)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting certificates: %v", err)
 	}
 	if resp.StatusCode != 200 {
 		return nil, errStatus{resp}
@@ -134,7 +134,7 @@ func (a API) credentials() (*Credentials, error) {
 	req.Header.Add("Authorization", "JWT "+a.Key)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting broker credentials: %v", err)
 	}
 	if resp.StatusCode != 201 {
 		return nil, errStatus{resp}
@@ -226,7 +226,7 @@ func (a API) BrokerAddress() (string, error) {
 	req.Header.Add("Authorization", "JWT "+a.Key)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("getting broker address: %v", err)
 	}
 	if resp.StatusCode != 200 {
 		return "", errStatus{resp}
@@ -268,7 +268,7 @@ func (a API) DataLimit() (*DataLimit, error) {
 	req.Header.Add("Authorization", "JWT "+a.Key)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting data limit configuration: %v", err)
 	}
 	if resp.StatusCode != 200 {
 		return nil, errStatus{resp}

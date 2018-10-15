@@ -59,6 +59,7 @@ func NewConfig(api API) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	log.Printf("broker address: %v", addr)
 
 	certs, err := api.Certificates()
 	if err != nil {
@@ -83,7 +84,7 @@ func NewConfig(api API) (Config, error) {
 func NewMQTTProducer(cfg Config) (*MQTTProducer, error) {
 	c := cfg.Client
 	if err := wait(c.Connect()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("connecting to broker: %v", err)
 	}
 	log.Print("producer: connected")
 	return &MQTTProducer{
@@ -111,7 +112,7 @@ func (p MQTTProducer) Serve(in MessageSource) {
 
 	for msg := range in.Output() {
 		if err := wait(p.c.Publish(topic[msg.Topic], 1, false, []byte(msg.Bytes))); err != nil {
-			errorlog.Print("producer:", err)
+			errorlog.Print("publishing to broker:", err)
 			continue
 		}
 		log.Printf("producer: sent %+q", msg.Bytes)

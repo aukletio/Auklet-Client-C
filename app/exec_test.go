@@ -49,9 +49,6 @@ func TestExec(t *testing.T) {
 		expect string
 	}{
 		{
-			given:  "ls",
-			expect: "open ls: no such file or directory",
-		}, {
 			given:  "testdata/ls",
 			expect: "",
 		},
