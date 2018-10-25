@@ -34,13 +34,16 @@ If you want to build `client` on Mac OS X, you can install `dep` via
 Homebrew by running `brew install dep`, or by changing the above `curl` command
 to download `dep-darwin-amd64`.
 
-After cloning this repo and setting up your Go environment, run this command to enable pre-commit gofmt checking: `git config core.hookspath .githooks`.
+After cloning this repo and setting up your Go environment, run this
+command to enable pre-commit gofmt checking: `git config core.hookspath
+.githooks`.
 
 # Development Tools
 
-`autobuild` is an optional script that can be run in a separate terminal window.
-When source files change, it runs `go install ./cmd/client`, allowing the developer to find
-compile-time errors immediately without needing an IDE.
+`autobuild` is an optional script that can be run in a separate terminal
+window.  When source files change, it runs `go install ./cmd/client`,
+allowing the developer to find compile-time errors immediately without
+needing an IDE.
 
 `autobuild` requires [entr](http://www.entrproject.org/).
 
@@ -95,19 +98,12 @@ which are controlled by dedicated environment variables. To enable a logging
 level, set its environment variable to `true`. To disable it, `unset` the
 variable.
 
-`AUKLET_LOG_ERRORS=true` logs any unexpected but recoverable errors, including but
-not limited to
+`AUKLET_LOG_ERRORS=true` logs any unexpected but recoverable errors,
+such as encoding, filesystem, and network protocol errors.
 
-- encoding errors
-- unexpected HTTP responses
-- insufficient filesystem permissions
-
-`AUKLET_LOG_INFO=true` logs significant information or events, including but not
-limited to
-
-- Kafka broker list
-- remotely acquired configuraton parameters
-- production of Kafka messages
+`AUKLET_LOG_INFO=true` logs significant information or events, such
+as broker addresses, remotely acquired configuraton parameters, and
+production of messages.
 
 # Assign a Configuration
 

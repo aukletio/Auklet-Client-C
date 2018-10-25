@@ -9,29 +9,23 @@ import (
 
 // PeriodicRequester periodically sends emission requests over a connection.
 type PeriodicRequester struct {
-	conf chan int  // provides the period in seconds
-	conn io.Writer // the connection on which to emit requests
+	conf <-chan int // provides the period in seconds; should never be closed
+	conn io.Writer  // the connection on which to emit requests
 	out  chan broker.Message
 	done <-chan struct{} // cancellation requests
 }
 
 // NewPeriodicRequester creates a PeriodicRequester that sends requests over
 // conn. When done closes, the requester closes its output and terminates.
-func NewPeriodicRequester(conn io.Writer, done <-chan struct{}) PeriodicRequester {
+func NewPeriodicRequester(conn io.Writer, done <-chan struct{}, conf <-chan int) PeriodicRequester {
 	r := PeriodicRequester{
-		conf: make(chan int),
+		conf: conf,
 		conn: conn,
 		out:  make(chan broker.Message),
 		done: done,
 	}
 	go r.run()
 	return r
-}
-
-// Configure returns a channel on which the request period in seconds can be
-// set.
-func (r PeriodicRequester) Configure() chan<- int {
-	return r.conf
 }
 
 // Output returns r's output channel, which might generate an error message.

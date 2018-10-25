@@ -34,7 +34,16 @@ func TestServer(t *testing.T) {
 				Data:  []byte(`"hello, world"`),
 				Error: "",
 			},
-		}, {
+		},
+		{
+			input: []byte(`{"type":"event","data":"hello, world"}`),
+			expect: Message{
+				Type:  "event",
+				Data:  []byte(`"hello, world"`),
+				Error: "",
+			},
+		},
+		{
 			input: []byte(`{"malformed`),
 			expect: Message{
 				Type:  "log",

@@ -1,208 +1,305 @@
 package main
 
 import (
-	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gobuffalo/packr"
+	"github.com/spf13/afero"
 
 	"github.com/ESG-USA/Auklet-Client-C/agent"
-	"github.com/ESG-USA/Auklet-Client-C/api"
+	backend "github.com/ESG-USA/Auklet-Client-C/api"
 	"github.com/ESG-USA/Auklet-Client-C/app"
 	"github.com/ESG-USA/Auklet-Client-C/broker"
 	"github.com/ESG-USA/Auklet-Client-C/config"
+	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/errorlog"
 	"github.com/ESG-USA/Auklet-Client-C/message"
 	"github.com/ESG-USA/Auklet-Client-C/schema"
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
 
-var (
-	userVersion  string
-	viewLicenses bool
-)
-
-func init() {
-	log.SetFlags(log.Lmicroseconds)
-	flag.StringVar(&userVersion, "version", "", "user-defined version string")
-	flag.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
-}
-
 func main() {
-	flag.Parse()
-	if viewLicenses {
-		licenses()
-		return
+	flags := flag.NewFlagSet("", flag.ContinueOnError)
+	flags.SetOutput(os.Stdout)
+	flags.Usage = func() {
+		fmt.Printf("Usage of %v:\n", os.Args[0])
+		fmt.Println("All non-flag arguments are treated as a command to run.")
+		flags.PrintDefaults()
+	}
+	var (
+		userVersion  string
+		viewLicenses bool
+		noNetwork    bool
+	)
+	flags.StringVar(&userVersion, "version", "", "user-defined version string")
+	flags.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
+	flags.BoolVar(&noNetwork, "no-network", false, "disable network communication")
+	if err := flags.Parse(os.Args[1:]); err != nil {
+		log.Fatal(err)
 	}
 
-	args := flag.Args()
-	if len(args) == 0 {
-		usage()
+	if viewLicenses {
+		licenses()
+		os.Exit(0)
+	}
+
+	if len(flags.Args()) == 0 {
+		flags.Usage()
 		os.Exit(1)
 	}
 
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
-	cfg := getConfig()
-	api.BaseURL = cfg.BaseURL
-	if !cfg.LogInfo {
-		log.SetOutput(ioutil.Discard)
-	}
-	if !cfg.LogErrors {
-		errorlog.SetOutput(ioutil.Discard)
-	}
-	exec, err := app.NewExec(args[0], args[1:]...)
+	e, err := app.NewExec(flags.Args()[0], flags.Args()[1:]...)
 	if err != nil {
 		log.Fatal(err)
 	}
-	c := &client{
-		exec:        exec,
-		userVersion: userVersion,
+
+	// choose pipeline type
+	var pipeline interface {
+		run(exec) error
 	}
-	c.run()
+
+	switch noNetwork {
+	case true:
+		pipeline = dumper{}
+	case false:
+		pipeline, err = newclient(userVersion)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if err := pipeline.run(e); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func usage() {
-	fmt.Printf("usage: %v command [args ...]\n", os.Args[0])
-	fmt.Printf("view OSS licenses: %v -licenses\n", os.Args[0])
+func configureLogs(env config.Getenv) {
+	if !env.LogInfo() {
+		log.SetOutput(ioutil.Discard)
+	}
+	if !env.LogErrors() {
+		errorlog.SetOutput(ioutil.Discard)
+	}
 }
 
 func licenses() {
-	licensesBox := packr.NewBox("./licenses")
-	licenses := licensesBox.List()
+	box := packr.NewBox("./licenses")
 	// Print the Auklet license first, then iterate over all the others.
 	format := "License for %v\n-------------------------\n%v"
-	fmt.Printf(format, "Auklet Client", licensesBox.String("LICENSE"))
-	for _, l := range licenses {
+	fmt.Printf(format, "Auklet Client", box.String("LICENSE"))
+	for _, l := range box.List() {
 		if l != "LICENSE" {
-			ownerName := strings.Split(l, "--")
-			fmt.Printf("\n\n\n")
-			header := fmt.Sprintf("package: %v/%v", ownerName[0], ownerName[1])
-			fmt.Printf(format, header, licensesBox.String(l))
+			header := "package: " + strings.Replace(l, "--", "/", 1)
+			fmt.Printf("\n\n\n"+format, header, box.String(l))
 		}
 	}
 }
 
-func getConfig() config.Config {
-	if version.Version == "local-build" {
-		return config.LocalBuild()
+type exec interface {
+	schema.ExitSignalApp
+	Connect() error
+	Run() error
+	AgentData() io.ReadWriter
+	Decoder() *json.Decoder
+	AppLogs() io.Reader
+}
+
+type dumper struct{}
+
+func (dumper) run(e exec) error {
+	if err := e.Connect(); err != nil {
+		return err
 	}
-	return config.ReleaseBuild()
+
+	server := agent.NewServer(e.AgentData(), e.Decoder())
+	logger := agent.NewLogger(e.AppLogs())
+	agent.NewPeriodicRequester(e.AgentData(), server.Done, nil)
+	for m := range agent.Merge(server, logger).Output() {
+		// dump the contents
+		fmt.Printf(`type: %v
+data: %v
+error: %v
+
+`, m.Type, string(m.Data), m.Error)
+	}
+	return nil
 }
 
 type client struct {
-	creds       *api.Credentials
-	certs       *tls.Config
-	addr        string
-	exec        *app.Exec
+	msgPath      string // directory for storing unsent messages
+	limPersistor message.Persistor
+	api          interface {
+		dataLimiter
+		Release(string) error
+	}
 	userVersion string
+	username    string
+	appID       string
+	macHash     string
+	producer    interface{ Serve(broker.MessageSource) }
+	fs          broker.Fs
 }
 
-func (c *client) run() {
-	if err := api.Do(api.Release{c.exec.CheckSum()}); err != nil {
+func selectPrefix(fs afero.Fs, env config.Getenv) (string, error) {
+	prefixes := []string{
+		"./",              // pwd
+		env("HOME") + "/", // $HOME
+	}
+	for _, prefix := range prefixes {
+		if err := fs.MkdirAll(prefix+".auklet", 0777); err == nil {
+			return prefix, nil
+		}
+	}
+	return afero.TempDir(fs, "", "auklet-")
+}
+
+func newclient(userVersion string) (*client, error) {
+	env := config.OS
+	fs := afero.NewOsFs()
+
+	prefix, err := selectPrefix(fs, env)
+	if err != nil {
+		errorlog.Print(err)
+	} else {
+		log.Printf("selected prefix %q", prefix)
+	}
+
+	appID := env.AppID()
+	macHash := device.IfaceHash()
+
+	api := backend.API{
+		BaseURL: env.BaseURL(version.Version),
+		Key:     env.APIKey(),
+		AppID:   appID,
+		MacHash: macHash,
+
+		CredsPath: prefix + ".auklet/identification",
+		Fs:        fs,
+
+		ReleasesEP:     backend.ReleasesEP,
+		CertificatesEP: backend.CertificatesEP,
+		DevicesEP:      backend.DevicesEP,
+		ConfigEP:       backend.ConfigEP,
+		DataLimitEP:    backend.DataLimitEP,
+	}
+
+	cfg, err := broker.NewConfig(api)
+	if err != nil {
+		return nil, err
+	}
+
+	producer, err := broker.NewMQTTProducer(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	configureLogs(env)
+	return &client{
+		msgPath:      prefix + ".auklet/message",
+		limPersistor: message.FilePersistor{Path: prefix + ".auklet/datalimit.json"},
+		api:          api,
+		userVersion:  userVersion,
+		appID:        appID,
+		macHash:      macHash,
+		producer:     producer,
+		fs:           fs,
+	}, nil
+}
+
+func (c *client) run(exec exec) error {
+	err := c.api.Release(exec.CheckSum())
+	if err != nil {
 		errorlog.Print(err)
 		// not released. Start the app, but don't serve it.
-		if err := c.exec.Start(); err != nil {
-			log.Fatal(err)
-		}
-		c.exec.Wait()
-		return
+		return exec.Run()
 	}
 
-	if err := c.exec.AddSockets(); err != nil {
-		log.Fatal(err)
+	if c.producer == nil {
+		return nil
 	}
 
-	if err := c.exec.Start(); err != nil {
-		log.Fatal(err)
+	if err := exec.Connect(); err != nil {
+		return err
 	}
 
-	if err := c.exec.GetAgentVersion(); err != nil {
-		log.Fatal(err)
-	}
+	cfg := pollConfig(c.api) // dataLimiter
 
-	if !c.prepare() {
-		return
-	}
+	// main source of messages
+	server := agent.NewServer(exec.AgentData(), exec.Decoder())
 
-	c.runPipeline()
+	c.producer.Serve(
+		message.NewDataLimiter(
+			c.limPersistor,
+			cfg.limiter,
+			schema.NewConverter(
+				schema.Config{
+					Monitor:     device.NewMonitor(),
+					Persistor:   broker.NewPersistor(c.msgPath, c.fs, cfg.persistor),
+					App:         exec, // schema.ExitSignalApp
+					Username:    c.username,
+					UserVersion: c.userVersion,
+					AppID:       c.appID,
+					MacHash:     c.macHash,
+				},
+				server,
+				agent.NewLogger(exec.AppLogs()),
+			),
+			broker.NewMessageLoader(c.msgPath, c.fs),
+			agent.NewPeriodicRequester(
+				exec.AgentData(),
+				server.Done,
+				cfg.requester,
+			),
+		),
+	)
+	return nil
 }
 
-func (c *client) prepare() bool {
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		creds, err := api.GetCredentials(".auklet/identification")
-		if err != nil {
-			// TODO: send this over MQTT
-			errorlog.Print(err)
-		}
-		c.creds = creds
-	}()
-	go func() {
-		defer wg.Done()
-		addr := new(api.BrokerAddress)
-		if err := api.Do(addr); err != nil {
-			// TODO: send this over MQTT
-			errorlog.Print(err)
-		}
-		c.addr = addr.Address
-	}()
-	go func() {
-		defer wg.Done()
-		certs := new(api.Certificates)
-		if err := api.Do(certs); err != nil {
-			// TODO: send this over MQTT
-			errorlog.Print(err)
-		}
-		c.certs = certs.TLSConfig
-	}()
-	wg.Wait()
-	return c.addr != "" && c.certs != nil && c.creds != nil
+type dataLimiter interface {
+	DataLimit() (*backend.DataLimit, error)
 }
 
-func (c *client) runPipeline() {
-	dir := ".auklet/message"
+type configChans struct {
+	requester chan int
+	limiter   chan backend.CellularConfig
+	persistor chan *int64
+}
 
-	producer, err := broker.NewMQTTProducer(c.addr, c.certs, c.creds)
-	if err != nil {
-		log.Fatal(err)
+// pollConfig periodically polls the backend for data-limiting parameters and
+// sends them on its output channels.
+func pollConfig(api dataLimiter) configChans {
+	c := configChans{
+		requester: make(chan int, 1),
+		limiter:   make(chan backend.CellularConfig, 1),
+		persistor: make(chan *int64, 1),
 	}
 
-	persistor := broker.NewPersistor(dir)
-	loader := broker.NewMessageLoader(dir)
-	logger := agent.NewLogger(c.exec.AppLogs)
-	server := agent.NewServer(c.exec.AgentData, c.exec.Decoder)
-	agentMessages := agent.NewMerger(logger, server)
-	converter := schema.NewConverter(agentMessages, persistor, c.exec, c.creds.Username, c.userVersion)
-	requester := agent.NewPeriodicRequester(c.exec.AgentData, server.Done)
-	merger := message.NewMerger(converter, loader, requester)
-	limiter := message.NewDataLimiter(merger, message.FilePersistor{".auklet/datalimit.json"})
-
-	pollConfig := func() {
+	go func() {
 		poll := func() {
-			dl := new(api.DataLimit)
-			if err := api.Do(dl); err != nil {
-				// TODO: send this over MQTT
+			dl, err := api.DataLimit()
+			if err != nil {
 				errorlog.Print(err)
 				return
 			}
-			go func() { requester.Configure() <- dl.EmissionPeriod }()
-			go func() { limiter.Conf <- dl.Cellular }()
+			c.persistor <- dl.Storage
+			c.requester <- dl.EmissionPeriod
+			c.limiter <- dl.Cellular
 		}
+
 		poll()
 		for _ = range time.Tick(time.Hour) {
 			poll()
 		}
-	}
-	go pollConfig()
+	}()
 
-	producer.Serve(limiter)
+	return c
 }

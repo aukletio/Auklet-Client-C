@@ -6,7 +6,6 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/config"
 	"github.com/ESG-USA/Auklet-Client-C/device"
 	"github.com/ESG-USA/Auklet-Client-C/version"
 )
@@ -30,12 +29,12 @@ func nowMilli() int64 {
 
 func (c Converter) metadata() metadata {
 	return metadata{
-		Version:       c.userVersion,
-		Username:      c.username,
+		Version:       c.UserVersion,
+		Username:      c.Username,
 		ClientVersion: version.Version,
-		AgentVersion:  c.app.AgentVersion(),
-		AppID:         config.AppID(),
-		CheckSum:      c.app.CheckSum(),
+		AgentVersion:  c.App.AgentVersion(),
+		AppID:         c.AppID,
+		CheckSum:      c.App.CheckSum(),
 		IP:            device.CurrentIP(),
 		UUID:          uuid.NewV4().String(),
 		Time:          nowMilli(),
@@ -54,8 +53,8 @@ type appLog struct {
 func (c Converter) appLog(msg []byte) appLog {
 	return appLog{
 		metadata: c.metadata(),
-		MacHash:  device.MacHash,
-		Metrics:  device.GetMetrics(),
+		MacHash:  c.MacHash,
+		Metrics:  c.Monitor.GetMetrics(),
 		Message:  msg,
 	}
 }
@@ -108,9 +107,9 @@ func (c Converter) errorSig(data []byte) errorSig {
 		e.Error = err.Error()
 	}
 	e.metadata = c.metadata()
-	e.Status = c.app.ExitStatus()
-	e.MacHash = device.MacHash
-	e.Metrics = device.GetMetrics()
+	e.Status = c.App.ExitStatus()
+	e.MacHash = c.MacHash
+	e.Metrics = c.Monitor.GetMetrics()
 	return e
 }
 
@@ -128,9 +127,9 @@ type exit struct {
 func (c Converter) exit() exit {
 	return exit{
 		metadata: c.metadata(),
-		Status:   c.app.ExitStatus(),
-		Signal:   c.app.Signal(),
-		MacHash:  device.MacHash,
-		Metrics:  device.GetMetrics(),
+		Status:   c.App.ExitStatus(),
+		Signal:   c.App.Signal(),
+		MacHash:  c.MacHash,
+		Metrics:  c.Monitor.GetMetrics(),
 	}
 }

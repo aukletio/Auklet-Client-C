@@ -16,8 +16,8 @@ type Merger struct {
 	out chan Message
 }
 
-// NewMerger returns a Merger that merges the streams of each element in src.
-func NewMerger(src ...MessageSource) Merger {
+// Merge returns a Merger that merges the streams of each element in src.
+func Merge(src ...MessageSource) Merger {
 	m := Merger{
 		src: src,
 		out: make(chan Message),
