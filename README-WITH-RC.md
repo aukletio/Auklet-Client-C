@@ -1,5 +1,12 @@
 # Changelog
 
+### [0.13.0-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.13.0-rc.1)
+
+**Implemented enhancements:**
+
+- APM-1414 C/C++ Agent ASIL B Compliance - Add non-networked mode to facilitate agent testing [#82](https://github.com/ESG-USA/Auklet-Client-C/pull/82) ([kdsch](https://github.com/kdsch))
+- APM-1415 C/C++ Client ASIL B Compliance [#76](https://github.com/ESG-USA/Auklet-Client-C/pull/76) ([kdsch](https://github.com/kdsch))
+
 ## [0.12.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.12.1)
 
 ### [0.12.1-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.12.1-rc.1)
