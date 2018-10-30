@@ -1,174 +1,118 @@
+# Auklet for C
+
+<a href="https://www.apache.org/licenses/LICENSE-2.0" alt="Apache page link -- Apache 2.0 License">
+<img src="https://img.shields.io/pypi/l/auklet.svg" /></a>
+<a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/maintainability">
+<img src="https://api.codeclimate.com/v1/badges/5a96d367b192b3261b0003ce/maintainability" /></a>
+<a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/test_coverage" alt="Test Coverage">
+<img src="https://api.codeclimate.com/v1/badges/5a96d367b192b3261b0003ce/test_coverage" /></a>
+
+Auklet is a profiler for IoT and embedded Linux apps. Like conventional 
+benchtop C/C++ profilers, it is implemented as a library that you can link 
+your program against. Unlike benchtop profilers, it is meant to be run in 
+production and to continuously generate performance metrics. 
+
+
 # Auklet Client
 
+[auklet_site]: https://app.auklet.io
+[auklet_releaser]: https://github.com/aukletio/Auklet-Releaser-C
+
 Auklet's IoT client (`client`) is a command-line program that runs any program
-compiled with the Auklet agent and continuously sends live profile data to the
-Auklet backend. The client is built to run on any POSIX operating system. It has
-been validated on:
+compiled with the Auklet agent and continuously sends live profile data 
+viewable on the [Auklet website][auklet_site].
 
+## Device Requirements
+
+Auklet's IoT C/C++ agent is built to run on any POSIX operating system. It
+has been validated on:
+
+- Debian 8.6
+- Fedora 24
+- Linaro 4.4.23
+- OpenWRT 3.8.3
+- Rasbian Jessie 4.9.30 
+- Rasbian Stretch 4.14.71
 - Ubuntu 16.04
+- Yocto 2.2-r2
 
-# Go Setup
+Auklet has also been validated for the following CPU architectures:
 
-`client` needs at least Go 1.8 and [dep][godep] 0.3.2. See the
-[getting started page][gs] to download Go. Then see [How to Write Go Code -
-Organization][org] to set up your system.
+- ARM7
+- ARM64
+- MIPS
+- x86-64
 
-[godep]: https://github.com/golang/dep
-[gs]: https://golang.org/doc/install
-[org]: https://golang.org/doc/code.html#Organization
+Lastly, don't forget to ensure that your device is connected to the Internet.
 
-Conventionally, your `~/.profile` should contain the following:
 
-	export GOPATH=$HOME/go
-	export PATH=$PATH:$GOPATH/bin
+## Prerequisites
 
-The first line tells Go where your workspace is located. The second makes sure
-that the shell will know about executables built with `go install`.
+Before an application can send data to Auklet it needs to be integrated with 
+the Auklet library, **libauklet.a**, and then released to Auklet. See the 
+README for the [Auklet agent](https://github.com/aukletio/Auklet-Agent-C) for
+integration instructions, and the README for the 
+[Auklet releaser][auklet_releaser] for 
+releasing instructions.
 
-After setting up Go on your system, install `dep` by running:
+## Deploying Auklet
 
-	curl -L -s https://github.com/golang/dep/releases/download/v0.3.2/dep-linux-amd64 -o $GOPATH/bin/dep
-	chmod +x $GOPATH/bin/dep
+1. Download the client which matches the architecture of target devices
 
-If you want to build `client` on Mac OS X, you can install `dep` via
-Homebrew by running `brew install dep`, or by changing the above `curl` command
-to download `dep-darwin-amd64`.
+    ARM7
+   
+        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-arm-latest > Auklet-Client         
+     
+    ARM64
+    
+        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-arm64-latest > Auklet-Client    
+    
+    MIPS
+    
+        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips-latest > Auklet-Client
+    
+    MIPS64
+    
+        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips64-latest > Auklet-Client
+    
+    MIPS64le
+    
+        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips64le-latest > Auklet-Client
+    
+    MIPSle
+    
+        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mipsle-latest > Auklet-Client
+    
+    x86-64
+    
+        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-amd64-latest > Auklet-Client
 
-After cloning this repo and setting up your Go environment, run this
-command to enable pre-commit gofmt checking: `git config core.hookspath
-.githooks`.
+1. Send the following files to the target devices
+   - Application executable
+   - Auklet-Client
+   - A file with the Auklet environment variables (such as the **.env** file 
+   from the [Auklet releaser][auklet_releaser] setup)
 
-# Development Tools
+## Running with Auklet
 
-`autobuild` is an optional script that can be run in a separate terminal
-window.  When source files change, it runs `go install ./cmd/client`,
-allowing the developer to find compile-time errors immediately without
-needing an IDE.
+Before running the application, assign an Auklet configuration using the 
+Auklet environment variables sent to the device. For example
 
-`autobuild` requires [entr](http://www.entrproject.org/).
+    . .env
+*Note: You'll need to re-initialize your Auklet variables after a device is 
+rebooted.
+    
+**Auklet-Client** assumes that it is the parent process of your program, and 
+the instrument assumes that it is in the child process of the client. As 
+such, run the application through the Auklet-Client
 
-# Build
+        ./path/to/Auklet-client ./path/to/executable arg1 arg2...
 
-To ensure you have all the correct dependencies, run
-
-	dep ensure
-
-To build and install the client to `$GOPATH/bin`, run
-
-	go install ./cmd/client
-
-To run unit tests on the client, run
-
-	go test ./config
-
-# Configure
-
-An Auklet configuration is defined by the following environment variables.
-
-	AUKLET_APP_ID
-	AUKLET_API_KEY
-	AUKLET_BASE_URL
-	AUKLET_LOG_INFO
-	AUKLET_LOG_ERRORS
-
-To view your current configuration, run `env | grep AUKLET`.
-
-To make it easier to manage configurations, it is suggested to define the
-environment variables in a shell script named after the configuration; for
-example, `.env.staging`.
-
-	$ cat .env.staging
-	export AUKLET_APP_ID=5171dbff-c0ea-98ee-e70e-dd0af1f9fcdf
-	export AUKLET_API_KEY=SM49BAMCA0...
-	export AUKLET_LOG_INFO=true
-
-## Base URL
-
-`AUKLET_BASE_URL` defines the endpoint against which the client makes API calls.
-If not defined, the default production endpoint is used.
-
-Its format is a URL **without a trailing slash or path.** For example:
-
-	AUKLET_BASE_URL=https://api-staging.auklet.io
-
-## Console Logging
-
-Console logging to stdout is disabled by default. There are two logging levels,
-which are controlled by dedicated environment variables. To enable a logging
-level, set its environment variable to `true`. To disable it, `unset` the
-variable.
-
-`AUKLET_LOG_ERRORS=true` logs any unexpected but recoverable errors,
-such as encoding, filesystem, and network protocol errors.
-
-`AUKLET_LOG_INFO=true` logs significant information or events, such
-as broker addresses, remotely acquired configuraton parameters, and
-production of messages.
-
-# Assign a Configuration
-
-	. .env
-
-# Run an App
-
-To run an Auklet-enabled executable called `x` (an executable compiled with the
-Auklet agent and properly released using the Auklet releaser), run
-
-	client ./x
-
-## Runtime dependencies
-
-`client` assumes the following directory structure:
-
-	./.auklet/
-		datalimit.json
-		message/
-
-If this structure does not exist, it will be created.
-
-## Remote logging
-
-`client` opens an anonymous `SOCK_STREAM` Unix domain socket to which
-newline-delimited JSON messages can be written.  If `client` confirms that the
-executable has been released, the child process will inherit the socket as file
-descriptor 3. Otherwise, the child process will not inherit the file descriptor.
-Messages written to the socket are transported without checking for syntax
-errors and will be accessible via the user interface.
-
-Here's a C program demonstrating how to use the socket, assuming the compilation
-flags `-std=c99 -pedantic -D_POSIX_C_SOURCE=200809L`:
-
-	#include <fcntl.h>
-	#include <stdio.h>
-	#include <sys/stat.h>
-	#include <sys/types.h>
-	#include <unistd.h>
-
-	/* getAukletLogFD checks if file descriptor 3 is valid. If so, it
-	 * returns the file descriptor. Otherwise, it opens /dev/null and
-	 * returns its file descriptor. */
-	int
-	getAukletLogFD()
-	{
-		struct stat buf;
-		int fd = 3;
-		if (-1 == fstat(fd, &buf)
-			fd = open("/dev/null", O_WRONLY);
-		return fd;
-	}
-
-	int
-	main()
-	{
-		int logFD = getAukletLogFD();
-		dprintf(logFD, "{\"message\":\"hello, auklet\"}\n");
-		close(logFD);
-	}
-
-# Docker Setup
-
-1. Install Docker for Mac Beta.
-1. Build your environment with `docker-compose build`.
-1. To ensure you have all the correct dependencies, run `docker-compose run auklet dep ensure`.
-1. To build and install the client to `$GOPATH/bin`, run `docker-compose run auklet go install ./client`.
-1. To test the client, run `docker-compose run auklet go test ./client`.
+Auklet-Client assumes three other things: 
+- Auklet-Client assumes that it has permission to create files in ./.auklet
+- Auklet-Client assumes that the user running the Auklet integrated app has 
+permissions to read and write the current directory.
+- Auklet-Client assumes that it has Internet access.
+   
+And with that, you should be seeing live data for your application come into 
+the [Auklet website][auklet_site]! :-)
