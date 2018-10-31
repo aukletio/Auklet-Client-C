@@ -188,7 +188,7 @@ func (s serial) run(e exec) error {
 			return
 		}
 
-		if _, err = f.Write(b); err != nil {
+		if _, err = f.Write(append(b, []byte("\r\n")...)); err != nil {
 			log.Printf("could not write to %v: %v", s.addr, err)
 		}
 	}
