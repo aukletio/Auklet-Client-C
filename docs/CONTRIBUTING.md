@@ -10,7 +10,7 @@ with version 1.0.0 the following compliance levels are to be maintained:
 ## Submissions
 
 To submit code changes, please open a pull request that lists and explains all 
-changes.
+changes. Syntax should follow guidelines set in [https://suckless.org/coding_style/]().
 
 If you have found a bug please check the submitted issues. If you do not see 
 your issue listed please open a new issue and we will respond as quickly as 
@@ -128,44 +128,6 @@ Auklet agent and properly released using the Auklet releaser), run
 		message/
 
 If this structure does not exist, it will be created.
-
-## Remote logging
-
-`client` opens an anonymous `SOCK_STREAM` Unix domain socket to which
-newline-delimited JSON messages can be written.  If `client` confirms that the
-executable has been released, the child process will inherit the socket as file
-descriptor 3. Otherwise, the child process will not inherit the file descriptor.
-Messages written to the socket are transported without checking for syntax
-errors and will be accessible via the user interface.
-
-Here's a C program demonstrating how to use the socket:
-
-	#include <fcntl.h>
-	#include <stdio.h>
-	#include <sys/stat.h>
-	#include <sys/types.h>
-	#include <unistd.h>
-
-	/* getAukletLogFD checks if file descriptor 3 is valid. If so, it
-	 * returns the file descriptor. Otherwise, it opens /dev/null and
-	 * returns its file descriptor. */
-	int
-	getAukletLogFD()
-	{
-		struct stat buf;
-		int fd = 3;
-		if (-1 == fstat(fd, &buf)
-			fd = open("/dev/null", O_WRONLY);
-		return fd;
-	}
-
-	int
-	main()
-	{
-		int logFD = getAukletLogFD();
-		dprintf(logFD, "{\"message\":\"hello, auklet\"}\n");
-		close(logFD);
-	}
 
 ## Docker Setup
 

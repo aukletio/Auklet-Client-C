@@ -4,20 +4,32 @@
 <a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/maintainability"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/maintainability" /></a>
 <a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/test_coverage"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/test_coverage" /></a>
 
-Auklet is a profiler for IoT and embedded Linux apps. Like conventional 
-benchtop C/C++ profilers, it is implemented as a library that you can link 
-your program against. Unlike benchtop profilers, it is meant to be run in 
-production and to continuously generate performance metrics. 
+This is the official C agent for Auklet. It officially supports C
+and C++, and runs on most POSIX-based operating systems (Debian, 
+Ubuntu Core, Raspbian, QNX, etc).
 
-
-# Auklet Client
+## Features
 
 [auklet_site]: https://app.auklet.io
 [auklet_releaser]: https://github.com/aukletio/Auklet-Releaser-C
+[auklet_agent]: https://github.com/aukletio/Auklet-Agent-C
+[mail_auklet]: mailto:hello@auklet.io
 
-Auklet's IoT client (`client`) is a command-line program that runs any program
-compiled with the Auklet agent and continuously sends live profile data 
-viewable on the [Auklet website][auklet_site].
+- Automatic report of unhandled exceptions
+- Automatic Function performance issue reporting
+- Location, system architecture, and system metrics identification for all 
+issues
+- Ability to define data usage restriction
+
+## Compliance
+
+Auklet is an edge first application performance monitor; therefore, starting 
+with version 1.0.0 we maintain the following compliance levels:
+
+- Automotive Safety Integrity Level B (ASIL B)
+
+If there are additional compliances that your industry requires please 
+contact the team at [hello@auklet.io][mail_auklet].
 
 ## Device Requirements
 
@@ -47,69 +59,89 @@ Lastly, don't forget to ensure that your device is connected to the Internet.
 
 Before an application can send data to Auklet it needs to be integrated with 
 the Auklet library, **libauklet.a**, and then released to Auklet. See the 
-README for the [Auklet agent](https://github.com/aukletio/Auklet-Agent-C) for
-integration instructions, and the README for the 
-[Auklet releaser][auklet_releaser] for 
-releasing instructions.
+README for the [Auklet Agent][auklet_agent] for integration instructions, and
+the README for the [Auklet Releaser][auklet_releaser] for releasing 
+instructions.
 
-## Deploying Auklet
-
-1. Download the client which matches the architecture of target devices
-
-    ARM7
-   
-        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-arm-latest > Auklet-Client         
-     
-    ARM64
-    
-        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-arm64-latest > Auklet-Client    
-    
-    MIPS
-    
-        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips-latest > Auklet-Client
-    
-    MIPS64
-    
-        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips64-latest > Auklet-Client
-    
-    MIPS64le
-    
-        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips64le-latest > Auklet-Client
-    
-    MIPSle
-    
-        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mipsle-latest > Auklet-Client
-    
-    x86-64
-    
-        curl https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-amd64-latest > Auklet-Client
-
-1. Send the following files to the target devices
-   - Application executable
-   - Auklet-Client
-   - A file with the Auklet environment variables (such as the **.env** file 
-   from the [Auklet releaser][auklet_releaser] setup)
-
-## Running with Auklet
-
-Before running the application, assign an Auklet configuration using the 
-Auklet environment variables sent to the device. For example
-
-    . .env
-*Note: You'll need to re-initialize your Auklet variables after a device is 
-rebooted.
-    
-**Auklet-Client** assumes that it is the parent process of your program, and 
-the instrument assumes that it is in the child process of the client. As 
-such, run the application through the Auklet-Client
-
-        ./path/to/Auklet-client ./path/to/executable arg1 arg2...
-
-Auklet-Client assumes three other things: 
-- Auklet-Client assumes that it has permission to create files in ./.auklet
+The Auklet-Client assumes the following things: 
+- Auklet-Client assumes it is the parent process of your program.
+- Auklet-Client assumes that it has permission to create files in ./.auklet.
 - Auklet-Client assumes that the user running the Auklet integrated app has 
 permissions to read and write the current directory.
 - Auklet-Client assumes that it has Internet access.
+
+## Quickstart
+
+### Ready to Go Architectures
+
+If you don't see your architected listed, it doesn't mean we can't support it
+so please reach out to [hello@auklet.io][mail_auklet].
+
+- [ARM7](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-arm-latest)  
+- [ARM64](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-arm64-latest)
+- [MIPS](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips-latest)
+- [MIPS64](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips64-latest)
+- [MIPS64le](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mips64le-latest)    
+- [MIPSle](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-mipsle-latest)
+- [x86-64](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-amd64-latest)
+
+### Getting Started
+
+1. Download the appropriate client from the list above based on your 
+   architecture (contact us if your architecture isn't listed) and add it to 
+   your deployment package
+1. Follow the [C/C++ Agent Quickstart Guide][auklet_agent] to integrate the 
+   C/C++ agent that will monitor performance issues in your app and securely 
+   transmit the information to the client
+1. Configure the systems you are deploying your application to with the 
+   following environment variables (the same ones used with the [Auklet 
+   Releaser][auklet_releaser])
+   - AUKLET_APP_ID
+   - AUKLET_API_KEY
+1. Deploy your updated package and execute your application using the Auklet 
+   Client
+   
+        ./path/to/Auklet-Client ./path/to/executable
    
 And with that, you should be seeing live data for your application come into 
-the [Auklet website][auklet_site]! :-)
+the [Auklet website][auklet_site]!
+
+## Advanced Settings
+
+### Logging
+
+The Auklet-Client opens an anonymous `SOCK_STREAM` Unix domain socket to which
+newline-delimited JSON messages can be written.  If `Auklet-Client` confirms 
+that the executable has been released, the child process will inherit the 
+socket as file descriptor 3. Otherwise, the child process will not inherit 
+the file descriptor. Messages written to the socket are transported without 
+checking for syntax errors and will be accessible via the user interface.
+
+Here's a C program demonstrating how to use the socket:
+
+	#include <fcntl.h>
+	#include <stdio.h>
+	#include <sys/stat.h>
+	#include <sys/types.h>
+	#include <unistd.h>
+
+	/* getAukletLogFD checks if file descriptor 3 is valid. If so, it
+	 * returns the file descriptor. Otherwise, it opens /dev/null and
+	 * returns its file descriptor. */
+	int
+	getAukletLogFD()
+	{
+		struct stat buf;
+		int fd = 3;
+		if (-1 == fstat(fd, &buf))
+			fd = open("/dev/null", O_WRONLY);
+		return fd;
+	}
+
+	int
+	main()
+	{
+		int logFD = getAukletLogFD();
+		dprintf(logFD, "{\"message\":\"hello, auklet\"}\n");
+		close(logFD);
+	}
