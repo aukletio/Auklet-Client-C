@@ -134,6 +134,71 @@ error: %v
 	return nil
 }
 
+type serial struct {
+	userVersion string
+	appID       string
+	macHash     string
+	addr        string // address of serial device
+}
+
+func (s serial) run(e exec) error {
+	if err := e.Connect(); err != nil {
+		return err
+	}
+	server := agent.NewServer(e.AgentData(), e.Decoder())
+	logger := agent.NewLogger(e.AppLogs())
+	converter := schema.NewConverter(
+		schema.Config{
+			Monitor:     device.NewMonitor(),
+			Persistor:   nil,
+			App:         e, // schema.ExitSignalApp
+			Username:    "",
+			UserVersion: s.userVersion,
+			AppID:       s.appID,
+			MacHash:     s.macHash,
+			Encoding:    schema.JSON,
+		},
+		server,
+		logger,
+		agent.NewLogger(e.AppLogs()),
+	)
+	merger := message.Merge(
+		converter,
+		agent.NewPeriodicRequester(e.AgentData(), server.Done, nil),
+	)
+
+	tryWrite := func(msg broker.Message) {
+		f, err := os.Open(s.addr)
+		if err != nil {
+			log.Printf("could not open %v: %v", s.addr, err)
+			return
+		}
+		defer f.Close()
+
+		b, err := json.Marshal(struct {
+			Topic   string          `json:"topic"`
+			Payload json.RawMessage `json:"payload"`
+		}{
+			Topic:   fmt.Sprintf("c/%v/", msg.Topic),
+			Payload: msg.Bytes,
+		})
+
+		if err != nil {
+			log.Printf("could not serialize message: %v", err)
+			return
+		}
+
+		if _, err = f.Write(b); err != nil {
+			log.Printf("could not write to %v: %v", s.addr, err)
+		}
+	}
+
+	for msg := range merger.Output() {
+		tryWrite(msg)
+	}
+	return nil
+}
+
 type client struct {
 	msgPath      string // directory for storing unsent messages
 	limPersistor message.Persistor
@@ -249,6 +314,7 @@ func (c *client) run(exec exec) error {
 					UserVersion: c.userVersion,
 					AppID:       c.appID,
 					MacHash:     c.macHash,
+					Encoding:    schema.MsgPack,
 				},
 				server,
 				agent.NewLogger(exec.AppLogs()),
