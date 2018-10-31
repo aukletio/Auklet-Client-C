@@ -38,43 +38,45 @@ func main() {
 		userVersion  string
 		viewLicenses bool
 		noNetwork    bool
+		serialOut    string
 	)
 	flags.StringVar(&userVersion, "version", "", "user-defined version string")
+	flags.StringVar(&serialOut, "serial-out", "", "address of serial device to write JSON")
 	flags.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
 	flags.BoolVar(&noNetwork, "no-network", false, "disable network communication")
-	if err := flags.Parse(os.Args[1:]); err != nil {
-		log.Fatal(err)
-	}
 
-	if viewLicenses {
+	err := flags.Parse(os.Args[1:])
+	switch {
+	case err != nil:
+		log.Fatal(err)
+
+	case viewLicenses:
 		licenses()
 		os.Exit(0)
-	}
 
-	if len(flags.Args()) == 0 {
+	case len(flags.Args()) == 0:
 		flags.Usage()
 		os.Exit(1)
 	}
+
+	pipeline := func() interface{ run(exec) error } {
+		if serialOut != "" {
+			return newserial(serialOut, userVersion)
+		}
+		if noNetwork {
+			return dumper{}
+		}
+		p, err := newclient(userVersion)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return p
+	}()
 
 	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
 	e, err := app.NewExec(flags.Args()[0], flags.Args()[1:]...)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	// choose pipeline type
-	var pipeline interface {
-		run(exec) error
-	}
-
-	switch noNetwork {
-	case true:
-		pipeline = dumper{}
-	case false:
-		pipeline, err = newclient(userVersion)
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	if err := pipeline.run(e); err != nil {
@@ -140,6 +142,16 @@ type serial struct {
 	macHash     string
 	addr        string // address of serial device
 	fs          afero.Fs
+}
+
+func newserial(addr, userVersion string) serial {
+	return serial{
+		userVersion: userVersion,
+		appID:       config.OS.AppID(),
+		macHash:     device.IfaceHash(),
+		addr:        addr,
+		fs:          afero.NewOsFs(),
+	}
 }
 
 func (s serial) run(e exec) error {
