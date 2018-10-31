@@ -4,7 +4,7 @@
 <a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/maintainability"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/maintainability" /></a>
 <a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/test_coverage"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/test_coverage" /></a>
 
-This is the official C agent for Auklet. It officially supports C
+This is the official C client for Auklet. It officially supports C
 and C++, and runs on most POSIX-based operating systems (Debian, 
 Ubuntu Core, Raspbian, QNX, etc).
 
