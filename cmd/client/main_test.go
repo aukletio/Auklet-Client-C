@@ -138,11 +138,6 @@ func TestSerial(t *testing.T) {
 		addr:        addr,
 		fs:          afero.NewMemMapFs(),
 	}
-	if f, err := s.fs.Create(addr); err != nil {
-		t.Error(err)
-	} else {
-		f.Close()
-	}
 	if err := s.run(e); err != nil {
 		t.Error(err)
 	}
