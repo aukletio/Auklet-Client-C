@@ -59,6 +59,7 @@ type Config struct {
 // Encoding represents the serialization encoding.
 type Encoding int
 
+// These are the available encodings.
 const (
 	MsgPack Encoding = iota
 	JSON
