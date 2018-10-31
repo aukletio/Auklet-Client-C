@@ -139,6 +139,7 @@ type serial struct {
 	appID       string
 	macHash     string
 	addr        string // address of serial device
+	fs          afero.Fs
 }
 
 func (s serial) run(e exec) error {
@@ -168,7 +169,7 @@ func (s serial) run(e exec) error {
 	)
 
 	tryWrite := func(msg broker.Message) {
-		f, err := os.Open(s.addr)
+		f, err := s.fs.Open(s.addr)
 		if err != nil {
 			log.Printf("could not open %v: %v", s.addr, err)
 			return

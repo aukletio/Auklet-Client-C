@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -124,5 +125,44 @@ func TestDumper(t *testing.T) {
 	var d dumper
 	if err := d.run(e); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestSerial(t *testing.T) {
+	e := newMockExec()
+	addr := "serial-device"
+	s := serial{
+		userVersion: "userVersion",
+		appID:       "appID",
+		macHash:     "macHash",
+		addr:        addr,
+		fs:          afero.NewMemMapFs(),
+	}
+	if f, err := s.fs.Create(addr); err != nil {
+		t.Error(err)
+	} else {
+		f.Close()
+	}
+	if err := s.run(e); err != nil {
+		t.Error(err)
+	}
+	f, err := s.fs.Open(addr)
+	if err != nil {
+		t.Error(err)
+	}
+	defer f.Close()
+	line := bufio.NewScanner(f)
+	for line.Scan() {
+		var v interface{}
+		if err := json.Unmarshal(line.Bytes(), &v); err != nil {
+			t.Error()
+		}
+		m := v.(map[string]interface{})
+		if m["topic"] == "" {
+			t.Fail()
+		}
+		if m["payload"] == nil {
+			t.Fail()
+		}
 	}
 }
