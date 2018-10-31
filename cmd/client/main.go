@@ -159,7 +159,6 @@ func (s serial) run(e exec) error {
 		return err
 	}
 	server := agent.NewServer(e.AgentData(), e.Decoder())
-	logger := agent.NewLogger(e.AppLogs())
 	converter := schema.NewConverter(
 		schema.Config{
 			Monitor:     device.NewMonitor(),
@@ -172,7 +171,6 @@ func (s serial) run(e exec) error {
 			Encoding:    schema.JSON,
 		},
 		server,
-		logger,
 		agent.NewLogger(e.AppLogs()),
 	)
 	merger := message.Merge(
@@ -181,7 +179,7 @@ func (s serial) run(e exec) error {
 	)
 
 	tryWrite := func(msg broker.Message) {
-		f, err := s.fs.Open(s.addr)
+		f, err := s.fs.OpenFile(s.addr, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 		if err != nil {
 			log.Printf("could not open %v: %v", s.addr, err)
 			return
