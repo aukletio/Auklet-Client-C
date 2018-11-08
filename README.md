@@ -21,20 +21,14 @@ Ubuntu Core, Raspbian, QNX, etc).
 issues
 - Ability to define data usage restriction
 
-## Compliance
-
-Auklet is an edge first application performance monitor; therefore, starting 
-with version 1.0.0 we maintain the following compliance levels:
-
-- Automotive Safety Integrity Level B (ASIL B)
-
-If there are additional compliances that your industry requires please 
-contact the team at [hello@auklet.io][mail_auklet].
-
 ## Device Requirements
 
-Auklet's IoT C/C++ agent is built to run on any POSIX operating system. It
-has been validated on:
+Auklet's IoT C/C++ agent is built to run on any POSIX operating system. If 
+you don't see the OS or CPU architecture you are using for your application 
+listed below, and are wondering if Auklet will be compatible, please hit us 
+up at [hello@auklet.io][mail_auklet]. 
+
+Validated OSes:
 
 - Debian 8.6
 - Fedora 24
@@ -45,12 +39,12 @@ has been validated on:
 - Ubuntu 16.04
 - Yocto 2.2-r2
 
-Auklet has also been validated for the following CPU architectures:
+Validated CPU architectures:
 
+- x86-64
 - ARM7
 - ARM64
 - MIPS
-- x86-64
 
 Lastly, don't forget to ensure that your device is connected to the Internet.
 
