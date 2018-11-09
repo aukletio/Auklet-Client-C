@@ -23,12 +23,12 @@ issues
 
 ## Device Requirements
 
-Auklet's IoT C/C++ agent is built to run on any POSIX operating system. If 
+Auklet's C/C++ agent is built to run on any POSIX operating system. If 
 you don't see the OS or CPU architecture you are using for your application 
 listed below, and are wondering if Auklet will be compatible, please hit us 
 up at [hello@auklet.io][mail_auklet]. 
 
-Validated OSes:
+##### Validated OSes:
 
 - Debian 8.6
 - Fedora 24
@@ -39,15 +39,19 @@ Validated OSes:
 - Ubuntu 16.04
 - Yocto 2.2-r2
 
-Validated CPU architectures:
+##### Validated CPU architectures:
 
 - x86-64
 - ARM7
 - ARM64
 - MIPS
 
-Lastly, don't forget to ensure that your device is connected to the Internet.
-
+### Networking
+Auklet is built to work in network constrained environments. It can operate 
+while devices are not connected to the internet and then upload data once 
+connectivity is reestablished. Auklet can also work in non-IP based 
+environments as well. For assistance with getting Auklet running in a non-IP 
+based environment contact [hello@auklet.io][mail_auklet].
 
 ## Prerequisites
 
@@ -57,12 +61,10 @@ README for the [Auklet Agent][auklet_agent] for integration instructions, and
 the README for the [Auklet Releaser][auklet_releaser] for releasing 
 instructions.
 
-The Auklet-Client assumes the following things: 
+The Auklet-Client assumes two things: 
 - Auklet-Client assumes it is the parent process of your program.
-- Auklet-Client assumes that it has permission to create files in ./.auklet.
 - Auklet-Client assumes that the user running the Auklet integrated app has 
 permissions to read and write the current directory.
-- Auklet-Client assumes that it has Internet access.
 
 ## Quickstart
 
@@ -81,9 +83,8 @@ so please reach out to [hello@auklet.io][mail_auklet].
 
 ### Getting Started
 
-1. Download the appropriate client from the list above based on your 
-   architecture (contact us if your architecture isn't listed) and add it to 
-   your deployment package
+1. Download the appropriate client from the list above, based on your 
+   architecture, and add it to your deployment package
 1. Follow the [C/C++ Agent Quickstart Guide][auklet_agent] to integrate the 
    C/C++ agent that will monitor performance issues in your app and securely 
    transmit the information to the client
@@ -95,10 +96,10 @@ so please reach out to [hello@auklet.io][mail_auklet].
 1. Deploy your updated package and execute your application using the Auklet 
    Client
    
-        ./path/to/Auklet-Client ./path/to/executable
+        ./path/to/Auklet-Client ./path/to/<InsertYourApplication>
    
-And with that, you should be seeing live data for your application come into 
-the [Auklet website][auklet_site]!
+And with that, if an exception occurs when running your application, 
+information about it should appear on the [Auklet website][auklet_site]!
 
 ## Advanced Settings
 
