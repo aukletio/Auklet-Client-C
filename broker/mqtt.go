@@ -101,17 +101,10 @@ func (p MQTTProducer) Serve(in MessageSource) {
 		log.Print("producer: disconnected")
 	}()
 
-	topic := map[Topic]string{
-		Profile: "profiler",
-		Event:   "events",
-		Log:     "logs",
-	}
-	for k, v := range topic {
-		topic[k] = fmt.Sprintf("c/%v/%v/%v", v, p.org, p.id)
-	}
-
 	for msg := range in.Output() {
-		if err := wait(p.c.Publish(topic[msg.Topic], 1, false, []byte(msg.Bytes))); err != nil {
+		topic := fmt.Sprintf("c/%v/%v/%v", msg.Topic, p.org, p.id)
+		err := wait(p.c.Publish(topic, 1, false, msg.Bytes))
+		if err != nil {
 			errorlog.Print("publishing to broker:", err)
 			continue
 		}
