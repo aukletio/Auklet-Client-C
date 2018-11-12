@@ -4,7 +4,7 @@
 <a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/maintainability"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/maintainability" /></a>
 <a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/test_coverage"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/test_coverage" /></a>
 
-This is the official C client for Auklet. It officially supports C
+This is the C client for Auklet. It officially supports C
 and C++, and runs on most POSIX-based operating systems (Debian, 
 Ubuntu Core, Raspbian, QNX, etc).
 
@@ -16,10 +16,10 @@ Ubuntu Core, Raspbian, QNX, etc).
 [mail_auklet]: mailto:hello@auklet.io
 
 - Automatic crash reporting
-- Automatic Function performance issue reporting
+- Automatic function performance issue reporting
 - Location, system architecture, and system metrics identification for all 
 issues
-- Ability to define data usage restriction
+- Ability to define data usage restrictions
 
 ## Device Requirements
 
@@ -39,7 +39,7 @@ up at [hello@auklet.io][mail_auklet].
 - Ubuntu 16.04
 - Yocto 2.2-r2
 
-##### Validated CPU architectures:
+##### Validated CPU Architectures:
 
 - x86-64
 - ARM7
@@ -47,11 +47,11 @@ up at [hello@auklet.io][mail_auklet].
 - MIPS
 
 ### Networking
-Auklet is built to work in network constrained environments. It can operate 
+Auklet is built to work in network-constrained environments. It can operate 
 while devices are not connected to the internet and then upload data once 
-connectivity is reestablished. Auklet can also work in non-IP based 
-environments as well. For assistance with getting Auklet running in a non-IP 
-based environment contact [hello@auklet.io][mail_auklet].
+connectivity is reestablished. Auklet can also work in non-IP-based 
+environments as well. For assistance with getting Auklet running in a 
+non-IP-based environment contact [hello@auklet.io][mail_auklet].
 
 ## Prerequisites
 
@@ -61,16 +61,16 @@ README for the [Auklet Agent][auklet_agent] for integration instructions, and
 the README for the [Auklet Releaser][auklet_releaser] for releasing 
 instructions.
 
-The Auklet-Client assumes two things: 
-- Auklet-Client assumes it is the parent process of your program.
-- Auklet-Client assumes that the user running the Auklet integrated app has 
-permissions to read and write the current directory.
+The Auklet client assumes two things: 
+- It is the parent process of your program.
+- The user running the Auklet integrated app has permissions to read and 
+write the current directory.
 
 ## Quickstart
 
 ### Ready to Go Architectures
 
-If you don't see your architected listed, it doesn't mean we can't support it
+If you don't see your architected listed, it doesn't mean we can't support it,
 so please reach out to [hello@auklet.io][mail_auklet].
 
 - [ARM7](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-arm-latest)  
@@ -84,22 +84,20 @@ so please reach out to [hello@auklet.io][mail_auklet].
 ### Getting Started
 
 1. Download the appropriate client from the list above, based on your 
-   architecture, and add it to your deployment package
+   architecture, and add it to your deployment package.
 1. Follow the [C/C++ Agent Quickstart Guide][auklet_agent] to integrate the 
-   C/C++ agent that will monitor performance issues in your app and securely 
-   transmit the information to the client
-1. Configure the systems you are deploying your application to with the 
+   C/C++ agent.
+1. Configure the systems to which you are deploying to with the 
    following environment variables (the same ones used with the [Auklet 
-   Releaser][auklet_releaser])
-   - AUKLET_APP_ID
-   - AUKLET_API_KEY
+   Releaser][auklet_releaser]):
+   - `AUKLET_APP_ID`
+   - `AUKLET_API_KEY`
 1. Deploy your updated package and execute your application using the Auklet 
-   Client
+   client:
    
         ./path/to/Auklet-Client ./path/to/<InsertYourApplication>
    
-And with that, if an exception occurs when running your application, 
-information about it should appear on the [Auklet website][auklet_site]!
+And with that, Auklet is ready to go!
 
 ## Advanced Settings
 
@@ -109,8 +107,8 @@ The Auklet-Client opens an anonymous `SOCK_STREAM` Unix domain socket to which
 newline-delimited JSON messages can be written.  If `Auklet-Client` confirms 
 that the executable has been released, the child process will inherit the 
 socket as file descriptor 3. Otherwise, the child process will not inherit 
-the file descriptor. Messages written to the socket are transported without 
-checking for syntax errors and will be accessible via the user interface.
+the file descriptor. Messages written to the socket will be accessible via 
+the user interface.
 
 Here's a C program demonstrating how to use the socket:
 
