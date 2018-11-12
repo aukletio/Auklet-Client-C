@@ -17,13 +17,13 @@ import (
 // messages, plus a message persistence layer.
 
 // Topic encodes a Message topic.
-type Topic int
+type Topic string
 
 // Profile, Event, and Log are Message types.
 const (
-	Profile Topic = iota
-	Event
-	Log
+	Profile Topic = "profile"
+	Event         = "events"
+	Log           = "logs"
 )
 
 // Message represents a broker message.
