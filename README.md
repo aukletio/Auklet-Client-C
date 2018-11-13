@@ -4,9 +4,8 @@
 <a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/maintainability"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/maintainability" /></a>
 <a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/test_coverage"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/test_coverage" /></a>
 
-This is the C client for Auklet. It officially supports C
-and C++, and runs on most POSIX-based operating systems (Debian, 
-Ubuntu Core, Raspbian, QNX, etc).
+This is the C client for Auklet. It officially supports C and C++, and runs 
+on most POSIX-based operating systems (Debian, Ubuntu Core, Raspbian, QNX, etc).
 
 ## Features
 
@@ -23,7 +22,7 @@ issues
 
 ## Device Requirements
 
-Auklet's C/C++ agent is built to run on any POSIX operating system. If 
+Auklet's C/C++ client is built to run on any POSIX operating system. If 
 you don't see the OS or CPU architecture you are using for your application 
 listed below, and are wondering if Auklet will be compatible, please hit us 
 up at [hello@auklet.io][mail_auklet]. 
@@ -55,7 +54,7 @@ non-IP-based environment contact [hello@auklet.io][mail_auklet].
 
 ## Prerequisites
 
-Before an application can send data to Auklet it needs to be integrated with 
+Before an application can send data to Auklet, it needs to be integrated with 
 the Auklet library, **libauklet.a**, and then released to Auklet. See the 
 README for the [Auklet Agent][auklet_agent] for integration instructions, and
 the README for the [Auklet Releaser][auklet_releaser] for releasing 
@@ -103,8 +102,8 @@ And with that, Auklet is ready to go!
 
 ### Logging
 
-The Auklet-Client opens an anonymous `SOCK_STREAM` Unix domain socket to which
-newline-delimited JSON messages can be written.  If `Auklet-Client` confirms 
+The Auklet client opens an anonymous `SOCK_STREAM` Unix domain socket to which
+newline-delimited JSON messages can be written.  If the Auklet client confirms 
 that the executable has been released, the child process will inherit the 
 socket as file descriptor 3. Otherwise, the child process will not inherit 
 the file descriptor. Messages written to the socket will be accessible via 
