@@ -70,7 +70,7 @@ write the current directory.
 
 ### Ready to Go Architectures
 
-If you don't see your architected listed, it doesn't mean we can't support it,
+If you don't see your architecture listed, it doesn't mean we can't support it,
 so please reach out to [hello@auklet.io][mail_auklet].
 
 - [ARM7](https://s3.amazonaws.com/auklet/client/latest/auklet-client-linux-arm-latest)  
@@ -87,9 +87,9 @@ so please reach out to [hello@auklet.io][mail_auklet].
    architecture, and add it to your deployment package.
 1. Follow the [C/C++ Agent Quickstart Guide][auklet_agent] to integrate the 
    C/C++ agent.
-1. Configure the systems to which you are deploying to with the 
-   following environment variables (the same ones used with the [Auklet 
-   Releaser][auklet_releaser]):
+1. Configure the systems to which you are deploying with the following 
+   environment variables (the same ones used with the 
+   [Auklet    Releaser][auklet_releaser]):
    - `AUKLET_APP_ID`
    - `AUKLET_API_KEY`
 1. Deploy your updated package and execute your application using the Auklet 
