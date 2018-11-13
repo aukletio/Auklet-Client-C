@@ -18,7 +18,7 @@ your bug listed, please open a new issue, and we will respond as quickly as
 possible. 
 
 If you've found a security related bug, please do not create an issue or PR. 
-Instead, email our team directly at [hello@auklet.io](mailto:hello@auklet.io).
+Instead, email our team directly at [security@auklet.io](mailto:security@auklet.io).
 
 # Working on the Auklet C Client
 ## Go Setup
@@ -54,15 +54,15 @@ command to enable pre-commit gofmt checking: `git config core.hookspath
 
 ## Build
 
-To ensure you have all the correct dependencies, run
+To ensure you have all the correct dependencies, run:
 
 	dep ensure
 
-To build and install the client to `$GOPATH/bin`, run
+To build and install the client to `$GOPATH/bin`, run:
 
 	go install ./cmd/client
 
-To run unit tests on the client, run
+To run unit tests on the client, run:
 
 	go test ./config
 
@@ -107,7 +107,7 @@ production of messages.
 ## Run an App
 
 To run an Auklet-enabled executable called `x` (an executable compiled with the
-Auklet agent and properly released using the Auklet releaser), run
+Auklet agent and properly released using the Auklet releaser), run:
 
 	client ./x
 
