@@ -63,7 +63,7 @@ jobs:
                 name: Run Whitesource
                 command: |
                   set -ou pipefail
-                  if [[ ! -f ~/.localCircleBuild ]]; then
+                  if [[ ! -f ~/.localCircleBuild && ! -f ~/.prCircleBuild ]]; then
                     echo 'Initializing...'
                     export WHITESOURCE_PROJECT_NAME='Auklet-Client-C'
                     export WHITESOURCE_PROJECT_VERSION='1.0.0'
@@ -72,7 +72,7 @@ jobs:
                     node whitesource.js $(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
                     rm -rf node_modules package-lock.json
                   else
-                    echo 'This is a local build; skipping WhiteSource.'
+                    echo 'This is a local/PR build; skipping WhiteSource.'
                   fi
 
             ##
