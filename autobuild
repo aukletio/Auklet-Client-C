@@ -1,5 +1,0 @@
-#!/bin/sh
-# http://www.entrproject.org/
-while true; do
-	ls cmd/client/*.go | entr -dcs 'go install ./cmd/client';
-done
