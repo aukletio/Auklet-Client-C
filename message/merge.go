@@ -13,8 +13,8 @@ type Merger struct {
 	out chan broker.Message
 }
 
-// NewMerger returns a Merger that merges the streams of each element in src.
-func NewMerger(src ...broker.MessageSource) Merger {
+// Merge returns a Merger that merges the streams of each element in src.
+func Merge(src ...broker.MessageSource) Merger {
 	m := Merger{
 		src: src,
 		out: make(chan broker.Message, 10),
