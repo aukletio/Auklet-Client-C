@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/ESG-USA/Auklet-Client-C/fsutil"
+	"github.com/aukletio/Auklet-Client-C/fsutil"
 )
 
 var errMockFs = errors.New("filesystem error")

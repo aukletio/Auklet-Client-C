@@ -8,9 +8,9 @@ import (
 
 	"github.com/vmihailenco/msgpack"
 
-	"github.com/ESG-USA/Auklet-Client-C/agent"
-	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/device"
+	"github.com/aukletio/Auklet-Client-C/agent"
+	"github.com/aukletio/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/device"
 )
 
 // Converter converts a stream of agent.Message to a stream of broker.Message.

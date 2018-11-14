@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client-C/api"
-	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/api"
+	"github.com/aukletio/Auklet-Client-C/broker"
 )
 
 func TestEnsureFuture(t *testing.T) {

@@ -3,7 +3,7 @@ package message
 import (
 	"testing"
 
-	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/broker"
 )
 
 type channel chan broker.Message
