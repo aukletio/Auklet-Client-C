@@ -4,8 +4,14 @@
 
 **Implemented enhancements:**
 
+- APM-1667 C/C++ USB Communication Interface [#85](https://github.com/ESG-USA/Auklet-Client-C/pull/85) ([kdsch](https://github.com/kdsch))
+- 1.0.0 Documentation [#84](https://github.com/ESG-USA/Auklet-Client-C/pull/84) ([nchoch](https://github.com/nchoch))
 - APM-1414 C/C++ Agent ASIL B Compliance - Add non-networked mode to facilitate agent testing [#82](https://github.com/ESG-USA/Auklet-Client-C/pull/82) ([kdsch](https://github.com/kdsch))
 - APM-1415 C/C++ Client ASIL B Compliance [#76](https://github.com/ESG-USA/Auklet-Client-C/pull/76) ([kdsch](https://github.com/kdsch))
+
+**DevOps changes:**
+
+- Remove autobuild script [#87](https://github.com/ESG-USA/Auklet-Client-C/pull/87) ([rjenkinsjr](https://github.com/rjenkinsjr))
 
 ## [0.12.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.12.1)
 

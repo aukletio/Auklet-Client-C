@@ -1,5 +1,16 @@
 # Changelog
 
+### [0.13.0-rc.2](https://github.com/ESG-USA/Auklet-Client-C/tree/0.13.0-rc.2)
+
+**Implemented enhancements:**
+
+- APM-1667 C/C++ USB Communication Interface [#85](https://github.com/ESG-USA/Auklet-Client-C/pull/85) ([kdsch](https://github.com/kdsch))
+- 1.0.0 Documentation [#84](https://github.com/ESG-USA/Auklet-Client-C/pull/84) ([nchoch](https://github.com/nchoch))
+
+**DevOps changes:**
+
+- Remove autobuild script [#87](https://github.com/ESG-USA/Auklet-Client-C/pull/87) ([rjenkinsjr](https://github.com/rjenkinsjr))
+
 ### [0.13.0-rc.1](https://github.com/ESG-USA/Auklet-Client-C/tree/0.13.0-rc.1)
 
 **Implemented enhancements:**
