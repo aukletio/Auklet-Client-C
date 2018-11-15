@@ -19,6 +19,7 @@ fi
 go test -coverprofile=c.out ./...
 
 if [[ ! -f ~/.localCircleBuild ]]; then
+  CC_TEST_REPORTER_ID='58ce5dfca487d31f0ef060985a0bc0e5d038101df7b4695634eedb02b789d623'
   # Set -e is disabled momentarily to be able to output the error message to log.txt file.
   set +e
   ./cc-test-reporter after-build -r $CC_TEST_REPORTER_ID --coverage-input-type gocov --exit-code $? 2>&1 | tee exit_message.txt

@@ -7,8 +7,8 @@ import (
 
 	"github.com/eclipse/paho.mqtt.golang"
 
-	backend "github.com/ESG-USA/Auklet-Client-C/api"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	backend "github.com/aukletio/Auklet-Client-C/api"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 )
 
 // MQTTProducer wraps an MQTT Client.

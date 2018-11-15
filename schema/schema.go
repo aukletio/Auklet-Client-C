@@ -6,8 +6,8 @@ import (
 
 	"github.com/satori/go.uuid"
 
-	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/version"
+	"github.com/aukletio/Auklet-Client-C/device"
+	"github.com/aukletio/Auklet-Client-C/version"
 )
 
 type metadata struct {

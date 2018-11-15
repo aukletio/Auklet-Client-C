@@ -4,7 +4,7 @@ package config
 import (
 	"os"
 
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 )
 
 // Production defines the base URL for the production environment.

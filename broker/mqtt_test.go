@@ -7,7 +7,7 @@ import (
 
 	"github.com/eclipse/paho.mqtt.golang"
 
-	"github.com/ESG-USA/Auklet-Client-C/api"
+	"github.com/aukletio/Auklet-Client-C/api"
 )
 
 // The testing strategy is to mock mqtt.Client. This is done with the

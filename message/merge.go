@@ -3,7 +3,7 @@ package message
 import (
 	"sync"
 
-	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/broker"
 )
 
 // Merger is a broker.MessageSource that merges multiple other MessageSources
