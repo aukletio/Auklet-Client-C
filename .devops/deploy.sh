@@ -6,6 +6,7 @@ if [[ "$1" == "" ]]; then
 fi
 TARGET_ENV=$1
 VERSION="$(cat ~/.version)"
+VERSION_SIMPLE=$(cat VERSION | xargs | cut -f1 -d"+")
 export TIMESTAMP="$(date --rfc-3339=seconds | sed 's/ /T/')"
 if [[ "$TARGET_ENV" == "beta" ]]; then
   BASE_URL='https://api-staging.auklet.io'
@@ -45,7 +46,7 @@ do
     # We don't support ARM 5 or 6.
     export GOARM=7
   fi
-  GOARCH=$a go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-$a-$VERSION ./cmd/client
+  GOARCH=$a go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-$a-$VERSION_SIMPLE ./cmd/client
 done
 
 echo 'Installing AWS CLI...'
@@ -60,11 +61,11 @@ echo 'Uploading C client binaries to S3...'
 # Iterate over each file and upload it to S3.
 for f in ${PREFIX}-*; do
   # Upload to the internal bucket.
-  S3_LOCATION="s3://$S3_PREFIX/$VERSION/$f"
+  S3_LOCATION="s3://$S3_PREFIX/$VERSION_SIMPLE/$f"
   aws s3 cp $f $S3_LOCATION
   # Copy to the "latest" dir for production builds.
   if [[ "$TARGET_ENV" == "release" ]]; then
-    LATEST_NAME="${f/$VERSION/latest}"
+    LATEST_NAME="${f/$VERSION_SIMPLE/latest}"
     aws s3 cp $S3_LOCATION s3://$S3_PREFIX/latest/$LATEST_NAME
   fi
 done
