@@ -8,13 +8,6 @@ TARGET_ENV=$1
 VERSION="$(cat ~/.version)"
 VERSION_SIMPLE=$(cat VERSION | xargs | cut -f1 -d"+")
 export TIMESTAMP="$(date --rfc-3339=seconds | sed 's/ /T/')"
-if [[ "$TARGET_ENV" == "beta" ]]; then
-  BASE_URL='https://api-staging.auklet.io'
-elif [[ "$TARGET_ENV" == "rc" ]]; then
-  BASE_URL='https://api-qa.auklet.io'
-else
-  BASE_URL='https://api.auklet.io'
-fi
 
 echo 'Gathering license files for dependencies...'
 REPO_DIR=$(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
@@ -34,7 +27,7 @@ echo
 
 echo 'Compiling client for target architectures...'
 echo
-GO_LDFLAGS="-X github.com/aukletio/Auklet-Client-C/version.Version=$VERSION -X github.com/aukletio/Auklet-Client-C/version.BuildDate=$TIMESTAMP -X github.com/aukletio/Auklet-Client-C/config.StaticBaseURL=$BASE_URL"
+GO_LDFLAGS="-X github.com/aukletio/Auklet-Client-C/version.Version=$VERSION -X github.com/aukletio/Auklet-Client-C/version.BuildDate=$TIMESTAMP"
 PREFIX='auklet-client'
 S3_PREFIX='auklet/c/client'
 export GOOS=linux
