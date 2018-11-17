@@ -11,29 +11,29 @@ func TestBaseURL(t *testing.T) {
 	nonempty := func(string) string { return baseURL }
 
 	cases := []struct {
-		baseUrl string
+		baseURL string
 		getenv  Getenv
 		expect  string
 	}{
 		{
-			baseUrl: fromCliBaseURL,
+			baseURL: fromCliBaseURL,
 			getenv:  nonempty,
 			expect:  fromCliBaseURL,
 		},
 		{
-			baseUrl: "",
+			baseURL: "",
 			getenv:  nonempty,
 			expect:  baseURL,
 		},
 		{
-			baseUrl: "",
+			baseURL: "",
 			getenv:  empty,
 			expect:  Production,
 		},
 	}
 
 	for i, c := range cases {
-		got := c.getenv.BaseURL(c.baseUrl)
+		got := c.getenv.BaseURL(c.baseURL)
 		if got != c.expect {
 			t.Errorf("case %v: expected %v, got %v", i, c.expect, got)
 		}

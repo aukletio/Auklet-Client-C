@@ -35,13 +35,13 @@ func main() {
 		flags.PrintDefaults()
 	}
 	var (
-		baseUrl      string
+		baseURL      string
 		userVersion  string
 		viewLicenses bool
 		noNetwork    bool
 		serialOut    string
 	)
-	flags.StringVar(&baseUrl, "base-url", "", "Auklet API URL; do not change unless instructed by support")
+	flags.StringVar(&baseURL, "base-url", "", "Auklet API URL; do not change unless instructed by support")
 	flags.StringVar(&userVersion, "version", "", "user-defined version string")
 	flags.StringVar(&serialOut, "serial-out", "", "address of serial device to write JSON")
 	flags.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
@@ -68,7 +68,7 @@ func main() {
 		if noNetwork {
 			return dumper{}
 		}
-		p, err := newclient(userVersion, baseUrl)
+		p, err := newclient(userVersion, baseURL)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -240,7 +240,7 @@ func selectPrefix(fs afero.Fs, env config.Getenv) (string, error) {
 	return afero.TempDir(fs, "", "auklet-")
 }
 
-func newclient(userVersion string, baseUrl string) (*client, error) {
+func newclient(userVersion string, baseURL string) (*client, error) {
 	env := config.OS
 	fs := afero.NewOsFs()
 
@@ -255,7 +255,7 @@ func newclient(userVersion string, baseUrl string) (*client, error) {
 	macHash := device.IfaceHash()
 
 	api := backend.API{
-		BaseURL: env.BaseURL(baseUrl),
+		BaseURL: env.BaseURL(baseURL),
 		Key:     env.APIKey(),
 		AppID:   appID,
 		MacHash: macHash,
