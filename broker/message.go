@@ -21,7 +21,7 @@ type Topic string
 
 // Profile, Event, and Log are Message types.
 const (
-	Profile Topic = "profile"
+	Profile Topic = "profiler"
 	Event         = "events"
 	Log           = "logs"
 )
