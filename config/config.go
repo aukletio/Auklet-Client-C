@@ -16,9 +16,6 @@ type Getenv func(string) string
 // OS is the Getenv provided by the operating system.
 var OS Getenv = os.Getenv
 
-// StaticBaseURL is provided at compile-time; DO NOT MODIFY.
-var StaticBaseURL = ""
-
 // prefix is the prefix used by all Auklet environment variables.
 const prefix = "AUKLET_"
 
@@ -44,16 +41,16 @@ func (getenv Getenv) AppID() string {
 	return getenv.envar("APP_ID")
 }
 
-// BaseURL returns the base URL, as dependent on the version.
-func (getenv Getenv) BaseURL(version string) string {
-	if version == "local-build" {
-		url := getenv.envar("BASE_URL")
-		if url == "" {
-			return Production
-		}
+// BaseURL returns the base URL, as dependent on the CLI args or env vars.
+func (getenv Getenv) BaseURL(fromcli string) string {
+	if fromcli != "" {
+		return fromcli
+	}
+	url := getenv.envar("BASE_URL")
+	if url != "" {
 		return url
 	}
-	return StaticBaseURL
+	return Production
 }
 
 // LogErrors returns whether we should log errors.
