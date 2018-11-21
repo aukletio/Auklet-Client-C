@@ -14,16 +14,16 @@ import (
 	"github.com/gobuffalo/packr"
 	"github.com/spf13/afero"
 
-	"github.com/ESG-USA/Auklet-Client-C/agent"
-	backend "github.com/ESG-USA/Auklet-Client-C/api"
-	"github.com/ESG-USA/Auklet-Client-C/app"
-	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/config"
-	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
-	"github.com/ESG-USA/Auklet-Client-C/message"
-	"github.com/ESG-USA/Auklet-Client-C/schema"
-	"github.com/ESG-USA/Auklet-Client-C/version"
+	"github.com/aukletio/Auklet-Client-C/agent"
+	backend "github.com/aukletio/Auklet-Client-C/api"
+	"github.com/aukletio/Auklet-Client-C/app"
+	"github.com/aukletio/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/config"
+	"github.com/aukletio/Auklet-Client-C/device"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
+	"github.com/aukletio/Auklet-Client-C/message"
+	"github.com/aukletio/Auklet-Client-C/schema"
+	"github.com/aukletio/Auklet-Client-C/version"
 )
 
 func main() {

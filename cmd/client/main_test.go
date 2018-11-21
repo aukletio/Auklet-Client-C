@@ -13,9 +13,9 @@ import (
 	"github.com/spf13/afero"
 	"github.com/vmihailenco/msgpack"
 
-	backend "github.com/ESG-USA/Auklet-Client-C/api"
-	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/message"
+	backend "github.com/aukletio/Auklet-Client-C/api"
+	"github.com/aukletio/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/message"
 )
 
 type mockExec struct {

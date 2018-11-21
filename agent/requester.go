@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/ESG-USA/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/broker"
 )
 
 // PeriodicRequester periodically sends emission requests over a connection.
