@@ -1,6 +1,6 @@
 # Changelog
 
-## Merged But Unreleased
+## [0.14.0](https://github.com/aukletio/Auklet-Client-C/tree/0.14.0)
 
 **Implemented enhancements:**
 

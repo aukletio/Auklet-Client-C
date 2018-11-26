@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.14.0](https://github.com/aukletio/Auklet-Client-C/tree/0.14.0)
+
 ### [0.14.0-rc.3](https://github.com/aukletio/Auklet-Client-C/tree/0.14.0-rc.3)
 
 **DevOps changes:**
