@@ -10,3 +10,7 @@
 **Fixed bugs:**
 
 - broker: fix profile topic name [#3](https://github.com/aukletio/Auklet-Client-C/pull/3) ([kdsch](https://github.com/kdsch))
+
+**DevOps changes:**
+
+- Update instructions for bug reports [#7](https://github.com/aukletio/Auklet-Client-C/pull/7) ([rjenkinsjr](https://github.com/rjenkinsjr))

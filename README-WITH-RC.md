@@ -1,5 +1,11 @@
 # Changelog
 
+### [0.14.0-rc.3](https://github.com/aukletio/Auklet-Client-C/tree/0.14.0-rc.3)
+
+**DevOps changes:**
+
+- Update instructions for bug reports [#7](https://github.com/aukletio/Auklet-Client-C/pull/7) ([rjenkinsjr](https://github.com/rjenkinsjr))
+
 ### [0.14.0-rc.2](https://github.com/aukletio/Auklet-Client-C/tree/0.14.0-rc.2)
 
 **Implemented enhancements:**
