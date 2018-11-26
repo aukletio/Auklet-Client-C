@@ -14,16 +14,16 @@ import (
 	"github.com/gobuffalo/packr"
 	"github.com/spf13/afero"
 
-	"github.com/ESG-USA/Auklet-Client-C/agent"
-	backend "github.com/ESG-USA/Auklet-Client-C/api"
-	"github.com/ESG-USA/Auklet-Client-C/app"
-	"github.com/ESG-USA/Auklet-Client-C/broker"
-	"github.com/ESG-USA/Auklet-Client-C/config"
-	"github.com/ESG-USA/Auklet-Client-C/device"
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
-	"github.com/ESG-USA/Auklet-Client-C/message"
-	"github.com/ESG-USA/Auklet-Client-C/schema"
-	"github.com/ESG-USA/Auklet-Client-C/version"
+	"github.com/aukletio/Auklet-Client-C/agent"
+	backend "github.com/aukletio/Auklet-Client-C/api"
+	"github.com/aukletio/Auklet-Client-C/app"
+	"github.com/aukletio/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/config"
+	"github.com/aukletio/Auklet-Client-C/device"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
+	"github.com/aukletio/Auklet-Client-C/message"
+	"github.com/aukletio/Auklet-Client-C/schema"
+	"github.com/aukletio/Auklet-Client-C/version"
 )
 
 func main() {
@@ -35,11 +35,13 @@ func main() {
 		flags.PrintDefaults()
 	}
 	var (
+		baseURL      string
 		userVersion  string
 		viewLicenses bool
 		noNetwork    bool
 		serialOut    string
 	)
+	flags.StringVar(&baseURL, "base-url", "", "Auklet API URL; do not change unless instructed by support")
 	flags.StringVar(&userVersion, "version", "", "user-defined version string")
 	flags.StringVar(&serialOut, "serial-out", "", "address of serial device to write JSON")
 	flags.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
@@ -66,7 +68,7 @@ func main() {
 		if noNetwork {
 			return dumper{}
 		}
-		p, err := newclient(userVersion)
+		p, err := newclient(userVersion, baseURL)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -238,7 +240,7 @@ func selectPrefix(fs afero.Fs, env config.Getenv) (string, error) {
 	return afero.TempDir(fs, "", "auklet-")
 }
 
-func newclient(userVersion string) (*client, error) {
+func newclient(userVersion string, baseURL string) (*client, error) {
 	env := config.OS
 	fs := afero.NewOsFs()
 
@@ -253,7 +255,7 @@ func newclient(userVersion string) (*client, error) {
 	macHash := device.IfaceHash()
 
 	api := backend.API{
-		BaseURL: env.BaseURL(version.Version),
+		BaseURL: env.BaseURL(baseURL),
 		Key:     env.APIKey(),
 		AppID:   appID,
 		MacHash: macHash,

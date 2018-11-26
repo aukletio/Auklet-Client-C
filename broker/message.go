@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/ESG-USA/Auklet-Client-C/errorlog"
-	"github.com/ESG-USA/Auklet-Client-C/fsutil"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
+	"github.com/aukletio/Auklet-Client-C/fsutil"
 )
 
 // This file defines interfaces for manipulating streams of broker
@@ -21,7 +21,7 @@ type Topic string
 
 // Profile, Event, and Log are Message types.
 const (
-	Profile Topic = "profile"
+	Profile Topic = "profiler"
 	Event         = "events"
 	Log           = "logs"
 )

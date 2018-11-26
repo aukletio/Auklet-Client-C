@@ -1,4 +1,0 @@
-Host aukletio.github.com
-  HostName github.com
-  IdentitiesOnly yes
-  IdentityFile /home/circleci/.ssh/id_rsa_5e907e87668bc97a931d4ae1df46e18d

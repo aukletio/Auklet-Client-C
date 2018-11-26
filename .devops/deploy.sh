@@ -4,17 +4,10 @@ if [[ "$1" == "" ]]; then
   echo "ERROR: env not provided."
   exit 1
 fi
-ENVDIR=$1
+TARGET_ENV=$1
 VERSION="$(cat ~/.version)"
-VERSION_SIMPLE=$(cat ~/.version | xargs | cut -f1 -d"+")
+VERSION_SIMPLE="$(cat ~/.version | xargs | cut -f1 -d"+")"
 export TIMESTAMP="$(date --rfc-3339=seconds | sed 's/ /T/')"
-if [[ "$1" == "staging" ]]; then
-  BASE_URL='https://api-staging.auklet.io'
-elif [[ "$1" == "qa" ]]; then
-  BASE_URL='https://api-qa.auklet.io'
-else
-  BASE_URL='https://api.auklet.io'
-fi
 
 echo 'Gathering license files for dependencies...'
 REPO_DIR=$(eval cd $CIRCLE_WORKING_DIRECTORY ; pwd)
@@ -34,10 +27,9 @@ echo
 
 echo 'Compiling client for target architectures...'
 echo
-GO_LDFLAGS="-X github.com/ESG-USA/Auklet-Client-C/version.Version=$VERSION -X github.com/ESG-USA/Auklet-Client-C/version.BuildDate=$TIMESTAMP -X github.com/ESG-USA/Auklet-Client-C/config.StaticBaseURL=$BASE_URL"
+GO_LDFLAGS="-X github.com/aukletio/Auklet-Client-C/version.Version=$VERSION -X github.com/aukletio/Auklet-Client-C/version.BuildDate=$TIMESTAMP"
 PREFIX='auklet-client'
-S3_BUCKET='auklet'
-S3_PREFIX='client'
+S3_PREFIX='auklet/c/client'
 export GOOS=linux
 declare -a archs=("amd64" "arm" "arm64" "mips" "mipsle" "mips64" "mips64le")
 for a in "${archs[@]}"
@@ -47,44 +39,26 @@ do
     # We don't support ARM 5 or 6.
     export GOARM=7
   fi
-  GOARCH=$a go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-$a-$VERSION ./cmd/client
+  GOARCH=$a go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-$a-$VERSION_SIMPLE ./cmd/client
 done
 
 echo 'Installing AWS CLI...'
 sudo apt-get -y install awscli > /dev/null 2>&1
 
-if [[ "$ENVDIR" == "production" ]]; then
-  echo 'Erasing production client binaries in public S3...'
-  aws s3 rm s3://$S3_BUCKET/$S3_PREFIX/latest/ --recursive
+if [[ "$TARGET_ENV" == "release" ]]; then
+  echo 'Erasing production C client binaries in S3...'
+  aws s3 rm s3://$S3_PREFIX/latest/ --recursive
 fi
 
-echo 'Uploading client binaries to S3...'
+echo 'Uploading C client binaries to S3...'
 # Iterate over each file and upload it to S3.
 for f in ${PREFIX}-*; do
   # Upload to the internal bucket.
-  S3_LOCATION="s3://auklet-profiler/$ENVDIR/$S3_PREFIX/$VERSION/$f"
+  S3_LOCATION="s3://$S3_PREFIX/$VERSION_SIMPLE/$f"
   aws s3 cp $f $S3_LOCATION
-  # Upload to the public bucket for production builds.
-  if [[ "$ENVDIR" == "production" ]]; then
-    # Copy to the public versioned directory.
-    VERSIONED_NAME="${f/$VERSION/$VERSION_SIMPLE}"
-    aws s3 cp $S3_LOCATION s3://$S3_BUCKET/$S3_PREFIX/$VERSION_SIMPLE/$VERSIONED_NAME
-    # Copy to the public "latest" directory.
-    LATEST_NAME="${f/$VERSION/latest}"
-    aws s3 cp $S3_LOCATION s3://$S3_BUCKET/$S3_PREFIX/latest/$LATEST_NAME
+  # Copy to the "latest" dir for production builds.
+  if [[ "$TARGET_ENV" == "release" ]]; then
+    LATEST_NAME="${f/$VERSION_SIMPLE/latest}"
+    aws s3 cp $S3_LOCATION s3://$S3_PREFIX/latest/$LATEST_NAME
   fi
 done
-
-# Push to public GitHub repo.
-# The hostname "aukletio.github.com" is intentional and it matches the "ssh-config-aukletio" file.
-if [[ "$ENVDIR" == "production" ]]; then
-  echo 'Pushing production branch to github.com/aukletio...'
-  mv ~/.ssh/config ~/.ssh/config-bak
-  cp .devops/ssh-config-aukletio ~/.ssh/config
-  chmod 400 ~/.ssh/config
-  git remote add aukletio git@aukletio.github.com:aukletio/Auklet-Client-C.git
-  git push aukletio HEAD:master
-  git remote rm aukletio
-  rm -f ~/.ssh/config
-  mv ~/.ssh/config-bak ~/.ssh/config
-fi
