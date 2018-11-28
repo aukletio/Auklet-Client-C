@@ -1,10 +1,10 @@
 # Auklet for C
 
 <a href="https://www.apache.org/licenses/LICENSE-2.0" alt="Apache page link -- Apache 2.0 License"><img src="https://img.shields.io/pypi/l/auklet.svg" /></a>
-<a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/maintainability"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/maintainability" /></a>
-<a href="https://codeclimate.com/repos/5a96d367b192b3261b0003ce/test_coverage"><img src="https://api.codeclimate.com/v1/badges/418ddb355b1b344f8c6e/test_coverage" /></a>
+[![Maintainability](https://api.codeclimate.com/v1/badges/5d3e8a3cc277bef22f5f/maintainability)](https://codeclimate.com/github/aukletio/Auklet-Client-C/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/5d3e8a3cc277bef22f5f/test_coverage)](https://codeclimate.com/github/aukletio/Auklet-Client-C/test_coverage)
 
-This is the C client for Auklet. It officially supports C and C++, and runs 
+This is the C client for Auklet. It officially supports C and C++, and runs
 on most POSIX-based operating systems (Debian, Ubuntu Core, Raspbian, QNX, etc).
 
 ## Features
@@ -16,16 +16,16 @@ on most POSIX-based operating systems (Debian, Ubuntu Core, Raspbian, QNX, etc).
 
 - Automatic crash reporting
 - Automatic function performance issue reporting
-- Location, system architecture, and system metrics identification for all 
+- Location, system architecture, and system metrics identification for all
 issues
 - Ability to define data usage restrictions
 
 ## Device Requirements
 
-Auklet's C/C++ client is built to run on any POSIX operating system. If 
-you don't see the OS or CPU architecture you are using for your application 
-listed below, and are wondering if Auklet will be compatible, please hit us 
-up at [hello@auklet.io][mail_auklet]. 
+Auklet's C/C++ client is built to run on any POSIX operating system. If
+you don't see the OS or CPU architecture you are using for your application
+listed below, and are wondering if Auklet will be compatible, please hit us
+up at [hello@auklet.io][mail_auklet].
 
 ##### Validated OSes:
 
@@ -33,7 +33,7 @@ up at [hello@auklet.io][mail_auklet].
 - Fedora 24
 - Linaro 4.4.23
 - OpenWRT 3.8.3
-- Rasbian Jessie 4.9.30 
+- Rasbian Jessie 4.9.30
 - Rasbian Stretch 4.14.71
 - Ubuntu 16.04
 - Yocto 2.2-r2
@@ -46,23 +46,23 @@ up at [hello@auklet.io][mail_auklet].
 - MIPS
 
 ### Networking
-Auklet is built to work in network-constrained environments. It can operate 
-while devices are not connected to the internet and then upload data once 
-connectivity is reestablished. Auklet can also work in non-IP-based 
-environments as well. For assistance with getting Auklet running in a 
+Auklet is built to work in network-constrained environments. It can operate
+while devices are not connected to the internet and then upload data once
+connectivity is reestablished. Auklet can also work in non-IP-based
+environments as well. For assistance with getting Auklet running in a
 non-IP-based environment contact [hello@auklet.io][mail_auklet].
 
 ## Prerequisites
 
-Before an application can send data to Auklet, it needs to be integrated with 
-the Auklet library, **libauklet.a**, and then released to Auklet. See the 
+Before an application can send data to Auklet, it needs to be integrated with
+the Auklet library, **libauklet.a**, and then released to Auklet. See the
 README for the [Auklet Agent][auklet_agent] for integration instructions, and
-the README for the [Auklet Releaser][auklet_releaser] for releasing 
+the README for the [Auklet Releaser][auklet_releaser] for releasing
 instructions.
 
-The Auklet client assumes two things: 
+The Auklet client assumes two things:
 - It is the parent process of your program.
-- The user running the Auklet integrated app has permissions to read and 
+- The user running the Auklet integrated app has permissions to read and
 write the current directory.
 
 ## Quickstart
@@ -82,20 +82,20 @@ so please reach out to [hello@auklet.io][mail_auklet].
 
 ### Getting Started
 
-1. Download the appropriate client from the list above, based on your 
+1. Download the appropriate client from the list above, based on your
    architecture, and add it to your deployment package.
-1. Follow the [C/C++ Agent Quickstart Guide][auklet_agent] to integrate the 
+1. Follow the [C/C++ Agent Quickstart Guide][auklet_agent] to integrate the
    C/C++ agent.
-1. Configure the systems to which you are deploying with the following 
-   environment variables (the same ones used with the 
+1. Configure the systems to which you are deploying with the following
+   environment variables (the same ones used with the
    [Auklet    Releaser][auklet_releaser]):
    - `AUKLET_APP_ID`
    - `AUKLET_API_KEY`
-1. Deploy your updated package and execute your application using the Auklet 
+1. Deploy your updated package and execute your application using the Auklet
    client:
-   
+
         ./path/to/Auklet-Client ./path/to/<InsertYourApplication>
-   
+
 And with that, Auklet is ready to go!
 
 ## Advanced Settings
@@ -103,10 +103,10 @@ And with that, Auklet is ready to go!
 ### Logging
 
 The Auklet client opens an anonymous `SOCK_STREAM` Unix domain socket to which
-newline-delimited JSON messages can be written.  If the Auklet client confirms 
-that the executable has been released, the child process will inherit the 
-socket as file descriptor 3. Otherwise, the child process will not inherit 
-the file descriptor. Messages written to the socket will be accessible via 
+newline-delimited JSON messages can be written.  If the Auklet client confirms
+that the executable has been released, the child process will inherit the
+socket as file descriptor 3. Otherwise, the child process will not inherit
+the file descriptor. Messages written to the socket will be accessible via
 the user interface.
 
 Here's a C program demonstrating how to use the socket:
@@ -137,3 +137,9 @@ Here's a C program demonstrating how to use the socket:
 		dprintf(logFD, "{\"message\":\"hello, auklet\"}\n");
 		close(logFD);
 	}
+
+## Questions? Problems? Ideas?
+
+To get support, report a bug or suggest future ideas for Auklet, go to
+https://help.auklet.io and click the blue button in the lower-right corner to
+send a message to our support team.
