@@ -52,7 +52,7 @@ do
           export GOARCH=arm64
           ;;
   esac
-  go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-arm$v-$VERSION_SIMPLE ./cmd/client
+  go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-armv$v-$VERSION_SIMPLE ./cmd/client
 done
 
 echo 'Installing AWS CLI...'
