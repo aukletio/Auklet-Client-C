@@ -16,7 +16,8 @@ type metadata struct {
 	ClientVersion string `json:"clientVersion"`
 	AgentVersion  string `json:"agentVersion"`
 	AppID         string `json:"application"`
-	CheckSum      string `json:"release"`   // SHA512/224 hash of the executable
+	CheckSum      string `json:"release"` // SHA512/224 hash of the executable
+	MacHash       string `json:"macAddressHash"`
 	IP            string `json:"publicIP"`  // current public IP address
 	UUID          string `json:"id"`        // identifier for this message
 	Time          int64  `json:"timestamp"` // Unix milliseconds
@@ -35,6 +36,7 @@ func (c Converter) metadata() metadata {
 		AgentVersion:  c.App.AgentVersion(),
 		AppID:         c.AppID,
 		CheckSum:      c.App.CheckSum(),
+		MacHash:       c.MacHash,
 		IP:            device.CurrentIP(),
 		UUID:          uuid.NewV4().String(),
 		Time:          nowMilli(),
@@ -46,14 +48,12 @@ type appLog struct {
 	metadata
 	// Message is the log message sent by the application.
 	Message []byte         `json:"message"`
-	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
 func (c Converter) appLog(msg []byte) appLog {
 	return appLog{
 		metadata: c.metadata(),
-		MacHash:  c.MacHash,
 		Metrics:  c.Monitor.GetMetrics(),
 		Message:  msg,
 	}
@@ -91,7 +91,6 @@ type errorSig struct {
 	Status  int            `json:"exitStatus"`
 	Signal  string         `json:"signal"`
 	Trace   []frame        `json:"stackTrace"`
-	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
@@ -108,7 +107,6 @@ func (c Converter) errorSig(data []byte) errorSig {
 	}
 	e.metadata = c.metadata()
 	e.Status = c.App.ExitStatus()
-	e.MacHash = c.MacHash
 	e.Metrics = c.Monitor.GetMetrics()
 	return e
 }
@@ -120,7 +118,6 @@ type exit struct {
 	metadata
 	Status  int            `json:"exitStatus"`
 	Signal  string         `json:"signal"`
-	MacHash string         `json:"macAddressHash"`
 	Metrics device.Metrics `json:"systemMetrics"`
 }
 
@@ -129,7 +126,6 @@ func (c Converter) exit() exit {
 		metadata: c.metadata(),
 		Status:   c.App.ExitStatus(),
 		Signal:   c.App.Signal(),
-		MacHash:  c.MacHash,
 		Metrics:  c.Monitor.GetMetrics(),
 	}
 }
