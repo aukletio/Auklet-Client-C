@@ -35,7 +35,7 @@ func (r PeriodicRequester) Output() <-chan broker.Message {
 
 func (r PeriodicRequester) run() {
 	defer close(r.out)
-	emit := time.NewTicker(time.Second)
+	emit := time.NewTicker(time.Minute)
 	var prevErr error
 	for {
 		select {
