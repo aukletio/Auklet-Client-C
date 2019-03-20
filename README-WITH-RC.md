@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.15.0](https://github.com/aukletio/Auklet-Client-C/tree/0.15.0)
+
 ### [0.15.0-rc.1](https://github.com/aukletio/Auklet-Client-C/tree/0.15.0-rc.1)
 
 **Implemented enhancements:**
