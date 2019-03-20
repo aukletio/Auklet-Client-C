@@ -286,6 +286,7 @@ func newclient(userVersion string, baseURL string) (*client, error) {
 		limPersistor: message.FilePersistor{Path: prefix + ".auklet/datalimit.json"},
 		api:          api,
 		userVersion:  userVersion,
+		username:     cfg.Creds.Username,
 		appID:        appID,
 		macHash:      macHash,
 		producer:     producer,

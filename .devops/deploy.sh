@@ -31,15 +31,28 @@ GO_LDFLAGS="-X github.com/aukletio/Auklet-Client-C/version.Version=$VERSION -X g
 PREFIX='auklet-client'
 S3_PREFIX='auklet/c/client'
 export GOOS=linux
-declare -a archs=("amd64" "arm" "arm64" "mips" "mipsle" "mips64" "mips64le")
+declare -a archs=("amd64" "mips" "mipsle" "mips64" "mips64le")
 for a in "${archs[@]}"
 do
   echo "=== $GOOS/$a ==="
-  if [[ "$a" == "arm" ]]; then
-    # We don't support ARM 5 or 6.
-    export GOARM=7
-  fi
   GOARCH=$a go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-$a-$VERSION_SIMPLE ./cmd/client
+done
+# We don't support ARM 5.
+declare -a arms=("6" "7" "8")
+for v in "${arms[@]}"
+do
+  echo "=== $GOOS/arm$v ==="
+  export -n GOARCH GOARM
+  # https://github.com/golang/go/wiki/GoArm
+  case "$v" in
+      6 | 7)
+          export GOARCH=arm GOARM=$v
+          ;;
+      *)
+          export GOARCH=arm64
+          ;;
+  esac
+  go build -ldflags "$GO_LDFLAGS" -o $PREFIX-$GOOS-armv$v-$VERSION_SIMPLE ./cmd/client
 done
 
 echo 'Installing AWS CLI...'
