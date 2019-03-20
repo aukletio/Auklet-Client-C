@@ -35,11 +35,11 @@ func main() {
 		flags.PrintDefaults()
 	}
 	var (
-		baseURL      string
-		userVersion  string
-		viewLicenses bool
-		noNetwork    bool
-		serialOut    string
+		baseURL            string
+		userVersion        string
+		viewLicenses       bool
+		noNetwork          bool
+		serialOut          string
 		printClientVersion bool
 	)
 	flags.StringVar(&baseURL, "base-url", "", "Auklet API URL; do not change unless instructed by support")
