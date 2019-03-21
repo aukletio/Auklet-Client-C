@@ -35,15 +35,17 @@ func main() {
 		flags.PrintDefaults()
 	}
 	var (
-		baseURL      string
-		userVersion  string
-		viewLicenses bool
-		noNetwork    bool
-		serialOut    string
+		baseURL            string
+		userVersion        string
+		viewLicenses       bool
+		noNetwork          bool
+		serialOut          string
+		printClientVersion bool
 	)
 	flags.StringVar(&baseURL, "base-url", "", "Auklet API URL; do not change unless instructed by support")
-	flags.StringVar(&userVersion, "version", "", "user-defined version string")
+	flags.StringVar(&userVersion, "appVersion", "", "version of your application")
 	flags.StringVar(&serialOut, "serial-out", "", "address of serial device to write JSON")
+	flags.BoolVar(&printClientVersion, "version", false, "print Auklet Client version")
 	flags.BoolVar(&viewLicenses, "licenses", false, "view OSS licenses")
 	flags.BoolVar(&noNetwork, "no-network", false, "disable network communication")
 
@@ -51,6 +53,10 @@ func main() {
 	switch {
 	case err != nil:
 		log.Fatal(err)
+
+	case printClientVersion:
+		fmt.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
+		os.Exit(0)
 
 	case viewLicenses:
 		licenses()
@@ -75,7 +81,6 @@ func main() {
 		return p
 	}()
 
-	log.Printf("Auklet Client version %s (%s)\n", version.Version, version.BuildDate)
 	e, err := app.NewExec(flags.Args()[0], flags.Args()[1:]...)
 	if err != nil {
 		log.Fatal(err)
