@@ -184,9 +184,9 @@ func (c Converter) dataPoint(data []byte) dataPoint {
 
 	case "motion":
 		var motion struct {
-			X float64 `json":x_axis"`
-			Y float64 `json":y_axis"`
-			Z float64 `json":z_axis"`
+			X float64 `json:"x_axis"`
+			Y float64 `json:"y_axis"`
+			Z float64 `json:"z_axis"`
 		}
 		err := json.Unmarshal(raw.Payload, &motion)
 		d := dataPoint{

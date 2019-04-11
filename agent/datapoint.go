@@ -7,11 +7,13 @@ import (
 	"io/ioutil"
 )
 
+// DataPointServer reads a stream of data point JSON messages.
 type DataPointServer struct {
 	in  io.Reader
 	out chan Message
 }
 
+// NewDataPointServer returns a new DataPointServer.
 func NewDataPointServer(in io.Reader) *DataPointServer {
 	s := &DataPointServer{
 		in:  in,
