@@ -1,8 +1,8 @@
 package schema
 
 import (
-	"testing"
 	"encoding/json"
+	"testing"
 
 	"github.com/aukletio/Auklet-Client-C/agent"
 	"github.com/aukletio/Auklet-Client-C/broker"

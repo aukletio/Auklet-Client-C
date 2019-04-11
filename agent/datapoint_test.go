@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"testing"
 	"strings"
+	"testing"
 )
 
 func TestDataPointServer(t *testing.T) {
