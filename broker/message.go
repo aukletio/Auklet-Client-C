@@ -24,7 +24,7 @@ const (
 	Profile   Topic = "profiler"
 	Event           = "events"
 	Log             = "logs"
-	DataPoint       = "datapoint"
+	DataPoint       = "datapoints"
 )
 
 // Message represents a broker message.
