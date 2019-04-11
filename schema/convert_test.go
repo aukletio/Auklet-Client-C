@@ -47,6 +47,7 @@ func TestConverter(t *testing.T) {
 		{input: agent.Message{Type: "event"}, ok: true},
 		{input: agent.Message{Type: "profile"}, ok: true},
 		{input: agent.Message{Type: "cleanExit"}, ok: true},
+		{input: agent.Message{Type: "datapoint"}, ok: true},
 		{input: agent.Message{Type: "unknown"}, ok: false},
 	}
 	for i, c := range cases {
