@@ -127,6 +127,8 @@ func (c Converter) convert(m agent.Message) broker.Message {
 		// by agent.Server, if it receives EOF and has not seen an
 		// "event".
 		return c.marshal(c.exit(), broker.Event)
+	case "datapoint":
+		return c.marshal(c.dataPoint(m.Data), broker.DataPoint)
 	default:
 		return broker.Message{
 			Error: fmt.Sprintf("message of type %q not handled", m.Type),

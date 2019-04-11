@@ -129,3 +129,18 @@ func (c Converter) exit() exit {
 		Metrics:  c.Monitor.GetMetrics(),
 	}
 }
+
+type dataPoint struct {
+	metadata
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
+}
+
+func (c Converter) dataPoint(data []byte) dataPoint {
+	var d dataPoint
+	if err := json.Unmarshal(data, &d); err != nil {
+		d.Error = err.Error()
+	}
+	d.metadata = c.metadata()
+	return d
+}

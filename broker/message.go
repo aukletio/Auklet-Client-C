@@ -19,11 +19,12 @@ import (
 // Topic encodes a Message topic.
 type Topic string
 
-// Profile, Event, and Log are Message types.
+// Profile, Event, Log, and DataPoint are Message topics.
 const (
-	Profile Topic = "profiler"
-	Event         = "events"
-	Log           = "logs"
+	Profile   Topic = "profiler"
+	Event           = "events"
+	Log             = "logs"
+	DataPoint       = "datapoint"
 )
 
 // Message represents a broker message.
