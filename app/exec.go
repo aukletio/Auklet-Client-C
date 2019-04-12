@@ -20,8 +20,8 @@ type Exec struct {
 	cmd  *exec.Cmd
 
 	// state initialized after confirming that the application is released
-	appLogs   io.Reader
-	agentData io.ReadWriter // raw data stream from the agent
+	datapoints io.Reader
+	agentData  io.ReadWriter // raw data stream from the agent
 
 	// state initialized after the process starts
 	agentVersion string
@@ -49,7 +49,7 @@ var socketPair = socketpair
 func (exec *Exec) addSockets() error {
 	// If we fail to create sockets, we can't communicate with the running
 	// process. But we should try to send these errors to somebody.
-	appLogs, err := socketPair("appLogs")
+	datapoints, err := socketPair("datapoints")
 	if err != nil {
 		return err
 	}
@@ -62,11 +62,11 @@ func (exec *Exec) addSockets() error {
 	// It's important that the files be given in this order, because it
 	// determines what numbers they get in the child process.
 	exec.cmd.ExtraFiles = append(exec.cmd.ExtraFiles,
-		appLogs.remote,   // fd 3
-		agentData.remote, // fd 4
+		datapoints.remote, // fd 3
+		agentData.remote,  // fd 4
 	)
 
-	exec.appLogs = appLogs.local
+	exec.datapoints = datapoints.local
 	exec.agentData = agentData.local
 
 	return nil
@@ -193,5 +193,5 @@ func (exec *Exec) AgentData() io.ReadWriter { return exec.agentData }
 // Decoder returns a JSON decoder reading from AgentData.
 func (exec *Exec) Decoder() *json.Decoder { return exec.decoder }
 
-// AppLogs returns a raw stream of application log data from the child process.
-func (exec *Exec) AppLogs() io.Reader { return exec.appLogs }
+// DataPoints returns a raw stream of data points from the child process.
+func (exec *Exec) DataPoints() io.Reader { return exec.datapoints }
