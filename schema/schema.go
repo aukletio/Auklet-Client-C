@@ -150,18 +150,18 @@ func (c Converter) dataPoint(data []byte) dataPoint {
 	return d
 }
 
-func (c Converter) genericDataPoint(rawPayload []byte) dataPoint {
+func (c Converter) genericDataPoint(payload []byte) dataPoint {
 	generic := dataPoint{
 		metadata: c.metadata(),
 		Type:     "generic",
 	}
-	if err := json.Unmarshal(rawPayload, &generic.Payload); err != nil {
+	if err := json.Unmarshal(payload, &generic.Payload); err != nil {
 		generic.Error = err.Error()
 	}
 	return generic
 }
 
-func (c Converter) locationDataPoint(rawPayload []byte) dataPoint {
+func (c Converter) locationDataPoint(payload []byte) dataPoint {
 	var location struct {
 		Speed     float64 `json:"speed"`
 		Longitude float64 `json:"longitude"`
@@ -171,7 +171,7 @@ func (c Converter) locationDataPoint(rawPayload []byte) dataPoint {
 		Timestamp int     `json:"timestamp"` // unix
 		Precision float64 `json:"precision"`
 	}
-	err := json.Unmarshal(rawPayload, &location)
+	err := json.Unmarshal(payload, &location)
 	d := dataPoint{
 		metadata: c.metadata(),
 		Type:     "location",
@@ -183,13 +183,13 @@ func (c Converter) locationDataPoint(rawPayload []byte) dataPoint {
 	return d
 }
 
-func (c Converter) motionDataPoint(rawPayload []byte) dataPoint {
+func (c Converter) motionDataPoint(payload []byte) dataPoint {
 	var motion struct {
 		X float64 `json:"x_axis"`
 		Y float64 `json:"y_axis"`
 		Z float64 `json:"z_axis"`
 	}
-	err := json.Unmarshal(rawPayload, &motion)
+	err := json.Unmarshal(payload, &motion)
 	d := dataPoint{
 		metadata: c.metadata(),
 		Type:     "motion",
