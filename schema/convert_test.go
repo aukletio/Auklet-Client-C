@@ -40,11 +40,10 @@ var cfg = Config{
 }
 
 func TestConverter(t *testing.T) {
-	type converterCase struct {
+	cases := []struct {
 		input agent.Message
 		ok    bool
-	}
-	cases := []converterCase{
+	}{
 		{input: agent.Message{Type: "event"}, ok: true},
 		{input: agent.Message{Type: "profile"}, ok: true},
 		{input: agent.Message{Type: "cleanExit"}, ok: true},
