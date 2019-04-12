@@ -8,6 +8,7 @@ import (
 func TestDataPointServer(t *testing.T) {
 	tests := []struct {
 		data string
+		problem bool
 	}{
 		{
 			data: `{
@@ -53,7 +54,8 @@ func TestDataPointServer(t *testing.T) {
 	for _, test := range tests {
 		server := NewDataPointServer(strings.NewReader(test.data))
 		for msg := range server.Output() {
-			if msg.Error != "" {
+			problem := msg.Error != ""
+			if problem != test.problem {
 				t.Error(msg.Error)
 			}
 		}
