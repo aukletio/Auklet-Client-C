@@ -6,7 +6,11 @@ import (
 )
 
 func TestDataPointServer(t *testing.T) {
-	data := `
+	tests := []struct {
+		data string
+	}{
+		{
+			data: `
 	{ "type":        "", "data": { "arbitrary": "json" } }
 	{ "type": "generic", "data": { "arbitrary": "json" } }
 	{
@@ -28,11 +32,15 @@ func TestDataPointServer(t *testing.T) {
 			"y_axis": 1.0,
 			"z_axis": 1.0
 		}
-	}`
-	server := NewDataPointServer(strings.NewReader(data))
-	for msg := range server.Output() {
-		if msg.Error != "" {
-			t.Error(msg.Error)
+	}`,
+		},
+	}
+	for _, test := range tests {
+		server := NewDataPointServer(strings.NewReader(test.data))
+		for msg := range server.Output() {
+			if msg.Error != "" {
+				t.Error(msg.Error)
+			}
 		}
 	}
 }
