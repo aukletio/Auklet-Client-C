@@ -56,7 +56,7 @@ func TestDataPointServer(t *testing.T) {
 		for msg := range server.Output() {
 			problem := msg.Error != ""
 			if problem != test.problem {
-				t.Error(msg.Error)
+				t.Errorf("case %+v: problem = %v, error = %v", test, problem, msg.Error)
 			}
 		}
 	}
