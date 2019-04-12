@@ -110,8 +110,6 @@ func (c Converter) serve() {
 
 func (c Converter) convert(m agent.Message) broker.Message {
 	switch m.Type {
-	case "applog":
-		return c.marshal(c.appLog(m.Data), broker.Event)
 	case "profile":
 		return c.marshal(c.profile(m.Data), broker.Profile)
 	case "event":
