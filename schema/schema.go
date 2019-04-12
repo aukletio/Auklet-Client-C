@@ -150,7 +150,7 @@ func (c Converter) dataPoint(data []byte) dataPoint {
 	return d
 }
 
-func (c Converter) genericDataPoint(rawPayload json.RawMessage) dataPoint {
+func (c Converter) genericDataPoint(rawPayload []byte) dataPoint {
 	generic := dataPoint{
 		metadata: c.metadata(),
 		Type:     "generic",
@@ -161,7 +161,7 @@ func (c Converter) genericDataPoint(rawPayload json.RawMessage) dataPoint {
 	return generic
 }
 
-func (c Converter) locationDataPoint(rawPayload json.RawMessage) dataPoint {
+func (c Converter) locationDataPoint(rawPayload []byte) dataPoint {
 	var location struct {
 		Speed     float64 `json:"speed"`
 		Longitude float64 `json:"longitude"`
@@ -183,7 +183,7 @@ func (c Converter) locationDataPoint(rawPayload json.RawMessage) dataPoint {
 	return d
 }
 
-func (c Converter) motionDataPoint(rawPayload json.RawMessage) dataPoint {
+func (c Converter) motionDataPoint(rawPayload []byte) dataPoint {
 	var motion struct {
 		X float64 `json:"x_axis"`
 		Y float64 `json:"y_axis"`
