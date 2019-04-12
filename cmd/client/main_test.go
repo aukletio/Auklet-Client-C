@@ -21,7 +21,7 @@ import (
 type mockExec struct {
 	checksum     string
 	agentVersion string
-	appLogs      io.Reader
+	datapoints   io.Reader
 	agentData    io.ReadWriter
 	decoder      *json.Decoder
 }
@@ -30,7 +30,7 @@ func newMockExec() *mockExec {
 	return &mockExec{
 		agentVersion: "agentVersion",
 		checksum:     "checksum",
-		appLogs:      strings.NewReader("appLogs\n"),
+		datapoints:   strings.NewReader("datapoints"),
 		agentData:    bytes.NewBufferString(`{"type":"profile","data":{}}`),
 		decoder:      nil, // dynamically initialized
 	}
@@ -40,7 +40,7 @@ func (m mockExec) CheckSum() string         { return m.checksum }
 func (mockExec) Run() error                 { return nil }
 func (mockExec) Connect() error             { return nil }
 func (m mockExec) AgentData() io.ReadWriter { return m.agentData }
-func (m mockExec) AppLogs() io.Reader       { return m.appLogs }
+func (m mockExec) DataPoints() io.Reader    { return m.datapoints }
 func (m mockExec) AgentVersion() string     { return m.agentVersion }
 func (m *mockExec) Decoder() *json.Decoder {
 	if m.decoder == nil {
