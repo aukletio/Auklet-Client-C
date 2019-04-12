@@ -7,7 +7,7 @@ import (
 
 func TestDataPointServer(t *testing.T) {
 	tests := []struct {
-		data string
+		data    string
 		problem bool
 	}{
 		{
