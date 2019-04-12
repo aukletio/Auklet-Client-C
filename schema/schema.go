@@ -44,22 +44,6 @@ func (c Converter) metadata() metadata {
 	}
 }
 
-// appLog represents custom log data as expected by broker consumers.
-type appLog struct {
-	metadata
-	// Message is the log message sent by the application.
-	Message []byte         `json:"message"`
-	Metrics device.Metrics `json:"systemMetrics"`
-}
-
-func (c Converter) appLog(msg []byte) appLog {
-	return appLog{
-		metadata: c.metadata(),
-		Metrics:  c.Monitor.GetMetrics(),
-		Message:  msg,
-	}
-}
-
 // profile represents profile data as expected by broker consumers.
 type profile struct {
 	metadata
