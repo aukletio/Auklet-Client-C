@@ -10,10 +10,20 @@ func TestDataPointServer(t *testing.T) {
 		data string
 	}{
 		{
-			data: `{ "type":        "", "data": { "arbitrary": "json" } }`,
+			data: `{
+				"type": "",
+				"data": {
+					"arbitrary": "json"
+				}
+			}`,
 		},
 		{
-			data: `{ "type": "generic", "data": { "arbitrary": "json" } }`,
+			data: `{
+				"type": "generic",
+				"data": {
+					"arbitrary": "json"
+				}
+			}`,
 		},
 		{
 			data: `{
