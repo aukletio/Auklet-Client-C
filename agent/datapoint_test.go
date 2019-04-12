@@ -50,6 +50,10 @@ func TestDataPointServer(t *testing.T) {
 				}
 			}`,
 		},
+		{
+			data:    `}`,
+			problem: true,
+		},
 	}
 	for _, test := range tests {
 		server := NewDataPointServer(strings.NewReader(test.data))
