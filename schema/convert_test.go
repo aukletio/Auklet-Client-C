@@ -40,7 +40,7 @@ var cfg = Config{
 }
 
 func TestConverter(t *testing.T) {
-	cases := []struct {
+	tests := []struct {
 		input agent.Message
 		ok    bool
 	}{
@@ -101,14 +101,14 @@ func TestConverter(t *testing.T) {
 		},
 		{input: agent.Message{Type: "unknown"}, ok: false},
 	}
-	for i, c := range cases {
+	for i, test := range tests {
 		s := make(source)
 		converter := NewConverter(cfg, s)
-		s <- c.input
+		s <- test.input
 		m := <-converter.Output()
 		ok := m.Error == ""
-		if ok != c.ok {
-			t.Errorf("case %v: got %v, expected %v: %v", i, ok, c.ok, m.Error)
+		if ok != test.ok {
+			t.Errorf("case %v: got %v, expected %v: %v", i, ok, test.ok, m.Error)
 		}
 		close(s)
 	}
