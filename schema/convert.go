@@ -101,6 +101,7 @@ func (c Converter) serve() {
 					Error: err.Error(),
 					Topic: broker.Log,
 				}
+				errorlog.Printf("Converter.serve: %v", err)
 				continue
 			}
 		}

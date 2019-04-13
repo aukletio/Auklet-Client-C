@@ -8,6 +8,7 @@ import (
 	"github.com/satori/go.uuid"
 
 	"github.com/aukletio/Auklet-Client-C/device"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 	"github.com/aukletio/Auklet-Client-C/version"
 )
 
@@ -64,6 +65,7 @@ func (c Converter) profile(data []byte) profile {
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		p.Error = err.Error()
+		errorlog.Printf("Converter.profile: %v in %q", err, string(data))
 	}
 	p.metadata = c.metadata()
 	return p
@@ -89,6 +91,7 @@ func (c Converter) errorSig(data []byte) errorSig {
 	err := json.Unmarshal(data, &e)
 	if err != nil {
 		e.Error = err.Error()
+		errorlog.Printf("Converter.errorSig: %v in %q", err, string(data))
 	}
 	e.metadata = c.metadata()
 	e.Status = c.App.ExitStatus()
@@ -131,6 +134,7 @@ func (c Converter) dataPoint(data []byte) dataPoint {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		var d dataPoint
 		d.Error = err.Error()
+		errorlog.Printf("Converter.dataPoint: %v in %q", err, string(data))
 		return d
 	}
 
@@ -157,6 +161,7 @@ func (c Converter) genericDataPoint(payload []byte) dataPoint {
 	}
 	if err := json.Unmarshal(payload, &generic.Payload); err != nil {
 		generic.Error = err.Error()
+		errorlog.Printf("Converter.genericDataPoint: %v in %q", err, string(payload))
 	}
 	return generic
 }
@@ -179,6 +184,7 @@ func (c Converter) locationDataPoint(payload []byte) dataPoint {
 	}
 	if err != nil {
 		d.Error = err.Error()
+		errorlog.Printf("Converter.locationDataPoint: %v in %q", err, string(payload))
 	}
 	return d
 }
@@ -197,6 +203,7 @@ func (c Converter) motionDataPoint(payload []byte) dataPoint {
 	}
 	if err != nil {
 		d.Error = err.Error()
+		errorlog.Printf("Converter.motionDataPoint: %v in %q", err, string(payload))
 	}
 	return d
 }
