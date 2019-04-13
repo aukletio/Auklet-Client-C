@@ -11,6 +11,7 @@ import (
 	"github.com/aukletio/Auklet-Client-C/agent"
 	"github.com/aukletio/Auklet-Client-C/broker"
 	"github.com/aukletio/Auklet-Client-C/device"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 )
 
 // Converter converts a stream of agent.Message to a stream of broker.Message.
@@ -151,6 +152,9 @@ func (c Converter) marshal(v interface{}, topic broker.Topic) broker.Message {
 		JSON:    json.Marshal,
 	}[c.Encoding]
 	bytes, err := marshaler(v)
+	if err != nil {
+		errorlog.Printf("Converter.marshal: %v", err)
+	}
 	return broker.Message{
 		Error: func() string {
 			if err != nil {
