@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 )
 
 // Message represents messages that can be received by a Server, and thus,
@@ -63,6 +65,7 @@ func (s *Server) serve() {
 				Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 			}
 			s.dec = json.NewDecoder(s.in)
+			errorlog.Printf("Server.serve: %v in %q", err, string(buf))
 			continue
 		}
 		if msg.Type == "event" {

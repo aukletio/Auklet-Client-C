@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 )
 
 // DataPointServer reads a stream of data point JSON messages.
@@ -44,6 +46,7 @@ func (s *DataPointServer) serve() {
 				Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 			}
 			dec = json.NewDecoder(s.in)
+			errorlog.Printf("DataPointServer.serve: %v in %q", err, string(buf))
 		}
 	}
 }
