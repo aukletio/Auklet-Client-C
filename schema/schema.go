@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -124,6 +125,16 @@ type dataPoint struct {
 	Payload interface{} `json:"payload"`
 }
 
+func unmarshalStrict(data []byte, v interface{}) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(v); err != nil {
+		format := "unmarshalStrict: %v in %q"
+		return fmt.Errorf(format, err, string(data))
+	}
+	return nil
+}
+
 func (c Converter) dataPoint(data []byte) dataPoint {
 	// We unmarshal the type and not the payload,
 	// so that we can validate the payload's schema.
@@ -131,7 +142,7 @@ func (c Converter) dataPoint(data []byte) dataPoint {
 		Type    string          `json:"type"`
 		Payload json.RawMessage `json:"payload"`
 	}
-	if err := json.Unmarshal(data, &raw); err != nil {
+	if err := unmarshalStrict(data, &raw); err != nil {
 		var d dataPoint
 		d.Error = err.Error()
 		errorlog.Printf("Converter.dataPoint: %v in %q", err, string(data))
@@ -159,7 +170,7 @@ func (c Converter) genericDataPoint(payload []byte) dataPoint {
 		metadata: c.metadata(),
 		Type:     "generic",
 	}
-	if err := json.Unmarshal(payload, &generic.Payload); err != nil {
+	if err := unmarshalStrict(payload, &generic.Payload); err != nil {
 		generic.Error = err.Error()
 		errorlog.Printf("Converter.genericDataPoint: %v in %q", err, string(payload))
 	}
@@ -176,7 +187,7 @@ func (c Converter) locationDataPoint(payload []byte) dataPoint {
 		Timestamp int     `json:"timestamp"` // unix
 		Precision float64 `json:"precision"`
 	}
-	err := json.Unmarshal(payload, &location)
+	err := unmarshalStrict(payload, &location)
 	d := dataPoint{
 		metadata: c.metadata(),
 		Type:     "location",
@@ -195,7 +206,7 @@ func (c Converter) motionDataPoint(payload []byte) dataPoint {
 		Y float64 `json:"y_axis"`
 		Z float64 `json:"z_axis"`
 	}
-	err := json.Unmarshal(payload, &motion)
+	err := unmarshalStrict(payload, &motion)
 	d := dataPoint{
 		metadata: c.metadata(),
 		Type:     "motion",
