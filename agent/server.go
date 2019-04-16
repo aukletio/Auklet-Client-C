@@ -42,6 +42,29 @@ func NewServer(in io.Reader, dec *json.Decoder) *Server {
 	return s
 }
 
+func (s *Server) scan() bool {
+	var msg Message
+	if err := s.dec.Decode(&msg); err == io.EOF {
+		return false
+	} else if err != nil {
+		// There was a problem decoding the stream into
+		// message format.
+		buf, _ := ioutil.ReadAll(s.dec.Buffered())
+		s.out <- Message{
+			Type:  "log",
+			Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
+		}
+		s.dec = json.NewDecoder(s.in)
+		errorlog.Printf("Server.serve: %v in %q", err, string(buf))
+		return true
+	}
+	if msg.Type == "event" {
+		s.errd = true
+	}
+	s.out <- msg
+	return true
+}
+
 // serve causes s to accept an incoming connection, after which s can send and
 // receive messages.
 func (s *Server) serve() {
@@ -52,29 +75,7 @@ func (s *Server) serve() {
 	if s.dec == nil {
 		s.dec = json.NewDecoder(s.in)
 	}
-	scan := func(s *Server) bool {
-		var msg Message
-		if err := s.dec.Decode(&msg); err == io.EOF {
-			return false
-		} else if err != nil {
-			// There was a problem decoding the stream into
-			// message format.
-			buf, _ := ioutil.ReadAll(s.dec.Buffered())
-			s.out <- Message{
-				Type:  "log",
-				Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
-			}
-			s.dec = json.NewDecoder(s.in)
-			errorlog.Printf("Server.serve: %v in %q", err, string(buf))
-			return true
-		}
-		if msg.Type == "event" {
-			s.errd = true
-		}
-		s.out <- msg
-		return true
-	}
-	for scan(s) {
+	for s.scan() {
 	}
 	if !s.errd {
 		s.out <- Message{Type: "cleanExit"}
