@@ -26,6 +26,7 @@ type Server struct {
 	out chan Message
 	// Done closes when the Server gets EOF.
 	Done chan struct{}
+	errd bool
 }
 
 // NewServer returns a new Server that reads from in. If dec is not nil, it is
@@ -51,7 +52,6 @@ func (s *Server) serve() {
 	if s.dec == nil {
 		s.dec = json.NewDecoder(s.in)
 	}
-	errd := false
 	scan := func(s *Server) bool {
 		var msg Message
 		if err := s.dec.Decode(&msg); err == io.EOF {
@@ -69,14 +69,14 @@ func (s *Server) serve() {
 			return true
 		}
 		if msg.Type == "event" {
-			errd = true
+			s.errd = true
 		}
 		s.out <- msg
 		return true
 	}
 	for scan(s) {
 	}
-	if !errd {
+	if !s.errd {
 		s.out <- Message{Type: "cleanExit"}
 	}
 }
