@@ -54,10 +54,11 @@ func TestServer(t *testing.T) {
 	}
 	for _, c := range cases {
 		s := newServer(bytes.NewBuffer(c.input), nil)
-		go s.serve()
-		got := <-s.Output()
-		if !compare(got, c.expect) {
-			t.Errorf("expected %v, got %v", c.expect, got)
+		for s.scan() {
+			got := s.msg
+			if !compare(got, c.expect) {
+				t.Errorf("expected %v, got %v", c.expect, got)
+			}
 		}
 	}
 }
