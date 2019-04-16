@@ -27,6 +27,7 @@ type Server struct {
 	// Done closes when the Server gets EOF.
 	Done chan struct{}
 	errd bool
+	msg Message
 }
 
 // NewServer returns a new Server that reads from in. If dec is not nil, it is
@@ -54,6 +55,7 @@ func (s *Server) scan() bool {
 			Type:  "log",
 			Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 		}
+		s.msg = msg
 		s.out <- msg
 		s.dec = json.NewDecoder(s.in)
 		errorlog.Printf("Server.serve: %v in %q", err, string(buf))
@@ -62,6 +64,7 @@ func (s *Server) scan() bool {
 	if msg.Type == "event" {
 		s.errd = true
 	}
+	s.msg = msg
 	s.out <- msg
 	return true
 }
