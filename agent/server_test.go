@@ -7,11 +7,6 @@ import (
 	"testing"
 )
 
-type testServerCase struct {
-	input  string
-	want Message
-}
-
 func compare(a, b Message) bool {
 	return a.Type == b.Type && bytes.Compare(a.Data, b.Data) == 0 && a.Error == b.Error
 }
@@ -27,7 +22,11 @@ func (m Message) String() string {
 }
 
 func TestServer(t *testing.T) {
-	tests := []testServerCase{
+	tests := []struct {
+		input  string
+		want Message
+		problem bool
+	}{
 		{
 			input: `{"type":"message","data":"hello, world"}`,
 			want: Message{
@@ -51,12 +50,17 @@ func TestServer(t *testing.T) {
 				Data:  []byte{},
 				Error: `unexpected EOF in {"malformed`,
 			},
+			problem: true,
 		},
 	}
 	for _, test := range tests {
 		s := newServer(strings.NewReader(test.input), nil)
 		for s.scan() {
 			got := s.msg
+			problem := s.err != nil
+			if problem != test.problem {
+				t.Errorf("case %+v: problem = %v, error = %v", test, problem, s.err)
+			}
 			if !compare(got, test.want) {
 				t.Errorf("expected %v, got %v", test.want, got)
 			}
