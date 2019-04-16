@@ -20,13 +20,17 @@ type DataPointServer struct {
 
 // NewDataPointServer returns a new DataPointServer.
 func NewDataPointServer(in io.Reader) *DataPointServer {
-	s := &DataPointServer{
+	s := newDataPointServer(in)
+	go s.serve()
+	return s
+}
+
+func newDataPointServer(in io.Reader) *DataPointServer {
+	return &DataPointServer{
 		in:  in,
 		dec: json.NewDecoder(in),
 		out: make(chan Message),
 	}
-	go s.serve()
-	return s
 }
 
 func (s *DataPointServer) scan() bool {
