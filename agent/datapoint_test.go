@@ -65,3 +65,10 @@ func TestDataPointServer(t *testing.T) {
 		}
 	}
 }
+
+func TestDataPoint(t *testing.T) {
+	input := `{}]`
+	server := NewDataPointServer(strings.NewReader(input))
+	for _ = range server.Output() {
+	}
+}
