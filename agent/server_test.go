@@ -2,12 +2,13 @@ package agent
 
 import (
 	"bytes"
+	"strings"
 	"fmt"
 	"testing"
 )
 
 type testServerCase struct {
-	input  []byte
+	input  string
 	want Message
 }
 
@@ -28,7 +29,7 @@ func (m Message) String() string {
 func TestServer(t *testing.T) {
 	tests := []testServerCase{
 		{
-			input: []byte(`{"type":"message","data":"hello, world"}`),
+			input: `{"type":"message","data":"hello, world"}`,
 			want: Message{
 				Type:  "message",
 				Data:  []byte(`"hello, world"`),
@@ -36,7 +37,7 @@ func TestServer(t *testing.T) {
 			},
 		},
 		{
-			input: []byte(`{"type":"event","data":"hello, world"}`),
+			input: `{"type":"event","data":"hello, world"}`,
 			want: Message{
 				Type:  "event",
 				Data:  []byte(`"hello, world"`),
@@ -44,7 +45,7 @@ func TestServer(t *testing.T) {
 			},
 		},
 		{
-			input: []byte(`{"malformed`),
+			input: `{"malformed`,
 			want: Message{
 				Type:  "log",
 				Data:  []byte{},
@@ -53,7 +54,7 @@ func TestServer(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		s := newServer(bytes.NewBuffer(test.input), nil)
+		s := newServer(strings.NewReader(test.input), nil)
 		for s.scan() {
 			got := s.msg
 			if !compare(got, test.want) {
