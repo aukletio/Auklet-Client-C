@@ -16,7 +16,6 @@ import (
 type Message struct {
 	Type  string          `json:"type"`
 	Data  json.RawMessage `json:"data"`
-	Error string
 }
 
 // Server provides a connection server for an Auklet agent.

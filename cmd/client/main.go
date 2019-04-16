@@ -136,9 +136,8 @@ func (dumper) run(e exec) error {
 		// dump the contents
 		fmt.Printf(`type: %v
 data: %v
-error: %v
 
-`, m.Type, string(m.Data), m.Error)
+`, m.Type, string(m.Data))
 	}
 	return nil
 }
