@@ -52,10 +52,10 @@ func (s *Server) serve() {
 		s.dec = json.NewDecoder(s.in)
 	}
 	errd := false
-	for {
+	scan := func() bool {
 		var msg Message
 		if err := s.dec.Decode(&msg); err == io.EOF {
-			break
+			return false
 		} else if err != nil {
 			// There was a problem decoding the stream into
 			// message format.
@@ -66,12 +66,15 @@ func (s *Server) serve() {
 			}
 			s.dec = json.NewDecoder(s.in)
 			errorlog.Printf("Server.serve: %v in %q", err, string(buf))
-			continue
+			return true
 		}
 		if msg.Type == "event" {
 			errd = true
 		}
 		s.out <- msg
+		return true
+	}
+	for scan() {
 	}
 	if !errd {
 		s.out <- Message{Type: "cleanExit"}
