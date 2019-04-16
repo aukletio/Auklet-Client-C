@@ -15,6 +15,7 @@ type DataPointServer struct {
 	dec *json.Decoder
 	out chan Message
 	msg Message
+	err error
 }
 
 // NewDataPointServer returns a new DataPointServer.
@@ -42,10 +43,10 @@ func (s *DataPointServer) scan() bool {
 
 	default:
 		buf, _ := ioutil.ReadAll(s.dec.Buffered())
-		err := fmt.Errorf("%v in %v", err.Error(), string(buf))
+		s.err = fmt.Errorf("%v in %v", err.Error(), string(buf))
 		msg := Message{
 			Type:  "log",
-			Error: err.Error(),
+			Error: s.err.Error(),
 		}
 		s.msg = msg
 		s.dec = json.NewDecoder(s.in)
