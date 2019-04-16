@@ -52,7 +52,7 @@ func (s *Server) serve() {
 		s.dec = json.NewDecoder(s.in)
 	}
 	errd := false
-	scan := func() bool {
+	scan := func(s *Server) bool {
 		var msg Message
 		if err := s.dec.Decode(&msg); err == io.EOF {
 			return false
@@ -74,7 +74,7 @@ func (s *Server) serve() {
 		s.out <- msg
 		return true
 	}
-	for scan() {
+	for scan(s) {
 	}
 	if !errd {
 		s.out <- Message{Type: "cleanExit"}
