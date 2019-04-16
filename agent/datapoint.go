@@ -14,6 +14,7 @@ type DataPointServer struct {
 	in  io.Reader
 	dec *json.Decoder
 	out chan Message
+	msg Message
 }
 
 // NewDataPointServer returns a new DataPointServer.
@@ -33,6 +34,7 @@ func (s *DataPointServer) scan() bool {
 	// since "data point" can be arbitrary JSON.
 	switch err := s.dec.Decode(&msg.Data); err {
 	case nil:
+		s.msg = msg
 		s.out <- msg
 		return true
 
@@ -45,6 +47,7 @@ func (s *DataPointServer) scan() bool {
 			Type:  "log",
 			Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 		}
+		s.msg = msg
 		s.out <- msg
 		s.dec = json.NewDecoder(s.in)
 		errorlog.Printf("DataPointServer.serve: %v in %q", err, string(buf))
