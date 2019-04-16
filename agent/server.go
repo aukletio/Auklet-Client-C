@@ -34,14 +34,18 @@ type Server struct {
 // NewServer returns a new Server that reads from in. If dec is not nil, it is
 // used directly.
 func NewServer(in io.Reader, dec *json.Decoder) *Server {
-	s := &Server{
+	s := newServer(in, dec)
+	go s.serve()
+	return s
+}
+
+func newServer(in io.Reader, dec *json.Decoder) *Server {
+	return &Server{
 		in:   in,
 		dec:  dec,
 		out:  make(chan Message),
 		Done: make(chan struct{}),
 	}
-	go s.serve()
-	return s
 }
 
 func (s *Server) scan() bool {
