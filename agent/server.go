@@ -84,6 +84,9 @@ func (s *Server) serve() {
 	log.Print("Server: accepted connection")
 	defer log.Print("Server: connection closed")
 	for s.scan() {
+		if s.err != nil {
+			continue
+		}
 		s.out <- s.msg
 	}
 	if !s.errd {
