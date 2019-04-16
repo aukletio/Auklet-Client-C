@@ -40,6 +40,9 @@ func NewServer(in io.Reader, dec *json.Decoder) *Server {
 }
 
 func newServer(in io.Reader, dec *json.Decoder) *Server {
+	if dec == nil {
+		dec = json.NewDecoder(in)
+	}
 	return &Server{
 		in:   in,
 		dec:  dec,
@@ -80,9 +83,6 @@ func (s *Server) serve() {
 	defer close(s.out)
 	log.Print("Server: accepted connection")
 	defer log.Print("Server: connection closed")
-	if s.dec == nil {
-		s.dec = json.NewDecoder(s.in)
-	}
 	for s.scan() {
 		s.out <- s.msg
 	}
