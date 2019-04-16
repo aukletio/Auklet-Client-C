@@ -8,7 +8,7 @@ import (
 
 type testServerCase struct {
 	input  []byte
-	expect Message
+	want Message
 }
 
 func compare(a, b Message) bool {
@@ -26,10 +26,10 @@ func (m Message) String() string {
 }
 
 func TestServer(t *testing.T) {
-	cases := []testServerCase{
+	tests := []testServerCase{
 		{
 			input: []byte(`{"type":"message","data":"hello, world"}`),
-			expect: Message{
+			want: Message{
 				Type:  "message",
 				Data:  []byte(`"hello, world"`),
 				Error: "",
@@ -37,7 +37,7 @@ func TestServer(t *testing.T) {
 		},
 		{
 			input: []byte(`{"type":"event","data":"hello, world"}`),
-			expect: Message{
+			want: Message{
 				Type:  "event",
 				Data:  []byte(`"hello, world"`),
 				Error: "",
@@ -45,19 +45,19 @@ func TestServer(t *testing.T) {
 		},
 		{
 			input: []byte(`{"malformed`),
-			expect: Message{
+			want: Message{
 				Type:  "log",
 				Data:  []byte{},
 				Error: `unexpected EOF in {"malformed`,
 			},
 		},
 	}
-	for _, c := range cases {
-		s := newServer(bytes.NewBuffer(c.input), nil)
+	for _, test := range tests {
+		s := newServer(bytes.NewBuffer(test.input), nil)
 		for s.scan() {
 			got := s.msg
-			if !compare(got, c.expect) {
-				t.Errorf("expected %v, got %v", c.expect, got)
+			if !compare(got, test.want) {
+				t.Errorf("expected %v, got %v", test.want, got)
 			}
 		}
 	}
