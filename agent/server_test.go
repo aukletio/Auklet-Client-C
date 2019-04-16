@@ -1,25 +1,9 @@
 package agent
 
 import (
-	"bytes"
 	"strings"
-	"fmt"
 	"testing"
 )
-
-func compare(a, b Message) bool {
-	return a.Type == b.Type && bytes.Compare(a.Data, b.Data) == 0 && a.Error == b.Error
-}
-
-func (m Message) String() string {
-	return fmt.Sprint(struct {
-		Type, Data, Error string
-	}{
-		Type:  m.Type,
-		Data:  string(m.Data),
-		Error: m.Error,
-	})
-}
 
 func TestServer(t *testing.T) {
 	tests := []struct {
