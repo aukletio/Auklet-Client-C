@@ -58,9 +58,9 @@ func TestDataPointServer(t *testing.T) {
 	for _, test := range tests {
 		server := newDataPointServer(strings.NewReader(test.data))
 		for server.scan() {
-			problem := server.msg.Error != ""
+			problem := server.err != nil
 			if problem != test.problem {
-				t.Errorf("case %+v: problem = %v, error = %v", test, problem, server.msg.Error)
+				t.Errorf("case %+v: problem = %v, error = %v", test, problem, server.err)
 			}
 		}
 	}
