@@ -62,6 +62,9 @@ func (s *DataPointServer) scan() bool {
 func (s *DataPointServer) serve() {
 	defer close(s.out)
 	for s.scan() {
+		if s.err != nil {
+			continue
+		}
 		s.out <- s.msg
 	}
 }
