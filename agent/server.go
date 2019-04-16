@@ -14,8 +14,8 @@ import (
 // Message represents messages that can be received by a Server, and thus,
 // would be sent by an agent.
 type Message struct {
-	Type  string          `json:"type"`
-	Data  json.RawMessage `json:"data"`
+	Type string          `json:"type"`
+	Data json.RawMessage `json:"data"`
 }
 
 // Server provides a connection server for an Auklet agent.
@@ -26,8 +26,8 @@ type Server struct {
 	// Done closes when the Server gets EOF.
 	Done chan struct{}
 	errd bool
-	msg Message
-	err error
+	msg  Message
+	err  error
 }
 
 // NewServer returns a new Server that reads from in. If dec is not nil, it is

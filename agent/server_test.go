@@ -7,7 +7,7 @@ import (
 
 func TestServer(t *testing.T) {
 	tests := []struct {
-		input  string
+		input   string
 		problem bool
 	}{
 		{
@@ -17,7 +17,7 @@ func TestServer(t *testing.T) {
 			input: `{"type":"event","data":"hello, world"}`,
 		},
 		{
-			input: `{"malformed`,
+			input:   `{"malformed`,
 			problem: true,
 		},
 	}
