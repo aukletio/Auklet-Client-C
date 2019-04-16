@@ -28,6 +28,7 @@ type Server struct {
 	Done chan struct{}
 	errd bool
 	msg Message
+	err error
 }
 
 // NewServer returns a new Server that reads from in. If dec is not nil, it is
@@ -51,10 +52,10 @@ func (s *Server) scan() bool {
 		// There was a problem decoding the stream into
 		// message format.
 		buf, _ := ioutil.ReadAll(s.dec.Buffered())
-		err := fmt.Errorf("%v in %v", err.Error(), string(buf))
+		s.err = fmt.Errorf("%v in %v", err.Error(), string(buf))
 		msg := Message{
 			Type:  "log",
-			Error: err.Error(),
+			Error: s.err.Error(),
 		}
 		s.msg = msg
 		s.dec = json.NewDecoder(s.in)
