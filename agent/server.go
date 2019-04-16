@@ -51,9 +51,10 @@ func (s *Server) scan() bool {
 		// There was a problem decoding the stream into
 		// message format.
 		buf, _ := ioutil.ReadAll(s.dec.Buffered())
+		err := fmt.Errorf("%v in %v", err.Error(), string(buf))
 		msg := Message{
 			Type:  "log",
-			Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
+			Error: err.Error(),
 		}
 		s.msg = msg
 		s.dec = json.NewDecoder(s.in)
