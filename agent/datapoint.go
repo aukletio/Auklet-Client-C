@@ -29,16 +29,17 @@ func NewDataPointServer(in io.Reader) *DataPointServer {
 
 func (s *DataPointServer) serve() {
 	defer close(s.out)
-	for {
+	scan := func() bool {
 		msg := Message{Type: "datapoint"}
 		// Decode the stream into the Data field,
 		// since "data point" can be arbitrary JSON.
 		switch err := s.dec.Decode(&msg.Data); err {
 		case nil:
 			s.out <- msg
+			return true
 
 		case io.EOF:
-			return
+			return false
 
 		default:
 			buf, _ := ioutil.ReadAll(s.dec.Buffered())
@@ -48,7 +49,10 @@ func (s *DataPointServer) serve() {
 			}
 			s.dec = json.NewDecoder(s.in)
 			errorlog.Printf("DataPointServer.serve: %v in %q", err, string(buf))
+			return true
 		}
+	}
+	for scan() {
 	}
 }
 
