@@ -27,32 +27,33 @@ func NewDataPointServer(in io.Reader) *DataPointServer {
 	return s
 }
 
+func (s *DataPointServer) scan() bool {
+	msg := Message{Type: "datapoint"}
+	// Decode the stream into the Data field,
+	// since "data point" can be arbitrary JSON.
+	switch err := s.dec.Decode(&msg.Data); err {
+	case nil:
+		s.out <- msg
+		return true
+
+	case io.EOF:
+		return false
+
+	default:
+		buf, _ := ioutil.ReadAll(s.dec.Buffered())
+		s.out <- Message{
+			Type:  "log",
+			Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
+		}
+		s.dec = json.NewDecoder(s.in)
+		errorlog.Printf("DataPointServer.serve: %v in %q", err, string(buf))
+		return true
+	}
+}
+
 func (s *DataPointServer) serve() {
 	defer close(s.out)
-	scan := func(s *DataPointServer) bool {
-		msg := Message{Type: "datapoint"}
-		// Decode the stream into the Data field,
-		// since "data point" can be arbitrary JSON.
-		switch err := s.dec.Decode(&msg.Data); err {
-		case nil:
-			s.out <- msg
-			return true
-
-		case io.EOF:
-			return false
-
-		default:
-			buf, _ := ioutil.ReadAll(s.dec.Buffered())
-			s.out <- Message{
-				Type:  "log",
-				Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
-			}
-			s.dec = json.NewDecoder(s.in)
-			errorlog.Printf("DataPointServer.serve: %v in %q", err, string(buf))
-			return true
-		}
-	}
-	for scan(s) {
+	for s.scan() {
 	}
 }
 
