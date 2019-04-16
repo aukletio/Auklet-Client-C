@@ -29,7 +29,7 @@ func NewDataPointServer(in io.Reader) *DataPointServer {
 
 func (s *DataPointServer) serve() {
 	defer close(s.out)
-	scan := func() bool {
+	scan := func(s *DataPointServer) bool {
 		msg := Message{Type: "datapoint"}
 		// Decode the stream into the Data field,
 		// since "data point" can be arbitrary JSON.
@@ -52,7 +52,7 @@ func (s *DataPointServer) serve() {
 			return true
 		}
 	}
-	for scan() {
+	for scan(s) {
 	}
 }
 
