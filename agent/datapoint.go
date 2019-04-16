@@ -48,11 +48,6 @@ func (s *DataPointServer) scan() bool {
 	default:
 		buf, _ := ioutil.ReadAll(s.dec.Buffered())
 		s.err = fmt.Errorf("%v in %v", err.Error(), string(buf))
-		msg := Message{
-			Type:  "log",
-			Error: s.err.Error(),
-		}
-		s.msg = msg
 		s.dec = json.NewDecoder(s.in)
 		errorlog.Printf("DataPointServer.serve: %v in %q", err, string(buf))
 		return true
