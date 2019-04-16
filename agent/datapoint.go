@@ -35,7 +35,6 @@ func (s *DataPointServer) scan() bool {
 	switch err := s.dec.Decode(&msg.Data); err {
 	case nil:
 		s.msg = msg
-		s.out <- msg
 		return true
 
 	case io.EOF:
@@ -48,7 +47,6 @@ func (s *DataPointServer) scan() bool {
 			Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 		}
 		s.msg = msg
-		s.out <- msg
 		s.dec = json.NewDecoder(s.in)
 		errorlog.Printf("DataPointServer.serve: %v in %q", err, string(buf))
 		return true
@@ -58,6 +56,7 @@ func (s *DataPointServer) scan() bool {
 func (s *DataPointServer) serve() {
 	defer close(s.out)
 	for s.scan() {
+		s.out <- s.msg
 	}
 }
 
