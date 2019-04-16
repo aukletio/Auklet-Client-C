@@ -53,7 +53,8 @@ func TestServer(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		s := NewServer(bytes.NewBuffer(c.input), nil)
+		s := newServer(bytes.NewBuffer(c.input), nil)
+		go s.serve()
 		got := <-s.Output()
 		if !compare(got, c.expect) {
 			t.Errorf("expected %v, got %v", c.expect, got)
