@@ -56,7 +56,6 @@ func (s *Server) scan() bool {
 			Error: fmt.Sprintf("%v in %v", err.Error(), string(buf)),
 		}
 		s.msg = msg
-		s.out <- msg
 		s.dec = json.NewDecoder(s.in)
 		errorlog.Printf("Server.serve: %v in %q", err, string(buf))
 		return true
@@ -65,7 +64,6 @@ func (s *Server) scan() bool {
 		s.errd = true
 	}
 	s.msg = msg
-	s.out <- msg
 	return true
 }
 
@@ -80,6 +78,7 @@ func (s *Server) serve() {
 		s.dec = json.NewDecoder(s.in)
 	}
 	for s.scan() {
+		s.out <- s.msg
 	}
 	if !s.errd {
 		s.out <- Message{Type: "cleanExit"}
