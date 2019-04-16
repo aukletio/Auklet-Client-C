@@ -56,7 +56,8 @@ func TestDataPointServer(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		server := NewDataPointServer(strings.NewReader(test.data))
+		server := newDataPointServer(strings.NewReader(test.data))
+		go server.serve()
 		for msg := range server.Output() {
 			problem := msg.Error != ""
 			if problem != test.problem {
