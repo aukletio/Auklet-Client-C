@@ -123,6 +123,9 @@ func TestUnmarshalStrict(t *testing.T) {
 			input: `{"bogus":0}`,
 			problem: true,
 		},
+		{
+			input: `{"number":0}`,
+		},
 	}
 	for _, test := range tests {
 		var v struct {
