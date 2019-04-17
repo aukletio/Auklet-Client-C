@@ -113,3 +113,25 @@ func TestConverter(t *testing.T) {
 		close(s)
 	}
 }
+
+func TestUnmarshalStrict(t *testing.T) {
+	tests := []struct{
+		input string
+		problem bool
+	}{
+		{
+			input: `{"bogus":0}`,
+			problem: true,
+		},
+	}
+	for _, test := range tests {
+		var v struct {
+			Number int `json:"number"`
+		}
+		err := unmarshalStrict([]byte(test.input), &v)
+		problem := err != nil
+		if problem != test.problem {
+			t.Errorf("case %+v: problem = %v", test, problem)
+		}
+	}
+}
