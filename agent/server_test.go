@@ -31,3 +31,10 @@ func TestServer(t *testing.T) {
 		}
 	}
 }
+
+func TestServer2(t *testing.T) {
+	input := `{}]`
+	s := NewServer(strings.NewReader(input), nil)
+	for _ = range s.Output() {
+	}
+}
