@@ -115,12 +115,12 @@ func TestConverter(t *testing.T) {
 }
 
 func TestUnmarshalStrict(t *testing.T) {
-	tests := []struct{
-		input string
+	tests := []struct {
+		input   string
 		problem bool
 	}{
 		{
-			input: `{"bogus":0}`,
+			input:   `{"bogus":0}`,
 			problem: true,
 		},
 		{
@@ -142,7 +142,7 @@ func TestUnmarshalStrict(t *testing.T) {
 func TestDataPoint(t *testing.T) {
 	c := newConverter(cfg)
 	tests := []struct {
-		input string
+		input   string
 		problem bool
 	}{
 		{
