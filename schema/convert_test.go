@@ -138,3 +138,66 @@ func TestUnmarshalStrict(t *testing.T) {
 		}
 	}
 }
+
+func TestDataPoint(t *testing.T) {
+	c := newConverter(cfg)
+	tests := []struct {
+		input string
+		problem bool
+	}{
+		{
+			input: `{
+				"type": "",
+				"payload": {}
+			}`,
+		},
+		{
+			input: `{
+				"type": "",
+				"bogus": {}
+			}`,
+			problem: true,
+		},
+		{
+			input: `{
+				"type": "bogus",
+				"payload": {}
+			}`,
+			problem: true,
+		},
+		{
+			input: `{
+				"type": "location",
+				"payload": {}
+			}`,
+		},
+		{
+			input: `{
+				"type": "location",
+				"payload": {"bogus":null}
+			}`,
+			problem: true,
+		},
+		{
+			input: `{
+				"type": "motion",
+				"payload": {}
+			}`,
+		},
+		{
+			input: `{
+				"type": "motion",
+				"payload": {"bogus":null}
+			}`,
+			problem: true,
+		},
+	}
+	for _, test := range tests {
+		dp := c.dataPoint([]byte(test.input))
+		problem := dp.Error != ""
+		if problem != test.problem {
+			t.Errorf("case %+v: problem = %v", test, problem)
+			t.Errorf("case %+v: error = %v", test, dp.Error)
+		}
+	}
+}

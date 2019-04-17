@@ -69,13 +69,17 @@ const (
 // NewConverter returns a converter for the given input streams that uses the
 // given persistor and app.
 func NewConverter(cfg Config, in ...agent.MessageSource) Converter {
-	c := Converter{
+	c := newConverter(cfg, in...)
+	go c.serve()
+	return c
+}
+
+func newConverter(cfg Config, in ...agent.MessageSource) Converter {
+	return Converter{
 		in:     agent.Merge(in...),
 		out:    make(chan broker.Message),
 		Config: cfg,
 	}
-	go c.serve()
-	return c
 }
 
 // Output returns the converter's output stream.
