@@ -41,38 +41,37 @@ var cfg = Config{
 	MacHash:     "mac hash",
 }
 
-func TestConverter(t *testing.T) {
-	tests := []struct {
-		input agent.Message
-		ok    bool
-	}{
-		{input: agent.Message{Type: "event"}, ok: true},
-		{input: agent.Message{Type: "profile"}, ok: true},
-		{input: agent.Message{Type: "cleanExit"}, ok: true},
-		{
-			input: agent.Message{
-				Type: "datapoint",
-				Data: json.RawMessage(`{
+var converterTests = []struct {
+	input agent.Message
+	ok    bool
+}{
+	{input: agent.Message{Type: "event"}, ok: true},
+	{input: agent.Message{Type: "profile"}, ok: true},
+	{input: agent.Message{Type: "cleanExit"}, ok: true},
+	{
+		input: agent.Message{
+			Type: "datapoint",
+			Data: json.RawMessage(`{
 					"type": "",
 					"payload": {}
 				}`),
-			},
-			ok: true,
 		},
-		{
-			input: agent.Message{
-				Type: "datapoint",
-				Data: json.RawMessage(`{
+		ok: true,
+	},
+	{
+		input: agent.Message{
+			Type: "datapoint",
+			Data: json.RawMessage(`{
 					"type": "generic",
 					"payload": {}
 				}`),
-			},
-			ok: true,
 		},
-		{
-			input: agent.Message{
-				Type: "datapoint",
-				Data: json.RawMessage(`{
+		ok: true,
+	},
+	{
+		input: agent.Message{
+			Type: "datapoint",
+			Data: json.RawMessage(`{
 					"type": "location",
 					"payload": {
 						"speed": 1.0,
@@ -84,13 +83,13 @@ func TestConverter(t *testing.T) {
 						"precision": 0.1
 					}
 				}`),
-			},
-			ok: true,
 		},
-		{
-			input: agent.Message{
-				Type: "datapoint",
-				Data: json.RawMessage(`{
+		ok: true,
+	},
+	{
+		input: agent.Message{
+			Type: "datapoint",
+			Data: json.RawMessage(`{
 					"type": "motion",
 					"payload": {
 						"x_axis": 1.0,
@@ -98,12 +97,14 @@ func TestConverter(t *testing.T) {
 						"z_axis": 1.0
 					}
 				}`),
-			},
-			ok: true,
 		},
-		{input: agent.Message{Type: "unknown"}, ok: false},
-	}
-	for i, test := range tests {
+		ok: true,
+	},
+	{input: agent.Message{Type: "unknown"}, ok: false},
+}
+
+func TestConverter(t *testing.T) {
+	for i, test := range converterTests {
 		s := make(source)
 		converter := NewConverter(cfg, s)
 		s <- test.input
@@ -141,60 +142,61 @@ func TestUnmarshalStrict(t *testing.T) {
 	}
 }
 
-func TestDataPoint(t *testing.T) {
-	c := newConverter(cfg)
-	tests := []struct {
-		input   string
-		problem bool
-	}{
-		{
-			input: `{
+var dataPointTests = []struct {
+	input   string
+	problem bool
+}{
+	{
+		input: `{
 				"type": "",
 				"payload": {}
 			}`,
-		},
-		{
-			input: `{
+	},
+	{
+		input: `{
 				"type": "",
 				"bogus": {}
 			}`,
-			problem: true,
-		},
-		{
-			input: `{
+		problem: true,
+	},
+	{
+		input: `{
 				"type": "bogus",
 				"payload": {}
 			}`,
-			problem: true,
-		},
-		{
-			input: `{
+		problem: true,
+	},
+	{
+		input: `{
 				"type": "location",
 				"payload": {}
 			}`,
-		},
-		{
-			input: `{
+	},
+	{
+		input: `{
 				"type": "location",
 				"payload": {"bogus":null}
 			}`,
-			problem: true,
-		},
-		{
-			input: `{
+		problem: true,
+	},
+	{
+		input: `{
 				"type": "motion",
 				"payload": {}
 			}`,
-		},
-		{
-			input: `{
+	},
+	{
+		input: `{
 				"type": "motion",
 				"payload": {"bogus":null}
 			}`,
-			problem: true,
-		},
-	}
-	for _, test := range tests {
+		problem: true,
+	},
+}
+
+func TestDataPoint(t *testing.T) {
+	c := newConverter(cfg)
+	for _, test := range dataPointTests {
 		dp := c.dataPoint([]byte(test.input))
 		problem := dp.Error != ""
 		if problem != test.problem {
@@ -247,54 +249,54 @@ func from(data string) numberTest {
 	}
 }
 
-func TestNumber(t *testing.T) {
-	tests := []numberTest{
-		{
-			number: "1",
-			want: "\xd4" + // fixext1 header
-				"\x00" + // type field = 0
-				"1", // data
-		},
-		{
-			number: "10",
-			want: "\xd5" + // fixext2 header
-				"\x00" + // type field = 0
-				"10", // data
-		},
-		{
-			number: "210",
-			want: "\xc7" + // ext8 header
-				"\x03" + // length
-				"\x00" + // type field = 0
-				"210", // data
-		},
-		{
-			number: "3210",
-			want: "\xd6" + // fixext4 header
-				"\x00" + // type field = 0
-				"3210", // data
-		},
-		{
-			number: "43210",
-			want: "\xc7" + // ext8 header
-				"\x05" + // length
-				"\x00" + // type field = 0
-				"43210", // data
-		},
-		{
-			number: "543210",
-			want: "\xc7" + // ext8 header
-				"\x06" + // length
-				"\x00" + // type field = 0
-				"543210", // data
-		},
-		from(exp(2, 100).String()),
-		from(exp(2, 200).String()),
-		from(exp(2, 300).String()),
-		from(exp(2, 400).String()),
-	}
+var numberTests = []numberTest{
+	{
+		number: "1",
+		want: "\xd4" + // fixext1 header
+			"\x00" + // type field = 0
+			"1", // data
+	},
+	{
+		number: "10",
+		want: "\xd5" + // fixext2 header
+			"\x00" + // type field = 0
+			"10", // data
+	},
+	{
+		number: "210",
+		want: "\xc7" + // ext8 header
+			"\x03" + // length
+			"\x00" + // type field = 0
+			"210", // data
+	},
+	{
+		number: "3210",
+		want: "\xd6" + // fixext4 header
+			"\x00" + // type field = 0
+			"3210", // data
+	},
+	{
+		number: "43210",
+		want: "\xc7" + // ext8 header
+			"\x05" + // length
+			"\x00" + // type field = 0
+			"43210", // data
+	},
+	{
+		number: "543210",
+		want: "\xc7" + // ext8 header
+			"\x06" + // length
+			"\x00" + // type field = 0
+			"543210", // data
+	},
+	from(exp(2, 100).String()),
+	from(exp(2, 200).String()),
+	from(exp(2, 300).String()),
+	from(exp(2, 400).String()),
+}
 
-	for _, test := range tests {
+func TestNumber(t *testing.T) {
+	for _, test := range numberTests {
 		var v interface{}
 		if err := unmarshalStrict([]byte(test.number), &v); err != nil {
 			t.Errorf("case %+v: %v", test, err)

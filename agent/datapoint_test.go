@@ -5,29 +5,28 @@ import (
 	"testing"
 )
 
-func TestDataPointServer(t *testing.T) {
-	tests := []struct {
-		data    string
-		problem bool
-	}{
-		{
-			data: `{
+var dataPointServerTests = []struct {
+	data    string
+	problem bool
+}{
+	{
+		data: `{
 				"type": "",
 				"data": {
 					"arbitrary": "json"
 				}
 			}`,
-		},
-		{
-			data: `{
+	},
+	{
+		data: `{
 				"type": "generic",
 				"data": {
 					"arbitrary": "json"
 				}
 			}`,
-		},
-		{
-			data: `{
+	},
+	{
+		data: `{
 				"type": "location",
 				"data": {
 					"speed":      1.0,
@@ -39,9 +38,9 @@ func TestDataPointServer(t *testing.T) {
 					"precision":  0.1
 				}
 			}`,
-		},
-		{
-			data: `{
+	},
+	{
+		data: `{
 				"type": "motion",
 				"data": {
 					"x_axis": 1.0,
@@ -49,13 +48,15 @@ func TestDataPointServer(t *testing.T) {
 					"z_axis": 1.0
 				}
 			}`,
-		},
-		{
-			data:    `}`,
-			problem: true,
-		},
-	}
-	for _, test := range tests {
+	},
+	{
+		data:    `}`,
+		problem: true,
+	},
+}
+
+func TestDataPointServer(t *testing.T) {
+	for _, test := range dataPointServerTests {
 		server := newDataPointServer(strings.NewReader(test.data))
 		for server.scan() {
 			problem := server.err != nil
