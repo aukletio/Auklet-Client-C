@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/vmihailenco/msgpack"
 
@@ -170,4 +171,21 @@ func (c Converter) marshal(v interface{}, topic broker.Topic) broker.Message {
 		Bytes: bytes,
 		Topic: topic,
 	}
+}
+
+type number string
+
+func (n number) MarshalMsgpack() ([]byte, error) { return []byte(n), nil }
+
+func encodeNumber(enc *msgpack.Encoder, v reflect.Value) error {
+	n := number(v.Interface().(json.Number))
+	if err := enc.EncodeExtHeader(0, len(n)); err != nil {
+		return err
+	}
+	return enc.Encode(n)
+}
+
+func init() {
+	var n json.Number
+	msgpack.Register(n, encodeNumber, nil)
 }

@@ -2,6 +2,8 @@ package schema
 
 import (
 	"encoding/json"
+	"math"
+	"math/big"
 	"testing"
 
 	"github.com/aukletio/Auklet-Client-C/agent"
@@ -198,6 +200,112 @@ func TestDataPoint(t *testing.T) {
 		if problem != test.problem {
 			t.Errorf("case %+v: problem = %v", test, problem)
 			t.Errorf("case %+v: error = %v", test, dp.Error)
+		}
+	}
+}
+
+type numberTest struct {
+	number string // JSON number literal
+	want   string // msgpack ext encoding
+}
+
+func exp(base, pow int64) *big.Int {
+	return big.NewInt(0).
+		Exp(
+			big.NewInt(base),
+			big.NewInt(pow),
+			nil, // not modular exponentiation
+		)
+}
+
+func header(length int) string {
+	cases := []struct {
+		max uint64
+		tag string
+	}{
+		{max: math.MaxUint8, tag: "\xc7"},
+		{max: math.MaxUint16, tag: "\xc8"},
+		{max: math.MaxUint32, tag: "\xc9"},
+	}
+
+	for _, cas := range cases {
+		if uint64(length) < cas.max {
+			return cas.tag
+		}
+	}
+	panic("too big to encode")
+}
+
+func from(data string) numberTest {
+	n := len(data)
+	return numberTest{
+		number: data,
+		want: header(n) +
+			string(n) +
+			"\x00" + // type
+			data,
+	}
+}
+
+func TestNumber(t *testing.T) {
+	tests := []numberTest{
+		{
+			number: "1",
+			want: "\xd4" + // fixext1 header
+				"\x00" + // type field = 0
+				"1", // data
+		},
+		{
+			number: "10",
+			want: "\xd5" + // fixext2 header
+				"\x00" + // type field = 0
+				"10", // data
+		},
+		{
+			number: "210",
+			want: "\xc7" + // ext8 header
+				"\x03" + // length
+				"\x00" + // type field = 0
+				"210", // data
+		},
+		{
+			number: "3210",
+			want: "\xd6" + // fixext4 header
+				"\x00" + // type field = 0
+				"3210", // data
+		},
+		{
+			number: "43210",
+			want: "\xc7" + // ext8 header
+				"\x05" + // length
+				"\x00" + // type field = 0
+				"43210", // data
+		},
+		{
+			number: "543210",
+			want: "\xc7" + // ext8 header
+				"\x06" + // length
+				"\x00" + // type field = 0
+				"543210", // data
+		},
+		from(exp(2, 100).String()),
+		from(exp(2, 200).String()),
+		from(exp(2, 300).String()),
+		from(exp(2, 400).String()),
+	}
+
+	for _, test := range tests {
+		var v interface{}
+		if err := unmarshalStrict([]byte(test.number), &v); err != nil {
+			t.Errorf("case %+v: %v", test, err)
+		}
+		b, err := msgpackMarshal(v)
+		if err != nil {
+			t.Errorf("case %+v: %v", test, err)
+		}
+		got := string(b)
+		if got != test.want {
+			t.Errorf("case %+v: got %v", test, got)
 		}
 	}
 }

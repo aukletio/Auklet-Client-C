@@ -128,6 +128,7 @@ type dataPoint struct {
 func unmarshalStrict(data []byte, v interface{}) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
+	dec.UseNumber()
 	if err := dec.Decode(v); err != nil {
 		format := "unmarshalStrict: %v in %q"
 		return fmt.Errorf(format, err, string(data))
