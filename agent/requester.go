@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/aukletio/Auklet-Client-C/broker"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 )
 
 // PeriodicRequester periodically sends emission requests over a connection.
@@ -43,6 +44,7 @@ func (r PeriodicRequester) run() {
 			return
 		case <-emit.C:
 			if _, err := r.conn.Write([]byte{0}); err != nil {
+				errorlog.Printf("PeriodicRequester.run: %v", err)
 				if prevErr != nil {
 					// This is our second write error. A
 					// single write error sometimes happens

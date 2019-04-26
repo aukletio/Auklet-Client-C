@@ -1,12 +1,15 @@
 package schema
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/satori/go.uuid"
 
 	"github.com/aukletio/Auklet-Client-C/device"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 	"github.com/aukletio/Auklet-Client-C/version"
 )
 
@@ -43,22 +46,6 @@ func (c Converter) metadata() metadata {
 	}
 }
 
-// appLog represents custom log data as expected by broker consumers.
-type appLog struct {
-	metadata
-	// Message is the log message sent by the application.
-	Message []byte         `json:"message"`
-	Metrics device.Metrics `json:"systemMetrics"`
-}
-
-func (c Converter) appLog(msg []byte) appLog {
-	return appLog{
-		metadata: c.metadata(),
-		Metrics:  c.Monitor.GetMetrics(),
-		Message:  msg,
-	}
-}
-
 // profile represents profile data as expected by broker consumers.
 type profile struct {
 	metadata
@@ -79,6 +66,7 @@ func (c Converter) profile(data []byte) profile {
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		p.Error = err.Error()
+		errorlog.Printf("Converter.profile: %v in %q", err, string(data))
 	}
 	p.metadata = c.metadata()
 	return p
@@ -104,6 +92,7 @@ func (c Converter) errorSig(data []byte) errorSig {
 	err := json.Unmarshal(data, &e)
 	if err != nil {
 		e.Error = err.Error()
+		errorlog.Printf("Converter.errorSig: %v in %q", err, string(data))
 	}
 	e.metadata = c.metadata()
 	e.Status = c.App.ExitStatus()
@@ -128,4 +117,49 @@ func (c Converter) exit() exit {
 		Signal:   c.App.Signal(),
 		Metrics:  c.Monitor.GetMetrics(),
 	}
+}
+
+type dataPoint struct {
+	metadata
+	Type    string      `json:"type"`
+	Payload interface{} `json:"payload"`
+}
+
+func unmarshalLossless(data []byte, v interface{}) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+	if err := dec.Decode(v); err != nil {
+		format := "unmarshalLossless: %v in %q"
+		return fmt.Errorf(format, err, string(data))
+	}
+	return nil
+}
+
+func (c Converter) dataPoint(data []byte) dataPoint {
+	// We unmarshal the type and not the payload,
+	// so that we can validate the payload's schema.
+	var raw struct {
+		Type    string          `json:"type"`
+		Payload json.RawMessage `json:"payload"`
+	}
+	if err := unmarshalLossless(data, &raw); err != nil {
+		var d dataPoint
+		d.Error = err.Error()
+		errorlog.Printf("Converter.dataPoint: %v in %q", err, string(data))
+		return d
+	}
+
+	return c.genericDataPoint(raw.Type, raw.Payload)
+}
+
+func (c Converter) genericDataPoint(typ string, payload []byte) dataPoint {
+	generic := dataPoint{
+		metadata: c.metadata(),
+		Type:     typ,
+	}
+	if err := unmarshalLossless(payload, &generic.Payload); err != nil {
+		generic.Error = err.Error()
+		errorlog.Printf("Converter.genericDataPoint: %v in %q", err, string(payload))
+	}
+	return generic
 }

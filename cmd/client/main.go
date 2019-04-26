@@ -119,7 +119,7 @@ type exec interface {
 	Run() error
 	AgentData() io.ReadWriter
 	Decoder() *json.Decoder
-	AppLogs() io.Reader
+	DataPoints() io.Reader
 }
 
 type dumper struct{}
@@ -130,15 +130,14 @@ func (dumper) run(e exec) error {
 	}
 
 	server := agent.NewServer(e.AgentData(), e.Decoder())
-	logger := agent.NewLogger(e.AppLogs())
+	logger := agent.NewDataPointServer(e.DataPoints())
 	agent.NewPeriodicRequester(e.AgentData(), server.Done, nil)
 	for m := range agent.Merge(server, logger).Output() {
 		// dump the contents
 		fmt.Printf(`type: %v
 data: %v
-error: %v
 
-`, m.Type, string(m.Data), m.Error)
+`, m.Type, string(m.Data))
 	}
 	return nil
 }
@@ -178,7 +177,7 @@ func (s serial) run(e exec) error {
 			Encoding:    schema.JSON,
 		},
 		server,
-		agent.NewLogger(e.AppLogs()),
+		agent.NewDataPointServer(e.DataPoints()),
 	)
 	merger := message.Merge(
 		converter,
@@ -336,7 +335,7 @@ func (c *client) run(exec exec) error {
 					Encoding:    schema.MsgPack,
 				},
 				server,
-				agent.NewLogger(exec.AppLogs()),
+				agent.NewDataPointServer(exec.DataPoints()),
 			),
 			broker.NewMessageLoader(c.msgPath, c.fs),
 			agent.NewPeriodicRequester(

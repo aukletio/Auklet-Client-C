@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/vmihailenco/msgpack"
 
 	"github.com/aukletio/Auklet-Client-C/agent"
 	"github.com/aukletio/Auklet-Client-C/broker"
 	"github.com/aukletio/Auklet-Client-C/device"
+	"github.com/aukletio/Auklet-Client-C/errorlog"
 )
 
 // Converter converts a stream of agent.Message to a stream of broker.Message.
@@ -68,13 +70,17 @@ const (
 // NewConverter returns a converter for the given input streams that uses the
 // given persistor and app.
 func NewConverter(cfg Config, in ...agent.MessageSource) Converter {
-	c := Converter{
+	c := newConverter(cfg, in...)
+	go c.serve()
+	return c
+}
+
+func newConverter(cfg Config, in ...agent.MessageSource) Converter {
+	return Converter{
 		in:     agent.Merge(in...),
 		out:    make(chan broker.Message),
 		Config: cfg,
 	}
-	go c.serve()
-	return c
 }
 
 // Output returns the converter's output stream.
@@ -100,6 +106,7 @@ func (c Converter) serve() {
 					Error: err.Error(),
 					Topic: broker.Log,
 				}
+				errorlog.Printf("Converter.serve: %v", err)
 				continue
 			}
 		}
@@ -110,8 +117,6 @@ func (c Converter) serve() {
 
 func (c Converter) convert(m agent.Message) broker.Message {
 	switch m.Type {
-	case "applog":
-		return c.marshal(c.appLog(m.Data), broker.Event)
 	case "profile":
 		return c.marshal(c.profile(m.Data), broker.Profile)
 	case "event":
@@ -127,6 +132,8 @@ func (c Converter) convert(m agent.Message) broker.Message {
 		// by agent.Server, if it receives EOF and has not seen an
 		// "event".
 		return c.marshal(c.exit(), broker.Event)
+	case "datapoint":
+		return c.marshal(c.dataPoint(m.Data), broker.DataPoint)
 	default:
 		return broker.Message{
 			Error: fmt.Sprintf("message of type %q not handled", m.Type),
@@ -151,6 +158,9 @@ func (c Converter) marshal(v interface{}, topic broker.Topic) broker.Message {
 		JSON:    json.Marshal,
 	}[c.Encoding]
 	bytes, err := marshaler(v)
+	if err != nil {
+		errorlog.Printf("Converter.marshal: %v", err)
+	}
 	return broker.Message{
 		Error: func() string {
 			if err != nil {
@@ -161,4 +171,21 @@ func (c Converter) marshal(v interface{}, topic broker.Topic) broker.Message {
 		Bytes: bytes,
 		Topic: topic,
 	}
+}
+
+type number string
+
+func (n number) MarshalMsgpack() ([]byte, error) { return []byte(n), nil }
+
+func encodeNumber(enc *msgpack.Encoder, v reflect.Value) error {
+	n := number(v.Interface().(json.Number))
+	if err := enc.EncodeExtHeader(0, len(n)); err != nil {
+		return err
+	}
+	return enc.Encode(n)
+}
+
+func init() {
+	var n json.Number
+	msgpack.Register(n, encodeNumber, nil)
 }
