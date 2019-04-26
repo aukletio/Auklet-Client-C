@@ -166,19 +166,6 @@ var dataPointTests = []struct {
 			}`,
 		problem: true,
 	},
-	{
-		input: `{
-				"type": "motion",
-				"payload": {}
-			}`,
-	},
-	{
-		input: `{
-				"type": "motion",
-				"payload": {"bogus":null}
-			}`,
-		problem: true,
-	},
 }
 
 func TestDataPoint(t *testing.T) {

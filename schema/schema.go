@@ -153,9 +153,6 @@ func (c Converter) dataPoint(data []byte) dataPoint {
 	switch raw.Type {
 	case "", "generic":
 		return c.genericDataPoint(raw.Payload)
-
-	case "motion":
-		return c.motionDataPoint(raw.Payload)
 	}
 
 	var d dataPoint
@@ -173,23 +170,4 @@ func (c Converter) genericDataPoint(payload []byte) dataPoint {
 		errorlog.Printf("Converter.genericDataPoint: %v in %q", err, string(payload))
 	}
 	return generic
-}
-
-func (c Converter) motionDataPoint(payload []byte) dataPoint {
-	var motion struct {
-		X float64 `json:"x_axis"`
-		Y float64 `json:"y_axis"`
-		Z float64 `json:"z_axis"`
-	}
-	err := unmarshalStrict(payload, &motion)
-	d := dataPoint{
-		metadata: c.metadata(),
-		Type:     "motion",
-		Payload:  motion,
-	}
-	if err != nil {
-		d.Error = err.Error()
-		errorlog.Printf("Converter.motionDataPoint: %v in %q", err, string(payload))
-	}
-	return d
 }
