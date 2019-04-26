@@ -168,19 +168,6 @@ var dataPointTests = []struct {
 	},
 	{
 		input: `{
-				"type": "location",
-				"payload": {}
-			}`,
-	},
-	{
-		input: `{
-				"type": "location",
-				"payload": {"bogus":null}
-			}`,
-		problem: true,
-	},
-	{
-		input: `{
 				"type": "motion",
 				"payload": {}
 			}`,

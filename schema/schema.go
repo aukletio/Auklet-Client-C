@@ -154,9 +154,6 @@ func (c Converter) dataPoint(data []byte) dataPoint {
 	case "", "generic":
 		return c.genericDataPoint(raw.Payload)
 
-	case "location":
-		return c.locationDataPoint(raw.Payload)
-
 	case "motion":
 		return c.motionDataPoint(raw.Payload)
 	}
@@ -176,29 +173,6 @@ func (c Converter) genericDataPoint(payload []byte) dataPoint {
 		errorlog.Printf("Converter.genericDataPoint: %v in %q", err, string(payload))
 	}
 	return generic
-}
-
-func (c Converter) locationDataPoint(payload []byte) dataPoint {
-	var location struct {
-		Speed     float64 `json:"speed"`
-		Longitude float64 `json:"longitude"`
-		Latitude  float64 `json:"latitude"`
-		Altitude  float64 `json:"altitude"`
-		Course    float64 `json:"course"`
-		Timestamp int     `json:"timestamp"` // unix
-		Precision float64 `json:"precision"`
-	}
-	err := unmarshalStrict(payload, &location)
-	d := dataPoint{
-		metadata: c.metadata(),
-		Type:     "location",
-		Payload:  location,
-	}
-	if err != nil {
-		d.Error = err.Error()
-		errorlog.Printf("Converter.locationDataPoint: %v in %q", err, string(payload))
-	}
-	return d
 }
 
 func (c Converter) motionDataPoint(payload []byte) dataPoint {
