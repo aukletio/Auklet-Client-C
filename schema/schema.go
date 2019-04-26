@@ -125,12 +125,11 @@ type dataPoint struct {
 	Payload interface{} `json:"payload"`
 }
 
-func unmarshalStrict(data []byte, v interface{}) error {
+func unmarshalLossless(data []byte, v interface{}) error {
 	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
 	dec.UseNumber()
 	if err := dec.Decode(v); err != nil {
-		format := "unmarshalStrict: %v in %q"
+		format := "unmarshalLossless: %v in %q"
 		return fmt.Errorf(format, err, string(data))
 	}
 	return nil
@@ -143,29 +142,22 @@ func (c Converter) dataPoint(data []byte) dataPoint {
 		Type    string          `json:"type"`
 		Payload json.RawMessage `json:"payload"`
 	}
-	if err := unmarshalStrict(data, &raw); err != nil {
+	if err := unmarshalLossless(data, &raw); err != nil {
 		var d dataPoint
 		d.Error = err.Error()
 		errorlog.Printf("Converter.dataPoint: %v in %q", err, string(data))
 		return d
 	}
 
-	switch raw.Type {
-	case "", "generic":
-		return c.genericDataPoint(raw.Payload)
-	}
-
-	var d dataPoint
-	d.Error = fmt.Sprintf("datapoint: unsupported type %q", raw.Type)
-	return d
+	return c.genericDataPoint(raw.Type, raw.Payload)
 }
 
-func (c Converter) genericDataPoint(payload []byte) dataPoint {
+func (c Converter) genericDataPoint(typ string, payload []byte) dataPoint {
 	generic := dataPoint{
 		metadata: c.metadata(),
-		Type:     "generic",
+		Type:     typ,
 	}
-	if err := unmarshalStrict(payload, &generic.Payload); err != nil {
+	if err := unmarshalLossless(payload, &generic.Payload); err != nil {
 		generic.Error = err.Error()
 		errorlog.Printf("Converter.genericDataPoint: %v in %q", err, string(payload))
 	}

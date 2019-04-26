@@ -117,31 +117,6 @@ func TestConverter(t *testing.T) {
 	}
 }
 
-func TestUnmarshalStrict(t *testing.T) {
-	tests := []struct {
-		input   string
-		problem bool
-	}{
-		{
-			input:   `{"bogus":0}`,
-			problem: true,
-		},
-		{
-			input: `{"number":0}`,
-		},
-	}
-	for _, test := range tests {
-		var v struct {
-			Number int `json:"number"`
-		}
-		err := unmarshalStrict([]byte(test.input), &v)
-		problem := err != nil
-		if problem != test.problem {
-			t.Errorf("case %+v: problem = %v", test, problem)
-		}
-	}
-}
-
 var dataPointTests = []struct {
 	input   string
 	problem bool
@@ -161,10 +136,9 @@ var dataPointTests = []struct {
 	},
 	{
 		input: `{
-				"type": "bogus",
+				"type": "anything",
 				"payload": {}
 			}`,
-		problem: true,
 	},
 }
 
@@ -272,7 +246,7 @@ var numberTests = []numberTest{
 func TestNumber(t *testing.T) {
 	for _, test := range numberTests {
 		var v interface{}
-		if err := unmarshalStrict([]byte(test.number), &v); err != nil {
+		if err := unmarshalLossless([]byte(test.number), &v); err != nil {
 			t.Errorf("case %+v: %v", test, err)
 		}
 		b, err := msgpackMarshal(v)
